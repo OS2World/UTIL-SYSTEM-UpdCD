@@ -6,11 +6,11 @@ UpdCD is a tool to add fixpacks to OS/2 and eCS installer CD.
 
 LICENSE
 ===============
-* Not Specified
+* Freeware
 
 COMPILE TOOLS
 ===============
-* 
+* VXREXX
  
 AUTHORS
 ===============

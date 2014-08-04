@@ -1,0 +1,328 @@
+<html><head><title>Update CD FAQ</title></head>
+<h2>UpdCD FAQ</h2>
+<body>
+<ul>
+<p>
+<li>Q1: <b>How can I see which files are in those bundle files on the original installation CD-ROM?</b>
+<li>A1: Run the script <a href="cdlist.cmd">cdlist.cmd</a> distributed with UpdCD on your CD. It will list all the plain files and the content of zipped or packed (bundled) files. You should have unzip.exe and unpack.exe in your PATH for cdlist.cmd to work.
+<p>
+<li>Q2: <b>MPTS fixpak 8610 looks quite different from the MPTS in directory CID\IMG\MPTS of Warp 4. Are you sure that this can be replaced with the fixpak?</b>
+<li>A2: Yes, it works. Just do it!
+<p>
+<li>Q3: <b>Will the 32-bit MPTS work with the TCP/IP of Warp 3/4?</b>
+<li>A3: Yes, it seems to work OK. However, some people have some stability problems with this combination. Give it a try, but use the latest fixpaks available!
+<p>
+<li>Q4: <b>I want to integrate TCP/IP 4.3. Should I use MPTS fixpak WR0862x?</b>
+<li>A4: No, just use MPTS 87xx update (included with TCP/IP 4.3) and the latest MPTS 87xx fixpak (optional).
+<p>
+<li>Q5: <b>What is the difference between MPTS fixes and updates?</b>
+<li>A5: MPTS updates like WR?08610 or WR?08423 can be used to fully replace MPTS. MPTS fixpaks (WR?08621, WR?08425) should be applied on top of full MPTS installations (like MPTS updates). If you see MPTS.EXE in an MPTS distribution that it is an MPTS update, otherwise it is a fixpak.
+<p>
+<li>Q6: <b>I need to update the scsiadds file with newer SCSI drivers. How can I do that?</b>
+<li>A6: Copy the driver to the UPDCD\NEWINST directory and check the "Add (SCSI) ADD's" option on the graphical interface before you run the build process. The driver will be copied to the right place and the Config.Sys will be updated.
+<p>
+<li>Q7: <b>Will the installation of an updated Warp 4 (or higher) on top of an existing installation preserve the settings?</b>
+<li>A7: Yes, it will preserve the configuration files and will move the desktop objects to the Previous Desktop folder, just like the original installation of Warp 4 did. However, there are some known problems with migrating multimeda. The information below comes from a readme file of MCP1:
+<pre>
+    If you are installing over a previous version of the operating
+    system, make sure the Multimedia Device Support field on the
+    System Configuration panel is set to "None". Multimedia Support
+    requires a second installation step, using Selective Install,
+    after completing installation of the base operating system.
+    See "Migrating Multimedia Support". This step is not necessary
+    if you are doing a clean installation.
+
+    To migrate Multimedia Support:
+
+    Open the OS/2 System folder, then the System Setup folder,
+    then the Install/Remove folder, then start Selective Install.
+
+    On the first panel, System Configuration, click on the icon
+    to the left of the Multimedia Device Support field. A list
+    of available drivers will be displayed. If you find the
+    driver you want to install, select it. If you don't, leave
+    the selection blank. In either case, continue with Selective
+    Installation to install the rest of the Multimedia Support.
+
+    If the multimedia driver you wanted to install was not in
+    the list, see "Manually Installing Multimedia Drivers" for
+    information on how to install your driver.
+
+    Click Next to continue with migration.
+
+    Once you get to the OS/2 Setup and Installation panel (the
+    third panel), select the checkbox labeled Multimedia Software
+    Support.
+
+    Select Next to continue with Selective Installation. Follow
+    the directions as they appear on the screen.
+
+    At the end of Selective Install, restart your system.
+    The multimedia drivers should be working correctly.
+</pre>
+<p>
+<li>Q8: <b>What is the difference between updates and fixes?</b>
+<li>A8: Update means complete replacement of a given product. Basically, you can fully replace the corresponding base product with it. A fixpak is just the opposite, because it does not contain all the files of the base product. It should be installed on top of the base product. For example, TCP/IP 4.3 is an update and OS/2 Fixpak 14 is a fixpak. Consult the documentation of the given component if you hasitate.
+<p>
+<li>Q9: <b>Could you add a section to the readme that specifically lists which files I need to download?</b>
+<li>A9: No, because it is not possible for me to link all the components supported by UpdCD including all the NLS versions. However, on the main UpdCD page you can find a few links which might help you. The <a href="http://groups.yahoo.com/group/updcd/links">Link section</a> of the UpdCD discussion group als contains useful links. If you are still unable to set up UpdCD correctly, than you might want to <a href="wupdkit.htm">order the Warp Update Kit</a>.
+<p>
+<li>Q10: <b>It takes a very long time to make the updated CD. Why?</b>
+<li>A10: First of all, check if the DELDIR environment variable is enabled in the config.sys of your system. Rem it out if it is active and reboot your system. Increasing the disk cache might also improve the performance significantly. If you have enough space, put UpdCD on an HPFS or JFS partition. Consult the readme to see how to use a virtual floppy drive with UpdCD. 
+<p>
+<li>Q11: <b>I get a lot of errors and warnings when I run UpdCD. What next?</b>
+<li>A11: Check if you have enough space on the UpdCD partition. Check if you use the right combination of fixpaks and updates. Do not use other REXX variant than the classis REXX delivered with OS/2.
+<p>
+<li>Q12: <b>I have an old version of UpdCD included on the Warp Update Kit. Can I use a newer version?</b>
+<li>A12: Yes, of course. Firstly, copy and unzip the distribution zip of the new UpdCD version to a new directory. Copy UpdCD.Cfg from the old UpdCD directory to the new UpdCD directory. Run Install.CMD from the new UpdCD directory. 
+<p>
+<li>Q13: <b>Can I use RSJ CD-Writer with Update CD? I don't have a SCSI drive...</b>
+<li>A13: Yes, of course, Record.Cmd supports RSJ from UpdCD version 1.8. Basically, you may use any CD-Writer software to burn the CD. Please note, cdrecord also works with IDE devices if you install the DANI ATAPI filter driver. In the UpdCD GUI you need to specify the SCSI device ID. This is a 3 digit number, which specifies the number of SCSI buses, the SCSI ID of the burner and the LUN number. If you do not have a SCSI bus at all, only an IDE burner, you need to specify 0,1,0 as the value of the device parameter. Running cdrecord.exe with the -scanbus option will list all the device ID's you may use.
+<p>
+<li>Q14: <b>Should I apply the Warp Update Kit on top of my existing Warp 4 installation?</b>
+<li>A14: No really. The Update Kit allows you to set up UpdCD on your system. With UpdCD you can create an updated OS/2 or eCS installation CD-ROM including components found on the Update Kit or on your system. This means you integrate those components (fixpak 15, ddfpk 2, etc) and you do not need to apply it on top of an existing system. UpdCD was tested on Warp 3, Warp 4, WSeB, MCP, ACP and eCS 1.x. 
+<p>
+<li>Q15: <b>I created a bootable CD by following all the instructions given. The CD starts, the blue IBM screen appears, then the process hangs with the message: "OS/2 cannot operate your hard disk".</b>
+<li>A15: You might have a SCSI adapter which is not supported by OS/2. If you have the correct driver for your system copy it to the UPDCD\NEWINST directory and check the Add ADD's option of the graphical interface before you run the update. If you need to manipulate the boot image by hand and use the boot emulation boot method, go to the burn\updcd\bootimg\DISK_0_1.IMG directory. This contains the boot image files which you can change before you create the boot image. If you change the Config.Sys do not forget to change the copy of it in the burn\updcd\bootimg directory. This Config.Sys is used after phase 1 of the installation. In other cases disabling hardware detection (F6) seems to help. If you have a SCSI CD-ROM check in the SCSI BIOS (CTRL-A) if the following settings (if present) are set to NO: Enable sync negotiation, Enable disconnection. The compressed DANI IDE driver (version 1.3.8) also seems to break the boot process, because it is not able to find the second boot image (Disk_2.IMG). In this case you might want to create and insert installation disk 2 in your floppy drive before booting from the CD. This should help the boot process to find the "missing" files and to finish the installation. Using no emulation boot method (see the option on the UpdCD GUI) might also solve the problem. For other tips, please visit the UpdCD discussion group and look for the messages <a href="http://groups.yahoo.com/group/updcd/message/861">861</a> and <a href="http://groups.yahoo.com/group/updcd/message/1062">1062</a>.
+<p>
+<li>Q16: <b>Is it possible to use the fixpaks included on the Warp Update Kit to update an existing system?</b>
+<li>A16: Yes, of course. Copy the required fixpak from the CD (located in the file DATA\WUKDATA.ZIP) to your hard disk. You need to download and put the latest fixpak installation tool (csftool) to the same directory. After you copied the necessary files to your hard disk (let us say to c:\temp) you should issue the following commands to install it: <i>set csfutilpath=c:\temp, set csfcdromdir=c:\temp, service</i>. That will do it.
+<p>
+<li>Q17: <b>I do not want to go through during installation all those extra add-on installation questions. However, I would like to install some of the add-on products.</b>
+<li>A17: Sure. Before burning the CD replace burn\ibminst\npconfig.exe with npcfg2.exe. Review the file burn\ibminst\tables\addons.cfg and edit if needed. This file contains the default installation parameters (directory, path) of the addons product. Create a file called npconfig.out in burn\ibminst containing something like this:
+<pre>
+E:\NETSCAPE
+runtime 1 D:
+unicode 0 D:
+ttengine 0 D:
+toolkit 1 D:
+tlktdoc 1 E:
+samples 1 E:
+debugger 1 E:
+swingruntime 1 E:
+swingtoolkit 1 E:
+rmiiioptoolkit 1 E:
+</pre>
+<p>The first line defines the installation path of Netscape. The next lines define the JAVA installation drives. 1 before the drive letter means install the component. 0 means do not install.
+<p>Burn the CD and create the installation diskettes. On disk 1 edit the config.sys and add something like to it:
+<pre>
+SET ADDONINS_PRPRC=1
+SET ADDONINS_SCDDR=0
+SET ADDONINS_DNFLT=0
+SET ADDONINS_DNIDE=0
+SET ADDONINS_FAT32=1
+SET ADDONINS_EMXRT=0
+SET ADDONINS_USBDV=0
+SET ADDONINS_LVMJS=0
+SET ADDONINS_WRPIN=0
+SET ADDONINS_ODN32=0
+SET ADDONINS_XWPLC=0
+SET ADDONINS_NSPIP=1
+SET ADDONINS_BOS2A=0
+SET ADDONINS_FLOS2=0
+SET ADDONINS_ACRB3=0
+SET ADDONINS_NRAV2=0
+SET ADDONINS_FCOM2=0
+SET ADDONINS_OS2CM=0
+SET ADDONINS_XFR86=0
+SET ADDONINS_PSPRC=1
+</pre>
+The string after ADDONINS_ can be obtained from the directory name of the corresponding addon product. Parameter 1 means install the component. Save the config.sys, burn the CD and start the installation.
+<p>
+<li>Q18: <b>I get the following error: "Error: @copy addons\21_DNIDE\DaniS506.ADD x:\ibm1s506.add (rc=1)"</b>
+<li>A18: Please use the compressed version of the DANI driver. It is included in the UpdCD distribution zip. You may also try to enable compression (Compress disk) and replace old SCSI drivers with a dummy driver by checking the Add ADD's option on the GUI.
+<p>
+<li>Q19: <b>I did not receive the WUK, the WUK is damaged, the WUK does not work...</b>
+<li>A19: Contact me and I will send you (1x) a replacement free of charge.
+<p>
+<li>Q20: <b>I snail-mailed the payment for the WUK to you but you did not received it. What next?</b>
+<li>A20: Please resend the payment. You might want to pay by bank transfer or by PayPal.
+<p>
+<li>Q21: <b>I have installed XFree86 3.3.6 but it does not work. Why?</b>
+<li>A21: Before running XFree86 you must configure it. Run the "X-Server Configuration" program form the XFree86 folder and answer the questions. If the configuration file is succesfully created, check the installation with running the program "Check XFree86 Configuration". If it returns only warnings you might try to start XFree86 with clicking on "Start X". If it is still does not work you might need to install an other X-server. UpdCD installs the SVGA server, because it supports quite a lot of chipsets. Refer to the XFree86 documentation on how to install an other X-server. If you want UpdCD to install an other X-server you need to edit the line containing <i>xserver.exe = 'XF86_SVGA.exe'</i>  in the addonins.cmd of XFree86. One more thing: it will never work without TCP/IP installed...
+<p>
+<li>Q22: <b>My language is not supported by the WUK. Can you make a special version for me?</b>
+<li>A22: Yes, if you translate the UpdCD language file to your language and buy at least 5 copies.
+<p>
+<li>Q23: <b>How can I add new addon products?</b>
+<li>A23: Go to the updcd\addons directory and create a subdirectory for your product. The name should start with a 2 digit number followed by an underscore and 5 characters. Place the installation files here and the installation script which should be called addonins.cmd. Go to newinst\addon.cfg and add a section for your product. The section name of the product should be the same as the name of the addon directory holding your files. The variables under the section XX_GLOBAL are public variables. It means that all of the installation scripts can access them. The product variables overrides the global variables. The variables can be used from the addonins.cmd by referring to environment variables having the same name. For example, referring to %PRODUCT_NAME% in a batch addonins.cmd belonging to 32_XWPLC would have the value XWorkPlace. In this way you can specify in addon.cfg the installation parameters your script should have. During installation a graphical interface is used to select which addon components are installed. As you can see, adding a new product is not easy. Probably you want to add your stuff to the pre- or postprocessing scripts (00_PRPRC, 99_PSPRC) instead. These scripts are called every time the (selective addon) installation runs.
+<p>
+<li>Q24: <b>How can I make a bootable CD with RSJ?</b>
+<li>A24: Start Record.Cmd (Burn button) and create a boot image using option 2. After that, use option 5 to burn the CD. If you are building an eCS 1.x CD-ROM or using no emulation boot method, you have to use CDRcord/2 to create the CD-ROM.
+<p>
+<li>Q25: <b>When I run Xfree86 3.3.6 I get a TRAP or my machine hangs.</b>
+<li>A25: You are right. It seems that if AMOUSE 1.01 is installed XFree86 3.3.6 traps. Upgrade to a higher version of Amouse and/or XFree86.
+<p>
+<li>Q26: <b>I have an LS210 drive as drive A: which does not seem to work with UpdCD.</b>
+<li>A26: Unfortunately, the FLT driver of the LS120 drive does not work with some of the tools UpdCD is using. Install VDISK or SVDISK and specify the drive letter of the virtual floppy in UPDCD.CFG as the value of the flpdrv parameter.
+<p>
+<li>Q27: <b>When I try to insert a 2.88MB virtual disk using VFDISK I got memory a memory allocation error.</b>
+<li>A27: In the Config.Sys append the parameter 4 after the line of VFDISK.SYS (e.g. <code>DEVICE=C:\OS2\BOOT\VFDISK.SYS 4</code>). In this way VFDISK will start with a 2.88MB disk inserted and will reserve enough memory to handle every virtual disk type. An other solution is to upgrade to the latest (3.0) version of VFDISK.
+<p>
+<li>Q28: <b>During installation INSTALL.EXE crashes and the file POPUPLOG.OS2 is created in the root of the boot drive.</b>
+<li>A28: Go to X:\OS2\INSTALL and find the file INSTALL.LOG. Open the file in an editor and find the last line. Issue the command described by this line and see what happens. If the command cannot be executed you might need to burn an other CD, because the problematic one might contain one or more bad blocks.
+<p>
+<li>Q29: <b>I would like to use an older OS/2 fixpak with UpdCD, but it does not recognize it, even if it is correctly unpacked in the fixes directory.</b>
+<li>A29: UpdCD detects OS/2 fixpaks by looking up a special string in the SRV_PROD.OS2 file. Unfortunately, some older fixpaks (older than fp 12) does not always seem to contain the string UpdCD is looking for. You can bypass this problem by replacing the SRV_PROD.OS2 file with the same file from a newer fixpak (fp 12 or higher).
+<p>
+<li>Q30: <b>I do not have a CD burner. Can I still use UpdCD?</b>
+<li>A30: Yes, of course. Even without a CD burner you can create an updated CD image on your hard disk. After that, you can transfer the image to an other computer which does have a burner or you can try to install from hard disk. To do so, you need to edit the Config.Sys on boot disk 1 and add the directory which contains the OS/2 files to the line of SET OS2_SHELL as a parameter. It seems that you also have to define the SOURCEPATH variable which should point to the same directory. Example: 
+<pre>
+SET OS2_SHELL=SYSINST2.EXE X:\UPDCD\BURN\OS2IMAGE
+SET SOURCEPATH=X:\UPDCD\BURN\OS2IMAGE
+</pre>
+<p>If you have a virtual PC  (VPC, VMWare, Svista) you can mount the RAW (ISO) image created by the UpdCD burn procedure as a virtual CD-ROM. This way you can install (test) the created CD-ROM in a virtual machine.
+<p>
+<li>Q31: <b>I get one error when I try to build: Error: X:\SYSINST2.EXE <- D:\UPDCD\FIX\SYSINST2.EXE rc=1. Is it a problem?</b>
+<li>A31: Yes, it indicates that there is not enough space on the 1.44MB (virtual) floppy. You may try to enable compression, remove unnecessary ADD drivers from the NEWINST directory or disable addition of SCSI drivers (checkbox Add ADD's on the GUI).
+<p>
+<li>Q32: <b>Can you send an updated CD-ROM to me? I will pay you $$$ for it...</b>
+<li>A32: No. I am not entitled to sell OS/2 CD-ROM's. If you email me with this question I will not respond. Check out the <a href="wupdkit.htm">Warp Update Kit (WUK)</a> instead. 
+<p>
+<li>Q33: <b>I get a TRAP in VFDISK during the burn process. How can I fix it?</b>
+<li>A33: If you have the FAT32 driver installed rem the driver out from the Config.Sys and reboot your system before running the burn procedure. Furthermore, on FAT32 aware OS/2 systems, the line loading VFDISK must be placed after every other line involving file systems, otherwise VFDISK will be installed with wrong drive letter. 
+<p>
+<li>Q34: <b>I get an error message during loading VFDISK stating that the driver cannot reserve a drive letter. What next?</b>
+<li>A34: It seems that you have reserved the last drive letter available using the RESERVEDRIVELETTER statement in your Config.Sys. Check if there is a free drive letter for VFDISK to reserve.
+<p>
+<li>Q35: <b>If I run Record.Cmd I get the following message:</b>
+<pre>
+This command file records a wave file using the MultiMedia
+REXX string interface.
+
+record filename
+</pre>
+<li>A35: You you are running Record.Cmd belonging to Multimedia (\mmos2\record.cmd). Run Record.Cmd from the UpdCD directory to be sure that you run the script belonging to UpdCD. If you are already running it from the UpdCD directory be sure that Record.Cmd exists in that directory. If it does not, you might have an incomplete installation which is the case when you install an UpdCD fix release instead of a full release.
+<p>
+<li>Q36: <b>I would like to add more add-on products to the CD but it is full. I already use a 700MB CD-ROM...</b>
+<li>A36: You may want to add the additional add-on products to a second CD. If you do so you will be able to install these products after the installation of the first CD starting Selective Install for Add-On products from the System Setup, Install/Remove folder. The best way to create the second CD is to reuse the image of the first CD. After burning the first CD go to the burn directory and delete everything except the burn\updcd directory. Go to the burn\updcd\addons directory and delete the add-ons products which are already added to the first CD. Be sure that you do not delete the 00_PRPRC and 99_PSPRC directories and the read.me file. Add the new add-ons. Be sure that the addons.cfg file used for the creation of the first CD (see newinst\addons.cfg and/or burn\ibminst\tables\addons.cfg) contains the add-on definitions for both CD-ROM's. Leave the other directories and files alone in the burn\addons directory. 
+<p>An other possibility is to use a DVD instead of a CD. Since version 2.48 UpdCD is capable to produce bootable OS/2 installation DVD's.
+<p>
+<li>Q37: <b>I don't like the Internal Revision Number displayed during booting. Is it possible to supress it?</b>
+<li>A37: Of course. Go to the burn\os2image\disk_0 directory before burning. Create a file os2norev.$$$ in that directory. Issue the following command (replace e:\updcd with your UpdCD installation directory):
+<pre>
+e:\updcd\bin\pack2 os2norev.$$$ bundle /H:\OS2\BOOT\os2norev.$$$ /A
+</pre>
+Delete os2norev.$$$ and start the burn process. 
+<p>
+<li>Q38: <b>How to prevent the graphical install screen to pop up?</b>
+<li>A38: Select More in the General options group of the UpdCD GUI. Be sure the checkbox No InstallShield is checked.
+<p>
+<li>Q39: <b>How to use an updated CD-ROM with an old OS/2 installation?</b>
+<li>A39: Overwrite the files in the IBMINST directory of your already installed system with the following files from the updated CD-ROM:
+<pre>
+\IBMINST\TABLES\lcudrvr.fil
+\IBMINST\mkrsp.cmd
+</pre>
+<p>
+<li>Q40: <b>I cannot use the add network card driver (NIC) feature of UpdCD because I do not have an MPTS fixpak. What should I do?</b>
+<li>A40: In this case you have to manually add your drivers (the .NIF and .OS2 files) to the IBMCOM\MACS directory of the file BURN\CID\...\MPTS\IBMCOM\MACS\MACS.ZIP before starting the burn procedure. Because IBM used an old PKZIP to create MACS.ZIP you must use BIN\ZIP.1 included with UpdCD to recreate the ZIP, otherwise, the MPTS installer will fail. Please rename ZIP.1 to ZIP.EXE before using it. This method does not work for eCS 1.0.
+<p>
+<li>Q41: <b>How can I (re)create the WPS objects for installing and/or uninstalling the UpdCD addon products?</b>
+<li>A41: Create WPs objects with the following parameters: Npconfig.Exe (executable), /REINSTALL or /UNINSTALL (command line parameter).
+<p>
+<li>Q42: <b>How can I integrate the Enhanced SpeedStep Support?</b>
+<li>A42: Download the SpeedStep package from IBM and unpack it in a temp dir (os2spdst.exe -d). Copy the following files from the temp directory to the addons directory of your base OS/2 fixpak (some files might reside in a language specifiec subdirectory under your temp dir):
+<pre>
+updcd\FIXES\XR_E003\addons\wpconmri.dll
+updcd\FIXES\XR_E003\addons\wpgsvpwr.hlp
+updcd\FIXES\XR_E003\addons\gsvdaemn.exe
+updcd\FIXES\XR_E003\addons\wpconfig.dll
+updcd\FIXES\XR_E003\addons\apm.sys
+</pre>
+<p>Optionally you may also copy the following files if you need debugging support for the updated modules:
+<pre>
+updcd\FIXES\XR_E003\addons\wpconfig.sym
+updcd\FIXES\XR_E003\addons\gsvdaemn.sym
+updcd\FIXES\XR_E003\addons\apm.sym
+</pre>
+<p>Start the build procedure.
+<li>Q43: <b>How can I integrate the Extended Partition Support?</b>
+<li>A43: Download the expart package from IBM and unpack it in a temp dir (expartw4.exe for Warp 4 or expartcp.exe for CP). Copy the following files from the temp directory to the addons directory of your base OS/2 fixpak:
+<pre>
+updcd\FIXES\XR_E003\addons\FDISKPM.DLL
+updcd\FIXES\XR_E003\addons\OS2DASD.DMD
+updcd\FIXES\XR_E003\addons\IBM1S506.ADD
+updcd\FIXES\XR_E003\addons\FORMAT.COM
+updcd\FIXES\XR_E003\addons\FDISK.COM
+updcd\FIXES\XR_E003\addons\FDISKPM.EXE
+</pre>
+<p>If the kernel included in the package is newer, than the kernel of your base fixpak, you also need to copy the following files:
+<pre>
+updcd\FIXES\XR_E003\addons\OS2DUMP
+updcd\FIXES\XR_E003\addons\OS2KRNL
+</pre>
+<p>Start the build procedure.
+<li>Q44: <b>How can I integrate Cardbus Support?</b>
+<li>A44: Download the Cardbus package from IBM and unpack it in a temp directory. Copy the following files from the temp directory to the addons directory of your base OS/2 fixpak (some files might reside in a language specifiec subdirectory under your temp dir):
+<pre>
+updcd\FIXES\XR_E003\addons\FCHECK2.EXE
+updcd\FIXES\XR_E003\addons\FFORMAT2.EXE
+updcd\FIXES\XR_E003\addons\TDKENAB.OS2
+updcd\FIXES\XR_E003\addons\FLSH2MTD.SYS
+updcd\FIXES\XR_E003\addons\PCMSSDIF.SYS
+updcd\FIXES\XR_E003\addons\PCM2FLSH.SYS
+updcd\FIXES\XR_E003\addons\PCM2SRAM.SYS
+updcd\FIXES\XR_E003\addons\VPCMCIA.SYS
+updcd\FIXES\XR_E003\addons\ATAMNT2.EXE
+updcd\FIXES\XR_E003\addons\AUTOUTL2.EXE
+updcd\FIXES\XR_E003\addons\AUTOUTL2.HLP
+updcd\FIXES\XR_E003\addons\ATAMNT2.HLP
+updcd\FIXES\XR_E003\addons\README.TXT
+updcd\FIXES\XR_E003\addons\PAWFLDR.ICO
+updcd\FIXES\XR_E003\addons\TDKFLYR.OS2
+updcd\FIXES\XR_E003\addons\PROTOCOL.INI
+updcd\FIXES\XR_E003\addons\BON_GAME.SCR
+updcd\FIXES\XR_E003\addons\MODEM_4.SCR
+updcd\FIXES\XR_E003\addons\MODEM_2.SCR
+updcd\FIXES\XR_E003\addons\MODEM_3.SCR
+updcd\FIXES\XR_E003\addons\MODEM_1.SCR
+updcd\FIXES\XR_E003\addons\IBM_TOKN.SCR
+updcd\FIXES\XR_E003\addons\IBM_SCSI.SCR
+updcd\FIXES\XR_E003\addons\IBM_ETHR.SCR
+updcd\FIXES\XR_E003\addons\IBM_3270.SCR
+updcd\FIXES\XR_E003\addons\COM_FD.SCR
+updcd\FIXES\XR_E003\addons\FUT_SCSI.SCR
+updcd\FIXES\XR_E003\addons\AUTODRV2.SEL
+updcd\FIXES\XR_E003\addons\AUTODRV2.SCR
+updcd\FIXES\XR_E003\addons\AUTODRV.DOC
+updcd\FIXES\XR_E003\addons\PCMCIA2.CRD
+</pre>
+<p>Rename README.TXT to CARDBUS.TXT. Start the build procedure.
+<li>Q45: <b>How can I integrate the LVM Update?</b>
+<li>A45: For Warp 4 use the updated files for the LVM 3rd party addon (updcd\addons\24_LVMJS). For WSeB, CP and eCS put the following files in the addons directory of the OS/2 base fixpak. Be sure that the files contained in the LVM distribution are newer than the corresponding LVM files from the base fixpak. Here is an example:
+<pre>
+UpdCD\Fixes\XR_C004\Addons\SYSLEVEL.LVM
+UpdCD\Fixes\XR_C004\Addons\LVM.EXE
+UpdCD\Fixes\XR_C004\Addons\ENGINE.DLL
+UpdCD\Fixes\XR_C004\Addons\LVM.MSG
+UpdCD\Fixes\XR_C004\Addons\LVM.REP
+UpdCD\Fixes\XR_C004\Addons\LVMGUI.ZIP
+UpdCD\Fixes\XR_C004\Addons\LVMH.MSG
+UpdCD\Fixes\XR_C004\Addons\LVM.DLL
+UpdCD\Fixes\XR_C004\Addons\LVMGUI.CMD
+UpdCD\Fixes\XR_C004\Addons\LVM_GUI.ICO
+UpdCD\Fixes\XR_C004\Addons\OS2LVM.DMD
+UpdCD\Fixes\XR_C004\Addons\UHPFS.DLL
+</pre>
+<li>Q46: <b>Can I update eCS 1.2 with UpdCD?</b>
+<li>A46: Yes, treat it as it would be eCS 1.1.
+<p>
+<li>Q47: <b>Can I use the addons with eCS 1.2R without regenerating the whole CD?</b>
+<li>A47: Yes, you can. Here it is how:
+<pre>
+0. Create an addon CD as it is described in Q&A 36. 
+1. Install your original eCS 1.2R
+2. Create the directories x:\ibminst and x:\ibminst\tables.
+3. Copy updcd\newinst\npconfig.exe to x:\ibminst
+4. Copy updcd\nls\message.eng to x:\ibminst\npconfig.msg
+5. Copy updcd\newinst\addons.cfg to x:\ibminst\tables
+6. Create a file called npconfig.acp in x:\ibminst
+7. Create an icon for npconfig.exe with the parameter /REINSTALL
+8. Create an icon for npconfig.exe with the parameter /UNINSTALL
+</pre>
+Now you should be able to install/uninstall addons from the addon CD by clicking on the icons created during step 7 & 8. (x: = bootdrive)
+</ul>
+<p>
+<i>Updated on 03.12.2005 by Z. Kadar (<a href="mailto:kadzsol@xenia.sote.hu">kadzsol @ xenia.sote.hu</a>)</i>
+</body></html>

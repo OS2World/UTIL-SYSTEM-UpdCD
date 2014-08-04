@@ -1,0 +1,877 @@
+
+Refresh OS/2 or eCS CD-ROM's with fixpaks and updates (version 2.60)
+--------------------------------------------------------------------
+
+
+1. Introduction
+
+Are you tired of reinstalling fixpaks after adding or reinstalling system 
+components? Are you tired of updating installation diskettes of having 
+problems with installing OS/2 on modern systems? Are you tired of booting
+and installing using installation diskettes? You can avoid these problems by 
+updating your OS/2 Warp 3/4, WSeB, MCP/ACP and eCS 1.x installation CD-ROM's 
+with the latest fixpaks. UpdCD takes all the fixpaks and other products 
+you supply together with your original installation CD-ROM and builds an 
+updated installation CD-ROM on your hard disk with all the new components 
+already integrated!
+
+
+2. UpdCD installation
+
+2.1 Installation under OS/2 or eCS
+
+The installation of UpdCD itself is very easy. Simply copy the distribution 
+zip to a directory of your choice (say D:\UPDCD) and unzip it. UpdCD must 
+be installed on a partition which supports long file names (HPFS, JFS, etc.). 
+Run Install.Cmd to create the UpdCD objects on your Desktop and to create a 
+default configuration file (Updcd.Cfg). If you already have a customized 
+configuration file from an earlier installation you may copy it to the UpdCD 
+directory before you run Install.Cmd. In that case the installation program 
+will migrate your settings. Do not unzip the distribution zip in the directory 
+of an older UpdCD installation. There is no guarantee that the mixed version 
+will work.
+
+If you have Object REXX installed, Install.Cmd will ask you to switch to
+classical REXX. Use the SWITCHRX command to switch back to classical REXX, 
+reboot your system and run Install.Cmd again. Do not switch to Object REXX 
+during the use of UpdCD. I also advice you not to install REXX extenders, 
+like Personal REXX. 
+
+You may remove the UpdCD objects by running Uninstal.Cmd. It will also remove 
+the UpdCD settings from your OS/2 INI files. After that, remove the UpdCD 
+files and directories manually.
+
+If you have replaced your command shell (cmd.exe) with an alternative shell,
+please restore cmd.exe before using UpdCD.
+
+
+2.2 Installation under Windows
+
+UpdCD does not run under DOS or Windows. However, UpdCD can create an OS/2
+maintenance environment under Windows which will enable you to build an updated 
+CD-ROM. Unzip the distribution zip to a directory on a FAT32 or HPFS partition 
+which is big enough to create an updated CD-ROM. Run the UpdCD BATCH program 
+Mkdisks.Bat from the command prompt and follow the instructions on the screen. 
+UpdCD will create 3 boot diskettes which will enable you to start your system 
+and run UpdCD. The UpdCD maintenance system can only handle Warp 4 CD-ROM's at 
+this time. UpdCD assumes during the creation of the maintenance system that 
+drive A: is an 1.44MB floppy drive. 
+
+
+3. Setting up (optional) UpdCD tools
+
+UpdCD is designed to make use of some third party tools. One of the most 
+important tools is the virtual floppy. If you want to create bootable
+CD-ROM's or if you want to build an updated eCS CD-ROM you must install
+one before you can use UpdCD. Otherwise, its use is optional and you may
+use a normal 1.44MB floppy (A:) instead. However, I strongly recommend you
+to install it before you begin to use UpdCD, because it will speed up 
+processing dramatically. There are 2 virtual floppy programs available
+for OS/2 at this time: SVDISK (shareware) and VFDISK (freeware). You may 
+find them on hobbes.nmsu.edu. Be sure that the control program (SVDC.EXE 
+for SVDISK and VFCTRL.EXE for VFDISK) is in your PATH. Do not forget to 
+specify the drive letter of the virtual floppy in the UpdCD configuration.
+
+To be able to burn CD-ROM's you need a burning program. UpdCD supports RSJ 
+CD Writer (commercial product) and the Chris Wohlgemuth port of CDRecord 
+(free product). If you plan to build a bootable CD-ROM you must install one 
+of them. Otherwise, you may use any other burning program. If you decide to 
+install CDRecord, be sure that you also install the EMX run-time and the
+ASPI router. If you want to use an IDE CD-ROM with CDRecord, you also have
+to install the IDE and the FLT driver of Daniela Engert. Be sure to use 
+CDRecord 2.0 or higher. 
+
+CDRtools of Nickk should also work if you rename mkisofs2.exe to mkisofs.exe
+and cdrecord2.exe to cdrecord.exe.
+
+UpdCD also supports burning DVD-ROM's using DVDDAO from Nickk. If dvddao.exe 
+is present in the CDRecord directory, the CDRecord radio button and the DVD-ROM 
+check-box are selected on the GUI, UpdCD will use DVDDAO instead of CDRecord.
+DVD burning is not supported when using RSJ. 
+
+Some of the UpdCD scripts use ATTRIB.EXE and EAUTIL.EXE, which are part of 
+the optional system tools delivered with OS/2. Be sure they are in your PATH.
+
+
+4. Setting up fixpaks and updated components
+
+Before you can start building a refreshed installation CD-ROM, you should 
+download and prepare the components you wish to incorporate. You need to
+prepare all the components which are obligatory. The following products are 
+supported by UpdCD:
+
+Warp 4:
+- Obligatory components:
+  Base Fixpak 12/13/14/15/16/17, Device Driver Fixpak 1/2/3, Feature Installer 
+  update 1.25
+- Optional components:
+	Netscape 4.61 update, Java 1.1.7/1.1.8/1.3.x run-time update, MPTS fixpak
+  8424/8425/8620/8621/8708, PEER fixpak 8402/8406/8412/8413/8414, TCP/IP 
+  fixpak 0980/2001/2206/2334, JAVA 1.1.8 run-time, toolkit, samples and 
+  rmi-iiop fixes, printer fixes (laserjet*.exe, omni*.exe, pscript*.exe, 
+  plotters*.exe), MPTS update  8423/8610/8700/8705, TCP/IP update 4.1/4.2/4.3x,
+  Java toolkit or samples update, Netware Requester 2.12 fixpak, IBM install
+  diskettes update and PMFax Lite or Pro (3.2) update (for the Pro version
+  please see section 11). 
+
+The JAVA updates should be placed in a common update subdirectory. The same
+holds for the JAVA fixpaks, they should be placed in a common subdirectory 
+under fixes. The same holds for the printer driver fixes (*.EXE files). They
+also share a common subdirectory under fixes. The EXE file(s) need to be run
+(unzipped) in this directory. Some printer files might be found in more than
+one package (EXE). If that is the case, keep the newer one. Do not use the 
+TCP/IP 2001 fixpak without adding the TCP/IP 4.1 update package. TCP/IP fixpak
+UN_2206 requires the TCP/IP update 4.3.
+
+Warp 3:
+- Obligatory components:
+  Base Fixpak 38/39/40/41/42/43, Device Driver Fixpak 2/3, Feature Installer 
+  update 1.25 
+- Optional components:
+	Netscape 4.61 update, Java 1.1.8 run-time update MPTS fixpak 
+	8424/8425/8620/8621/8708, TCP/IP fixpak 0959+0980, 2001/2206/2334, MPTS 
+	update 8423/8610/8700/8705, PEER fixpak 8196 (Connect) or LS fixpak 8532
+  (Server), Java update 1.1.8/1.3 (toolkit, samples, etc.), JAVA 1.1.8 
+  run-time, toolkit, samples and rmi-iiop fixes, printer fixes (laserjet*.exe, 
+  omni*.exe, pscript*.exe, plotters*.exe)
+
+Warp Server SMP is not supported. Older base fixpaks (like 29) seems not
+to work. 
+
+WSeB:
+- Obligatory components:
+  Base Fixpak 1/2/3, Device Driver Fixpak 2/3
+- Optional components:
+	Netscape 4.61, MPTS fixpak 8621/8706/8707/8708, MPTS update 8700/8705, TCP/IP 
+	update 4.3, Warp 4 Feature Installer products (Voice Type, Bonus Pack 
+	applications, etc.), LAN Server fixpak IP08603/8605/8608, JAVA update 
+	(1.1.8/1.3), JAVA run-time, toolkit, samples and rmi-iop fixes, printer 
+	fixes (laserjet*.exe, omni*.exe, pscript*.exe, plotters*.exe), TCP/IP fixpak 
+	2206/2334, Feature Installer Update 1.25
+
+If you also want UpdCD to update the HPFS386 files, copy the HPFS386 language 
+directory of your choice from the HPFS386 option CD-ROM to the UpdCD burn 
+directory under the subdirectory EN. UpdCD will find the HPFS386 files and
+it will update them. 
+
+Copy example: FR\HPFS386\ifs386.lma -> UPDCD\BURN\EN\HPFS386\ifs386.lma
+
+MCP1/ACP1:
+- Obligatory components:
+  CP fixpak 1/2/3/4/5/6, Device Driver fixpak 2/3
+- Optional components:
+  Warp 4 Feature Installer products (Voice Type, Bonus Pack applications, 
+  etc.), TCP/IP 4.3 update, MPTS update 8705, Netscape Communicator update, 
+  printer fixes, JAVA 1.1.8 and/or 1.3.x updates, JAVA 1.1.8 fixpak, MPTS 
+  fixpak 8706/8707/8708, TCP/IP fixpak 2206/2334, LAN Server fixpak IP8605/8608
+
+MCP2/ACP2:
+- Obligatory components:
+  CP2 fixpak 1 (XR_F001) or CP fixpak 3/4/5/6 (XR_C003/4/5/6), Device Driver 
+  fixpak 3
+- Optional components:
+  Warp 4 Feature Installer products (Voice Type, Bonus Pack applications, 
+  etc.), Netscape Communicator update, printer fixes, JAVA 1.1.8 and/or 
+  1.3.x. updates, JAVA 1.1.8 fixpak, MPTS fixpak 8708, TCP/IP fixpak 2334
+  LAN Server fixpak 8608
+
+eCS 1.1:
+- Obligatory components:
+  CP/eCS fixpak 4/5/6
+-Optional components:
+	Kernel fixes, MPTS fixpak 8707/8708, JAVA 1.1.8 and/or 1.1.3 update, 
+  JAVA 1.1.8 fixpak, NS 4.61 update, printer fixes, TCP/IP fixpak 2334,
+  LAN Server fixpak 8608
+
+JAVA 1.1.8 delivered with CP1, CP2 or eCS 1.1 consists of a JAVA run-time 
+and a Swing run-time component. If you want to update it, you need to put
+the updated JAVA and Swing files in a common directory under updcd\updates.
+Without the Swing files UpdCD will refuse to start the build procedure. If
+you only have the Java run-time files, you may reuse the Swing files from 
+the original installation CD (\OS2IMAGE\FI\PACKAGE). Please see a JAVA 1.1.8 
+update directory listing example in ecs11.txt (contained in dirslists.zip) 
+for more information.
+
+eCS 1.2 (use eCS 1.1 in the UpdCD GUI):
+- Obligatory component:
+  CP/eCS fixpak 5/6
+-Optional components:
+	Kernel fixes, printer fixes
+
+eCS 1.0:
+- Obligatory components:
+  eCS fixpak 3/4/5 (xr?c00??.zip), Dialog enhancer update (DIALOG_??.ZIP)
+-Optional components:
+	Kernel fixes (w4????.zip), device driver fixpak 3 (xr_d0031.zip)
+
+eCS 1.0 fixpak 1 and 2 are not supported any more. Do not unpack the original 
+eCS 1.0 fixpak zip files. 
+
+When you have every package you need, create separate directories for every 
+fixpak under the directory updcd\fixes, like updcd\fixes\fp15 for fixpak 15. 
+Copy the fixpak here. If you have the RSU version (.ZIP extension) then you 
+should use unzip to uncompress it. If you have the DSK version, use dskxtr.exe
+from dskxtr12.zip (http://hobbes.nmsu.edu) to unpack the files or let UpdCD 
+to unpack them. Do not change the directory structure of the fixpaks! Some of 
+the ZIP files might require unshrink support which is provided by BIN\UNZIP.EXE
+delivered with UpdCD.
+
+Create separate directories for every update under the directory updcd\updates,
+like updcd\updates\java for Java 1.1.8. Copy the updated package here. If it 
+is applicable (Java, Netscape, FI), unzip/uncompress the distribution file. All
+of the JAVA components should be placed in the same directory under update. 
+The updated IBM boot diskettes should be placed in separate subdirectories 
+under updates (e.g. updates\disk\disk1 and updates\disk\disk2). Expand the 
+distribution files of all of the updated components if applicable. 
+
+Example directory structure of Warp 4 fixes and updates:
+
+e:\updcd\fixes
+[...]
+e:\updcd\fixes\XRYM015
+e:\updcd\fixes\XRYM015\FIX
+e:\updcd\fixes\XRYM015\FIX\OS2.1
+[...]
+e:\updcd\fixes\XR0DD02
+e:\updcd\fixes\XR0DD02\FIX
+e:\updcd\fixes\XR0DD02\FIX\BDD.1
+[...]
+e:\updcd\fixes\IPY8402
+e:\updcd\fixes\IPY8402\FIX
+e:\updcd\fixes\IPY8402\FIX\REQ.1
+[...]
+e:\updcd\fixes\UN_0980
+e:\updcd\fixes\UN_0980\FIX
+e:\updcd\fixes\UN_0980\FIX\TCP.1
+[...]
+e:\updcd\fixes\WR08621
+e:\updcd\fixes\WR08621\FIX
+e:\updcd\fixes\WR08621\FIX\MPT.1
+[...]
+e:\updcd\fixes\NW212
+e:\updcd\fixes\NW212\ENGLISH
+e:\updcd\fixes\NW212\LOGIN
+[...]
+e:\updcd\fixes\printer
+[...]
+
+e:\updcd\updates
+[...]
+e:\updcd\updates\WR08610
+e:\updcd\updates\WR08610\IBMCOM
+e:\updcd\updates\WR08610\MPTN
+[...]
+e:\updcd\updates\FI125
+[...]
+e:\updcd\updates\NS461
+[...]
+e:\updcd\updates\JAVA
+e:\updcd\updates\JAVA\EN
+e:\updcd\updates\JAVA\DE
+e:\updcd\updates\JAVA\PACKAGE
+[...]
+e:\updcd\updates\disk\disk1
+e:\updcd\updates\disk\disk2
+[...]
+e:\updcd\updates\pmfax
+
+You can find a more detailed sample directory listing of the fixes and updates 
+directories for typical configurations on the UpdCD homepage (dirlists.zip).
+
+Use the "Test" buttons of the UpdCD interface to test if UpdCD correctly 
+recognizes the components you have prepared. Be sure to select the correct 
+OS/2 version from the combo-box before you run the test.
+
+
+5. Additional options
+
+Open GL 1.1 can also be integrated with Warp 4. Download OGLGOLD.ZIP from 
+IBM and unzip the following files to the directory of the Feature Installer
+component (e.g. updates\fi125): WAVE.EXE, RASTER.DLL, OPENGL.DLL, LIBTK.DLL, 
+GLUT.DLL and GLPIPE.DLL.
+
+The installation files on the boot disks (0,1,2) can be compressed with LxLite.
+This way you can gain more space on the disks and you may add your personal 
+fixes to them. Unfortunately, on some systems the compressed boot disks might 
+not work correctly. You can enable compression by checking the "Compress disk" 
+checkbox (General options) on the UpdCD interface. Furthermore, Lxlite can be 
+configured via the LxLite.cfg file located in the UpdCD directory. You can gain
+more space on the disks by adding *.add to the [pdd] section of this file. 
+However, doing so might lead to traps on some systems during installation. 
+
+UpdCD replaces most of the SCSI drivers on boot disk 1 with a dummy driver 
+made by Daniela Engert. This is done in order to gain even more space on the 
+disk. This will give you an additional 300K of free space, so you may easily 
+add (SCSI) drivers you need. 
+
+SCSI drivers (*.ADD files) placed in the UPDCD\NEWINST directory will 
+automatically be included in the boot image and on disk 1 if the "Add SCSI" 
+option on the interface is checked. You should not add more than a few 
+of these drivers, because the space is limited on disk 1. 
+
+The Warp 4 Feature Installer products (Bonus Pack, Voice Type, etc.) can also
+be integrated with WSeB and MCP/ACP. To do so, create a directory called FI 
+under the directory of UpdCD (e.g. UPDCD\FI) and copy the FI products from the 
+Warp 4 installation CD here. They are located under the directory OS2IMAGE\FI. 
+To save space avoid the products you do not need. The Bonus Pack applications 
+and Voice Type are located in the directories OS2IMAGE\FI\BONUSPAK and 
+OS2IMAGE\FI\VT. So if you want to integrate only these 2 applications with 
+your MCP/ACP CD you would need to create the following directory structure:
+
+[...]
+e:\updcd\fi\bonuspak
+e:\updcd\fi\vt
+[...]
+
+You also have to copy PACKAGE.CTL and FIBASE.RSP to the UPDCD\FI directory. 
+FIBASE.RSP is located in the OS2IMAGE\DISK_11\BUNDLE file of the Warp 4 CD. 
+You can extract it with the following command: UNPACK BUNDLE . /N:FIBASE.RSP
+Do not modify the original FIBASE.RSP file.
+
+The FI applications will be copied to the updated CD and can be installed
+after installing WSeB or MCP/ACP by starting the Install Object program from 
+the Selective Install folder. You cannot add FI products to Warp 3 or eCS
+CD's at this time.
+
+You may also integrate kernel updates. To do so you need to create a directory
+called addons under the base fixpak directory and copy the files from the 
+kernel update zip here. The files you put here will overwrite the files 
+contained in the base fixpaks. The directory addons should not contain any 
+subdirs and the files should not be packed or zipped:
+
+[...]
+e:\updcd\fixes
+[...]
+e:\updcd\fixes\XRYM015
+e:\updcd\fixes\XRYM015\addons\os2krnl
+e:\updcd\fixes\XRYM015\addons\OS2LDR
+[...]
+e:\updcd\fixes\XRYM015\FIX
+e:\updcd\fixes\XRYM015\FIX\OS2.1
+[...]
+
+You may also integrate SMP kernel updates with WSeB and ACP. To do so create 
+an SMP subdir under ADDONS and place the SMP files contained in the 
+distribution zip here:
+
+[...]
+e:\updcd\fixes\XRYM015\addons\smp\os2krnl
+e:\updcd\fixes\XRYM015\addons\smp\OS2LDR
+[...]
+
+You may also add the files found in the EXPART (Extended Partition Support), 
+SLPR, Enhanced Speedstep and Cardbus support packages to the kernel update 
+directory. See the FAQ for more info on this.
+
+To integrate a kernel update with eCS 1.0, simply copy the distribution zip 
+(w4*.zip) to the base fixpak directory. Do not unzip the zip!
+
+[...]
+e:\updcd\fixes\Fixpak5\w420050328.zip
+[...]
+
+To integrate other updated modules with eCS 1.0 (like ecswp.dll), create a 
+subdirectory called addons under fixes and place the files here:
+
+[...]
+e:\updcd\fixes\Fixpak5\addons\ecswp.dll
+[...]
+
+You may also overrule drivers from the Device Driver fixpak by adding the
+replacement drivers to the addons directory in the directory of the fixpak:
+
+e:\updcd\fixes
+[...]
+e:\updcd\fixes\DDFPK3
+e:\updcd\fixes\DDFPK3\addons\IBM1S506.ADD
+e:\updcd\fixes\DDFPK3\FIX
+
+MPTS and TCP/IP hotfixes (IC*.EXE) can also be integrated. To do so create the 
+addons directory under the directory of the MPTS or TCP/IP fixpak, copy the 
+hotfix files here and run the EXE to expand the hotfix files:
+
+[...]
+e:\updcd\fixes\WR08621\addons\NSUPDATE.EXE
+[...]
+e:\updcd\fixes\UN_2001\addons\TCPCOEX.EXE
+[...]
+
+If you want to add new network drivers (MAC's) to the installation CD add
+the files of the driver to the addons\macs directory of the MPTS fix.
+If you want to add new protocol drivers to the installation CD add the files
+of the driver to the addons\protocols directory of the MPTS fix.
+
+This way, the drivers will be available during installation:
+
+[...]
+e:\updcd\fixes\WR08621\addons\macs\rtl8139.nif
+e:\updcd\fixes\WR08621\addons\macs\rtsnd.os2
+[...]
+
+Be sure that the addons directory is on the same level as the fix directory 
+of the fixpak.
+
+Good:
+
+e:\updcd\fixes\DDFPK3\FIX
+e:\updcd\fixes\DDFPK3\addons
+
+Bad (addon files will not be picked up by UpdCD):
+
+e:\updcd\fixes\DDFPK3\os2serv\FIX
+e:\updcd\fixes\DDFPK3\addons
+
+If the latter is the case you need to create the addons directory under 
+os2serv or move the directory fix one level up.
+
+Sound drivers can be integrated using the My Sound Driver add-on package. 
+Please check the header of the updcd\addons\29_snddr\addonins.cmd file
+for more information.
+
+It is also possible to replace the resources (icons, bitmaps, text, etc.) 
+attached to base OS/2 files. To do so, copy the replacement resource files to 
+the base OS/2 fixpak addons directory:
+
+[...]
+e:\updcd\fixes\XRYM015\addons\SCENTER_dll.res
+e:\updcd\fixes\XRYM015\addons\PNPMRI_dll.res
+e:\updcd\fixes\XRYM015\addons\PMWPMRI_dll.res
+[...]
+
+As you can see, the resource files should be named after the correspondig base 
+OS file. For instance, if you want to replace the resources included in 
+SCENTER.DLL you must call the resource file SCENTER_dll.res (replace the
+. with _ in the original file name and add the .res extension).
+
+You can replace the MPTS, TCP/IP and PEER/LS resources the same way starting
+from UpdCD 2.31.
+
+It might be useful to know that there are a lot of resources included in
+eCS dialog enhancer files (DIALOG_??.zip, DLG_??.ZIP). If you have access to 
+the www.ecomstation.com site you may want to download this file. Be sure that 
+you are entitled to use eCS if you decide to integrate these resources. You 
+can also extract existing resources using resource decompilers. I have 
+successfully used RDC2 for this job (example: RDC2 PMSHLTKT.DLL PMSHLTKT.RES). 
+Once the resources (.RES files) are extracted you may manipulate them using 
+any dialog editor (DLGEDIT from VAC or Warp Toolkit, WORKSHOP.EXE from Borland
+C for OS/2). To get some of the tools mentioned above please see the following 
+page: 
+
+http://xenia.sote.hu/~kadzsol/fixpak
+
+There is an updated Warp 4 DOS/Windows program database included with UpdCD. 
+You may customize the database by editing the file NEWINST\DATABASE.TXT before 
+building the updated CD. Thanks for Massimo for sending me this file!
+
+UpdCD sets the drive letter of the installation CD-ROM to X: by adding the
+RESERVEDRIVELETTER=W statement to the Config.Sys. If you do not like it you 
+may change the parameter of RESERVEDRIVELETTER by editing the rdrive = 'W' 
+line of the UpdCD configuration file or changing it using the Graphical 
+Interface.
+
+Some of the above features are not supported on some versions of OS/2. To
+see which features are actually supported for your system, please consult 
+the Feature Matrix (matrix.htm) in the UPDCD\DOC directory.
+
+
+6. Incorporating third-party products (add-ons)
+
+You may also add third-party products to the updated CD of Warp3/4, WSeB or 
+MCP/ACP. They will be selectable during the installation process. Each  
+product is placed in its own subdirectory under the ADDONS directory of 
+UpdCD. See the READ.ME file in that directory to see which add-on products 
+are supported. Read the header of the install scripts (ADDONINS.CMD) to see 
+which files you need to copy to that directory to enable the installation 
+of the product. Please see the file UPDCD\NEWINST\ADDONS.CFG for the default 
+installation options, like installation directory, version number, etc.
+
+The incorporated add-on products can also be installed later by starting the 
+Selective Install for Add-On products from the System Setup->Install/Remove
+(Selective Installation) folder. They can also be uninstalled by starting the 
+Selective UnInstall for Add-On products.
+
+Please be aware that the (un)installation program does not take care of product
+dependencies. For example, it will allow you to uninstall products which may be
+needed by other programs which are still installed. For instance, it will allow
+you to uninstall WarpIn, even if XWorkPlace is installed. If you still do this,
+you will not be able to uninstall XWP any more using this program. At this 
+time, the uninstallation program is not very sophisticated. In some cases, it 
+simply starts a general uninstallation program like WarpIn and you have to 
+manually select the components you want to uninstall. If this is the case, 
+simply follow the instructions on the screen and close the uninstallation 
+program when it is ready. In other cases, the IBM Feature Installer (FI) is 
+used to uninstall programs. Most of the time, the Feature Installer needs a 
+reboot to be able to remove locked files. Please do not uninstall more than 
+one FI product without a reboot. Otherwise, the specified programs might not 
+be uninstalled correctly. It is a good (and safe) practice to uninstall 
+programs one by one and to reboot between the uninstallation steps.
+
+Some add-on products (like PMMail/2, SDD) cannot be selected for installation
+during the initial installation because they do not support unattended (CID) 
+installation. You can install them later by starting the Selective Install for 
+Add-On products program.
+
+Products displayed with a red label are not available on the installation
+CD-ROM. Products displayed with a black label are not applicable for the
+current version of OS/2. See the header of the file updcd\newinst\addons.cfg 
+to see how to influence the default behaviour of the add-on installation
+program.
+
+If you have install scripts for other products please send me a copy. I may 
+include it in the next version of UpdCD. Thanks for Thorolf Godawa for sending 
+me a few very useful scripts. Thanks for Jeffrey Smick for the Object Desktop 
+installation script.
+
+
+7. Building an updated CD-ROM on the hard disk
+
+If you have correctly installed and configured UpdCD and the optional tools,
+adequately prepared all the required fixpaks, updates and third-party 
+products, then you are ready to build the updated CD-ROM on your hard disk.
+
+Before you start the build process you should insert the original installation
+CD-ROM in your CD drive. Be sure that no other process accessing the files
+(fixes, updates, burn directory, CD-ROM, etc.) used by UpdCD. You should also 
+insert a formatted 3.5 inch blank floppy in drive A: and specify A: at the 
+drive letter if you are not using a real virtual floppy. Otherwise, just 
+select the virtual floppy program you have installed and click on "Insert" 
+to load a floppy. 
+
+If the floppy loads correctly you may start the build process by clicking
+on the "Build" button. The UpdCD build process should start. It will scan the
+fixes and updates directory and it will ask you if you want to unpack any 
+*.DSK file it finds. If you need to keep those DSK files be sure to backup 
+them before running the build procedure because it will remove every 
+successfully processed DSK file. If it is not the first time that you have 
+run the build process it will clean up any temporary file left from the 
+previous run. After that it will automatically list the detected fixes and 
+updates. The language of your CD-ROM, the number of add-on components are also 
+reported. Although UpdCD does some limited checking, it is still you who 
+should ensure that an appropriate set of fixes and updates are going to be 
+integrated. With other words you should choose the right language and the 
+right fixpak version matching the version of your OS. If you are unsure then 
+you might consult the appropriate directory listing file found in dirlists.zip.
+
+If you are satisfied with the detected components, then you may press ENTER 
+to go on with the build process. The update procedure takes about 30 minutes
+on my 500MHz PIII desktop. Your mileage may vary. The updated CD-ROM files
+will be placed in the UPDCD\BURN directory. During update the log file 
+UPDCD.LOG is created which lists all the actions performed by the build 
+process followed with a return code. It should always be 0. Besides error 
+situations UpdCD logs warning messages as well. A warning message does not 
+automatically mean that there is a problem with the build process. Check the 
+log file to see what those warnings exactly mean. Files which are present in 
+fixpaks but not used during update because they are not needed will also be 
+logged as warnings. However, you should not expect hundreds of warnings.
+
+
+8. Making the CD bootable
+
+If the build process finishes without errors the menu of the burning process 
+will automatically start. Otherwise, start it using the "Burn" button of the 
+interface. If you have installed a virtual floppy you can build the boot image 
+files necessary to make a bootable CD-ROM with option 2. This option does not 
+exists for eCS 1.x, because UpdCD reuses the boot images supplied with eCS. If 
+you do not want to make the CD bootable you may skip this option. 
+
+If you start boot from such a bootable CD-ROM you will first get a boot menu 
+which will enable you to continue to boot from the CD-ROM or to boot from the 
+hard disk. If the CD does not boot check if the file CD_BOOT.FLT is present
+in the updcd\bootimg\DISK_0_1.IMG directory. This file was released in DD fp2.
+You may replace the driver with DANIBOOT.FLT by simply overwriting it before
+creating the boot images.
+
+UpdCD uses the CDBoot/2 package of Roman Stangl to create the boot images. 
+Thanks Roman!
+
+Since version 2.37 it is possible to create CD's which boot in the so called
+no-emulation mode. It is the boot method used by various versions of Windows 
+and eCS 1.1. No emulation means that we do not use boot disk images to boot. 
+Instead of that UpdCD creates a bootable partition in memory using the memdisk
+package of Veit Kannegieser. In this way we have more space (8MB) for our boot
+system and we can patch the boot files in memory by placing the updates on a 
+floppy (A:) before booting up from the CD, This boot method also seems to be 
+more compatible with modern hardware. At this moment, only LVM-enabled systems
+(WSeB, CP) are supported by UpdCD. To be able to support Warp 4 UpdCD will 
+make Warp 4 LVM aware during the creation of the updated CD. It means that you
+have to prepare the LVM addon files before you can create an updated Warp 4 CD
+using no-emulation mode to boot. When Warp 4 boots up please go to command 
+prompt (F3) and manually start VCU/LVM to create (compatibility) volumes or
+start LVM and delete and recreate all partitions on the disk. After that,
+reboot the system and start the installation again. Be sure that you do not 
+use FDISK except for making a partiton installable. 
+
+Known problems/limitations:
+- You may safely ignore the message stating dummy.snp is missing. If you
+  enable the remove OS/2 logo option the warning will go away.
+- Only CDRECORD can be used at this time (RSJ is not capable)
+- Warp 3 is not supported
+- Warp 4 fdisk might complain that there is no startable partition even if
+  BM is present and it is startable (you may safely ignore this message)
+
+Thanks for Veit Kannegieser for letting me to integrate memdisk with UpdCD.
+
+
+9. Burning the updated installation CD-ROM
+
+If you have selected CDR/2 (CDRecord) on the interface to use you have to 
+create a raw image file before you can actually burn the CD. This can be done 
+by selecting option 3 from the burn menu. This option calls MKISOFS.EXE from
+the CDRecord package to create the raw (ISO) image file. The name and the 
+location of this temporary file can be set via the UpdCD interface, where
+you must also specify the CdRecord directory, the burn log file, the burning
+speed and the SCSI ID of your burner. If you have selected RSJ you do not
+need to create a temporary image file, just skip option 3. The burning speed
+and the other burning parameters should be specified using the RSJ program
+interface.
+
+If you use a CD-RW you can blank it using option 4, otherwise just go ahead 
+with option 5 which actually burns the CD-ROM. You may also run the previously 
+mentioned commands in batch mode using option 6.
+
+If you use other packages to burn the CD, please be sure that you disable the 
+ISO9660 file name translation option. Otherwise, all file names containing 
+- (minus) sign will be renamed and the CD will be useless!!! 
+
+Be sure that the capacity of the blank CD-ROM is enough to hold the content of 
+your burn directory! See the UpdCD FAQ how to create a second CD for add-on
+products which cannot be placed on the first installation CD because of the
+limited disk space.
+
+If you have Virtual PC you can mount the raw image as a CD-ROM and test the
+new installation CD without actually burning it.
+
+
+10. Creating updated installation diskettes
+
+If you did not make the CD-ROM bootable you need to create the installation 
+diskettes. To do so, run the program CDINST from the updated CD to create the 
+installation diskettes. Do not use the original installation diskettes with 
+the updated CD-ROM. It will not work! 
+
+
+11. Limitations, known problems
+
+Installing the LVM add-on will automatically disable the VFAT, EXT2 and NTFS 
+file system support, because the VFAT.IFS driver seems to hang the machine 
+when LVM is installed.
+
+UpdCD does not update floppy images (except the 3 images for the installation 
+diskettes) or other than previously mentioned products. 
+
+Installing OS/2 from HDU using the updated image did not work for me. Others 
+reported that it works fine. Tell me if you succeed. 
+
+The installation disks created from the new CD can only be used to install
+OS/2 from the updated CD-ROM. To be able to incorporate Device Driver fixes
+UpdCD must delete some files needed for the floppy installation process, PS/2 
+computers or old SCSI cards.
+
+It seems that incorporating MPTS fixpak 8424/8425 breaks the (CID) installation
+of MPTS. UpdCD must backlevel the file IBMCOM\DLL\LAPSCID.DLL and LAPSPM.DLL 
+to enable the installation of the updated MPTS. The same applies to 8706 when 
+used in combination with MPTS 8701.
+
+When booted from the CD the installation may complain about FAT32 or other
+hidden drives which cannot not be found (SYS0038 error: Unable to find device).
+By selecting "Return error code to program" a few times you should be able 
+to continue with the installation.
+
+When the installation program ask you to remove the disk from drive A: and 
+press ENTER to continue, press CTRL-ALT-DEL instead if booted from the CD. 
+Do not boot from the CD, but boot from the installation partition to continue 
+with the installation. 
+
+Before burning the updated Warp 3 CD check if all of the directories are 
+copied from the original CD. Directories which are not updated might not
+copied to the burn directory. Copy them manually before burning the CD.
+
+XFree86 3.3.6 traps or hangs the system in combination with Amouse 1.01. 
+Use Amouse 2.0 or higher.
+
+Use WarpIn 0.9.9 or higher, otherwise selecting ODIN and XWP addons will hang 
+the installation. 
+
+When creating the ISO image from the updated eCS 1.0 files some of the file 
+names are truncated. Here is an example from the burn log:
+
+"Using os!2 essentials addition000.dat for 
+L:/TVOICE/WiseProg/Desktop/OS2Essentials/os!2 essentials additional 
+progra.dat (os!2 essentials additionalpro000.dat)"
+
+On memory constrained systems (64MB or less) SVDISK sometimes gives problems 
+(Drive not ready) when IMAGE.EXE tries to write a 2.88MB image file to the 
+virtual floppy. Freeing some memory by closing running applications and 
+restarting the build process seems to help.
+
+Inserting a 2.88MB floppy using an older version (2.x) of VFDISK might fail 
+with the following message: "Error: Could not allocate memory!". Upgrade to
+version 3.x of VFDISK solves the problem.
+
+eCS 1.0 Pro (SMP) and Warp Server SMP are not supported at this time.
+
+UpdCD adds by default the line SET JAVA_HIGH_MEMORY=1 to the Config.Sys. It 
+enables JAVA to use the High Memory Space. Unfortunately, this operation mode 
+is uncompatible with applications still using 16-bit code. Trying to run such 
+an application (e.g. GUIFFY, TCP/IP 4.0 or lower) might cause a trap. You may 
+prevent adding the line to the Config.Sys by removing SET JAVA_HIGH_MEMORY=1 
+from updcd\newinst\tunecfg.cfg before starting the build procedure.
+
+The installation program of an updated Warp 3 red pack CD-ROM might complain
+about missing DSP files. Just ignore (OK) the message, the installer will 
+retry and it will find the "missing" files. After the installation you will 
+find various finds related to Win-OS/2 on the installation partition. Because
+Warp 3 red pack does not contain a built in version of Win-OS/2 you may delete
+these files.
+
+Some of the 3rd party addon products (e.g. Acrobat 4) do not seem to install 
+on Warp 3 any more.
+
+Formatting during installation might fail (you get a red screen). If it happens
+just go to the command propmt (F3) and manually format the installation 
+partition (e.g. format d: /fs:hpfs /l). Reboot the system and skip formatting
+the installation partition.
+
+UpdCD deletes some older SCSI drivers (aic7770.add, ini610.add, ini910.add)
+from the eCS 1.0 boot diskette in order to make space for the updated OS/2
+files.
+
+If you integrate PMFax Pro with Warp 4, do not select its installation
+during the initial installation process. Otherwise, your installation
+will hang. Install it using selective installation after compliting the
+initial installation. Do not forget to manually run add.exe to enable the
+product.
+
+If you add additional network (NIC) drivers to Warp Connect, the new drivers
+might not show up in the list of selectable drivers during installation. In
+this case select the Other Network Adapter option and specify x:\cid\nifs as
+the PATH for new drivers (x: is the drive letter of your installation CD-ROM).
+The additional drivers will show up in the updated list.
+
+In some cases the 32-bit TCP/IP JAVA configuration program might not work 
+correctly. Use the TCPConfig addon program instead.
+
+If you decide to integrate the 32-bit TCP/IP update without the old JAVA and
+Netscape components you will not be able to use the JAVA configuration 
+programs. In that case use the TCPConfig addon program instead. 
+
+If you want to install NFS and/or VPN from the 32-bit TCP/IP and you have 
+removed the old JAVA and Netscape components, you can install them by
+starting the "Install VPN" and "Install NFS" programs located in the "Install 
+additional TCP/IP components" folder. This folder is created at the same
+place where the "Selective Install for Add-on products" icon is also placed.
+Most of the time it is the Install/Remove folder located inside the System 
+Setup folder.
+
+The driver print01.sys found in Warp 3 fixpack 41 or higher seems to hang 
+my test machine after the first reboot. You may rem out the driver or use
+an older one for instance the one from fixpak 40.
+
+
+12. Miscellaneous information
+
+It is possible to tune the Config.Sys of Warp 3/4, WSeB, CP or eCS 1.1 systems 
+during installation. For instance you can add extra lines to it or change 
+existing lines, like the PATH or LIBPATH. UpdCD uses this feature to add some 
+new environment variables to the Config.Sys. Those actions are defined in the
+file NEWINST\TUNECFG.CFG. You may define your own actions in the file 
+\NEWINST\TUNECFG.CFU. Please see the the header of TUNECFG.CFG for information 
+on the format of the file. Tuning the OS/2 INI files is also possible. Please 
+see the file NEWINST\TUNEINI.CFG for details. Put your own customization in 
+TUNEINI.CFU and place this file in the NEWINST directory. Since version 2.37 
+it is also possible to reorganize (delete, move, copy) files after the 
+installation of OS/2. The default UpdCD actions are defined in the file 
+\NEWINST\TUNEFLS.CFG. You may specify your own actions in the file 
+\NEWINST\TUNEFLS.CFU. For the format of TUNEFLS.CFU please see TUNEFLS.CFG.
+
+If you have added the DANI IDE driver to its add-on directory (21_DNIDE), you
+may replace the IBM IDE driver (IBM1S506.ADD) everywhere in the updated CD
+by checking the "Add DANI IDE" General option. Since the DANI IDE driver is 
+somewhat bigger than the IBM driver you may run out of space on install disk 1
+and when UpdCD tries to copy the driver you may get an error. You may solve 
+the problem by enabling compression ("Compress disk") or by using the 
+compressed version of the DANI driver. If you have also added DANIATAP.FLT
+to 20_DNFLT, DANIBOOT.FLT to 21_DNIDE and DANIDASD.DMD to the 22_FAT32 
+directory, checking the "Add DANI FLT", "Add DANI Boot" and "Add DANI DASD"
+options will also replace the IBMATAPI.FLT, IMBDECD.FLT, CD_BOOT.FLT and 
+OS2DASD.DMD files with the DANI version of those files. This option might be 
+useful if you have install problems on very large IDE hard disks. OS2DASD.DMD 
+will not be replaced on LVM-enabled systems. Replacing the original IBM CD 
+filter driver might cause that your IDE CD-ROM will be detected as a SCSI II 
+CD-ROM. You need to change it to IDE CD-ROM, otherwise the CD-ROM support will 
+not be installed correctly. 
+
+If you want to install OS/2 on very large hard disks (larger than 502Gb) you 
+have to integrate the UP2TB.FLT driver. Add it to the 21_DNIDE directory and
+select the "Add Up2TB" General option before building. UpdCD will add the
+driver to the boot image which should enable you to install OS/2 on extra
+large disks. This feature is not available for eCS 1.0.
+
+If you want to add FAT32 support to your boot CD-ROM add the FAT32 
+distribution files to the 22_FAT32 addon directory, select the no-emulation 
+boot method in the GUI and check the "Add FAT32" General option. UpdCD will 
+automatically add the necessary FAT32 files to the boot device so you can 
+access FAT32 partitions from the boot CD. This feature is not available if 
+you create the CD with floppy emulation or if you update Warp 3 or eCS 1.0.
+
+If you want to add USB device support to your boot CD-ROM add the USB driver
+files to the 23_USBDV addon directory, select the no-emulation boot method 
+in the GUI and check the "Add USB" General option. UpdCD will automatically 
+add the USB base support, mouse, keyboard, mass storage and cd-rom files to 
+the boot device so you can access these devices when booting from the CD. 
+This feature is not available if you create the CD with floppy emulation or 
+if you update Warp 3 or eCS 1.x.
+
+If you do not like the "viewer" program used to display the burn log you may
+specify your own choice by editing the viewer = 'more <' line of UpdCD.Cfg.
+
+Check the UpdCD homepage and discussion group for the latest information. 
+Before you ask questions, please read the latest UpdCD FAQ on the UpdCD 
+homepage and the messages in the discussion group. Do not email me directly, 
+please post to the UpdCD discussion group instead: 
+
+http://groups.yahoo.com/group/updcd
+
+If you cannot find some components you want to integrate try these pages:
+
+http://groups.yahoo.com/group/updcd/links
+http://www.warpupdates.mynetcologne.de/english/site_contents.html
+
+If you still find it to difficult to download all the fixpaks and configure 
+UpdCD you might want to order the Warp Update Kit. The Warp Update Kit contains
+all the fixes and updates you order and will automatically install UpdCD on 
+your system including the optional tools. Currently, English, German, Brazilian
+and Hungarian versions are available for Warp 3, 4, WSeB and MCP/ACP(*). Check 
+the UpdCD homepage for details. Please let me know if you are interested in 
+buying an Update Kit for an other language.
+
+* Only free components are included, commercial components should be present
+on your system.
+
+13. Disclaimer, Copyright
+
+This program is free, and provided as is. I am not responsible for any damage
+caused by this package. I can only perform limited testing and UpdCD seems to 
+work OK for me. It might work for you too. If it is not the case, you might 
+try to post your problem to the UpdCD discussion group: 
+
+http://groups.yahoo.com/group/updcd
+
+Before you post, try to REPRODUCE the problem by rebuilding and reburning the
+installation CD-ROM. Quite often problems with the CD-ROM media (like bad 
+sectors) might cause a lot of trouble. Please be as specific as you can! Do 
+not forget to save the UpdCD log and cfg files!
+
+This package is a copyrighted freeware. It means that you are free to use
+it, even in a business environment. However, you might not sell the package
+or a modified version of it, or the CD-ROM's produced with UpdCD. They are
+only for your own use.
+
+The various OS/2 versions and some of the components which can be integrated 
+are copyrighted, commercial or shareware products. Please be sure that you are 
+entitled to use them when working with UpdCD.
+
+Zsolt Kadar
+23.01.2007
+Email: info@updcd.tk, kadzsol@xenia.sote.hu
+Homepage: www.updcd.tk, xenia.sote.hu/~kadzsol/rexx/sajat/updcd.htm

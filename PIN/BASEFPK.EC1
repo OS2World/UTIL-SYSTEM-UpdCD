@@ -1,0 +1,38 @@
+/* Postprocessing steps for incorporating eCS fixpaks */
+
+/* copy extras */
+call execute '@copy 'fpdir'\CHKLGJFS.EXE   'cddir'\os2\.'
+call execute '@copy 'fpdir'\LOGDUMP.EXE    'cddir'\os2\.'
+call execute '@copy 'fpdir'\PSFILES.EXE    'cddir'\os2\.'
+call execute '@copy 'fpdir'\PSSEMS.EXE     'cddir'\os2\.'
+call execute '@copy 'fpdir'\SYSLEVEL.FPK   'cddir'\os2\install\.'
+call execute '@copy 'fpdir'\TRC006D.TFF    'cddir'\os2\system\trace\.'
+call execute '@copy 'fpdir'\PMWIN32.SDF    'cddir'\os2\PDPSI\PMDF\WARP45\.'
+call execute '@copy 'fpdir'\KBDBE.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDCA.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDDA.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDFC.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDFR.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDGR.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDIC.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDIT.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDLA.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDNE.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDNO.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDPO.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDSF.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDSG.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDSP.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDUK.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDUSX.DLL     'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDFI.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+call execute '@copy 'fpdir'\KBDSW.DLL      'cddir'\os2\MDOS\WINOS2\SYSTEM\.'
+
+if stream(fpdir'\ECSWP.DLL', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\ECSWP.DLL   'cddir'\os2\dll\.'
+
+/* pack extras */
+
+/* relocate stuff */
+call execute '@copy 'cddir'\os2\dll\LSPRWPS.DLL 'cddir'\ecs\os2\dll\.'
+
+/* delete stuff */

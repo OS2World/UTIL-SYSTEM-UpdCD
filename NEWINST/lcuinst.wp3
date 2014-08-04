@@ -1,0 +1,285 @@
+/* cid install new warp 3 products         */
+/* created: 07.08.2002, updated 04.25.2005 */
+
+parse arg cd_drive bootdrive cidpath instdir client
+/* 'echo 'cd_drive bootdrive cidpath instdir client' >loglog' */
+
+/* define directories */
+if instdir = 'grpware' then do
+	cltdir = bootdrive'\'instdir'\clients\ladclt'
+	logdir = bootdrive'\'instdir'\clients\logs'
+end
+else do
+	cltdir = bootdrive'\'instdir'\rsp\local'
+	logdir = bootdrive'\'instdir'\logs'
+end
+tabledir  = bootdrive'\'instdir'\tables'
+
+/* install netscape */
+if stream(cd_drive'\'cidpath'\NETSCAPE\INSTALL.EXE', 'c', 'query exists') <> '' then do
+	call ProgressChangeProduct 'Netscape Communicator'
+	'mkdir 'logdir'\netscape'
+	'copy 'cd_drive'\'instdir'\tables\netscape.rsp 'tabledir'\.'
+	call make_netscape_rsp 
+	cd_drive'\'cidpath'\NETSCAPE\INSTALL /X /A:I /NMSG /O:DRIVE /L2:'logdir'\netscape\'client'.net /R:'cltdir'\netscape.rsp'
+end
+
+/* install FI */
+call ProgressChangeProduct 'Feature Installer'
+if stream(cd_drive'\'cidpath'\NETSCAPE\INSTALL.EXE', 'c', 'query exists') = '' then 
+	cd_drive'\'cidpath'\fi\fisetup.exe /NORESTARTSHELL /NN'
+else
+	cd_drive'\'cidpath'\fi\fisetup.exe /NORESTARTSHELL'
+
+/* install Java */
+if stream(cd_drive'\'cidpath'\java\package\java.exe', 'c', 'query exists') <> '' then do
+	call ProgressChangeProduct 'Java'
+	'mkdir 'logdir'\java'
+	'copy 'cd_drive'\'instdir'\tables\javacid.rsp 'tabledir'\.'
+	call make_java_rsp 
+	bootdrive'\os2\install\clifi /a:c /r2:'cltdir'\javacid.rsp /r:'cd_drive'\'cidpath'\java\en\rspjava.rsp /b:'bootdrive' /s:'cd_drive'\'cidpath'\java\en /l1:'logdir'\java\javaerr.log /l2:'logdir'\java\javahst.log'
+end
+
+/* prepare tcp/ip install */
+if stream(cd_drive'\'instdir'\tables\tcpinst.rsp','c','query exists') <> '' then do
+	'copy 'cd_drive'\'instdir'\tables\tcpinst.rsp 'tabledir'\.'
+	call make_tcpip32_rsp
+end
+
+exit
+
+/* generate netscape response file */
+make_netscape_rsp:
+
+	netscapesrcfile = tabledir'\NETSCAPE.RSP'
+	netscaperspfile = cltdir'\NETSCAPE.RSP'
+	netscapepkgfile = CD_Drive'\'cidpath'\netscape\NS46COMM.PKG'
+
+	netscapeid = ''
+	netscapename = ''
+	foundpkgname = 0
+
+	/* get netscape installation dir */
+	ns_path = linein(bootdrive'\'instdir'\npconfig.out',1,1)
+	call lineout bootdrive'\'instdir'\npconfig.out'
+	if ns_path = '' then ns_path = bootdrive'\netscape'
+
+	do while lines(netscapepkgfile) > 0  & foundpkgname = 0
+      nspkg = linein(netscapepkgfile)
+      parse var nspkg kw '=' kwval
+      select
+         when strip(translate(kw)) = 'COMPONENT' then do
+            netscapeid = ''
+            netscapename = ''
+         end
+         when strip(translate(kw)) = 'NAME'  then
+            parse var kwval "'" netscapename "'"
+         when strip(translate(kw)) = 'ID'  then
+            parse var kwval netscapeid ","
+         otherwise nop
+      end
+      if netscapeid = 'NS46' & netscapename \= '' then foundpkgname = 1
+	end  /* while lines(netscapepkgfile) > 0 */
+	call stream netscapepkgfile, 'C', 'CLOSE'
+
+  if stream(netscaperspfile, 'C', 'QUERY EXISTS') \= '' then 'del 'netscaperspfile
+  do while lines(netscapesrcfile) > 0
+     line1 = linein(netscapesrcfile)
+     parse var line1 kw'='kwval
+     if strip(translate(kw)) = 'COMP' then
+        if foundpkgname = 1  then line1 = 'COMP='netscapename
+     if strip(translate(kw)) = 'FILE' then line1 = 'FILE='ns_path
+     else if strip(translate(kw)) = 'NSCONVERTBROWSER' then do
+        if Netscape_NSCONVERTBROWSER = 1 then line1 = 'NSCONVERTBROWSER = YES'
+        else
+          line1 = 'NSCONVERTBROWSER = NO'
+        end
+     else if strip(translate(kw)) = 'NSCONVERTQL' then do
+        if Netscape_NSCONVERTQL = 1 then line1 = 'NSCONVERTQL = YES'
+        else line1 = 'NSCONVERTQL = NO'
+		 end /* do */
+     else if strip(translate(kw)) = 'NSASSOCIATEHTML' then do
+         if Netscape_NSASSOCIATEHTML = 1  then line1 = 'NSASSOCIATEHTML= YES'
+         else line1 = 'NSASSOCIATEHTML= NO'
+     end /* do */
+     call lineout netscaperspfile, line1
+	end /* do */
+  call stream netscapesrcfile, 'C', 'CLOSE'
+  call stream netscaperspfile, 'C', 'CLOSE'
+
+RETURN
+
+/* generate Java response file */
+make_java_rsp:
+
+	/* needed files */
+  Javarspsrc = tabledir'\JAVACID.RSP'
+  Javarspfile = cltdir'\JAVACID.RSP'
+	'@del 'Javarspfile' >nul 2>>&1'
+
+	/* get ns configuration */
+	ibminstdir = bootdrive'\'instdir
+	java_rt_drv = linein(ibminstdir'\npconfig.out',1,1)
+	/* get runtime */
+	java_rt_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_rt_drv . java_rt_st java_rt_drv
+	/* get unicode */
+	java_uc_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_uc_drv . java_uc_st java_uc_drv
+	/* get ttengine */
+	java_tt_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_tt_drv . java_tt_st java_tt_drv
+	/* get toolkit */
+	java_tk_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_tk_drv . java_tk_st java_tk_drv
+	/* get tkdoc */
+	java_td_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_td_drv . java_td_st java_td_drv
+	/* get samples */
+	java_sp_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_sp_drv . java_sp_st java_sp_drv
+	/* get debugger */
+	java_db_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_db_drv . java_db_st java_db_drv
+	/* get swing runtime */
+	java_sw_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_sw_drv . java_sw_st java_sw_drv
+	/* get swing toolkit */
+	java_st_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_st_drv . java_st_st java_st_drv
+	/* get rmi */
+	java_rm_drv = linein(ibminstdir'\npconfig.out')
+	parse var java_rm_drv . java_rm_st java_rm_drv
+	call lineout ibminstdir'\npconfig.out'
+
+	change = 0
+	do while lines(Javarspsrc)
+		l = linein(Javarspsrc)
+		parse var l key '=' value
+
+		/* java 1.3 stuff */
+		if value = 'DISAGREE' then value = 'AGREE'
+		if translate(key) = 'JV13DEFAULTJVM.SELECTION' then value = 1
+
+		/* end of first (run-time) section */
+		if key = '' & value = '' then do
+			change = 1
+			call lineout Javarspfile, ' '
+			iterate
+		end
+
+		/* other sections */
+		if translate(substr(key, 1, 4)) = 'JV13' then keyword = translate(substr(key, 5, 7))
+		else keyword = translate(substr(key, 1, 7))
+		if change = 1 & value = 1 then do /* INSTALL selected components ONLY */
+			select 
+				when keyword = 'SAMPLES' then call lineout Javarspfile, key'='java_sp_st
+				when keyword = 'TOOLKIT' then call lineout Javarspfile, key'='java_tk_st
+				when keyword = 'TLKTDOC' then call lineout Javarspfile, key'='java_td_st
+				when keyword = 'DEBUGGE' then call lineout Javarspfile, key'='java_db_st
+				when keyword = 'SWINGRU' then call lineout Javarspfile, key'='java_sw_st
+				when keyword = 'SWINGTO' then call lineout Javarspfile, key'='java_st_st
+				when keyword = 'RMIIIOP' then call lineout Javarspfile, key'='java_rm_st
+				when keyword = 'UNIFONT' then call lineout Javarspfile, key'='java_uc_st
+				when keyword = 'TTENGIN' then call lineout Javarspfile, key'='java_tt_st
+				otherwise call lineout Javarspfile, key'=0'
+			end /* select */
+			iterate
+		end
+		if change = 0 | datatype(value) <> 'NUM' then do
+			if pos('DRV', translate(key)) > 0 then
+			select 
+				when keyword = 'SAMPLES' then call lineout Javarspfile, key'='java_sp_drv
+				when keyword = 'TOOLKIT' then call lineout Javarspfile, key'='java_tk_drv
+				when keyword = 'TLKTDOC' then call lineout Javarspfile, key'='java_td_drv
+				when keyword = 'DEBUGGE' then call lineout Javarspfile, key'='java_db_drv
+				when keyword = 'SWINGRU' then call lineout Javarspfile, key'='java_sw_drv
+				when keyword = 'SWINGTO' then call lineout Javarspfile, key'='java_st_drv
+				when keyword = 'RMIIIOP' then call lineout Javarspfile, key'='java_rm_drv
+				when keyword = 'UNIFONT' then call lineout Javarspfile, key'='java_uc_drv
+				when keyword = 'TTENGIN' then call lineout Javarspfile, key'='java_tt_drv
+				otherwise call lineout Javarspfile, key'='java_rt_drv
+			end /* select */
+			else do
+				select
+					when keyword = 'UNICODE' then call lineout Javarspfile, key'='java_uc_st
+					when keyword = 'RUNTIME' then call lineout Javarspfile, key'='java_rt_st
+					when keyword = 'NSFILES' then call lineout Javarspfile, key'='java_rt_st
+					when keyword = 'JIL118'  then call lineout Javarspfile, key'='java_rt_st
+					otherwise call lineout Javarspfile, key'='value
+				end
+			end
+			iterate
+		end
+	end
+	call lineout Javarspsrc
+	call lineout Javarspfile
+
+RETURN
+
+/* generate tcp/ip 32 clifi response file */
+make_tcpip32_rsp:
+
+	/* get tcp/ip parameters */
+  TCP_Drive = bootdrive
+  npcfgfile = tabledir'\wsconfig.cfg'
+	if stream(npcfgfile, 'c', 'query exists') <> '' then do
+		do while lines(npcfgfile)
+			l=linein(npcfgfile)
+			parse value l with 'TCPDrive:' tcpdrive
+			if length(tcpdrive) = 2 then TCP_Drive = tcpdrive
+		end
+		call lineout npcfgfile
+	end
+
+	/* needed files */
+	tcp32rspsrc = tabledir'\TCPINST.RSP'
+	tcp32rspfile = cltdir'\TCPINST.RSP'
+	'@del 'tcp32rspfile' >nul 2>>&1'
+
+	found  = 0
+	found2 = 0
+	found3 = 0
+	found4 = 0
+
+	do while lines(tcp32rspsrc)
+		l = linein(tcp32rspsrc)
+
+		if found = 1 then do
+			if instdir = 'grpware' then 
+				l = '		Value='cd_drive'\cid\img\tcpapps\install'
+			else 
+				l = '		Value='cd_drive'\cid\server\tcpapps\install'
+			found = 0
+		end
+
+		if found2 = 1 then do
+			if instdir = 'grpware' then 
+				call lineout tcp32rspfile, '		FilePath='cd_drive'\cid\img\tcpapps\install\makecmd.exe'
+			else 
+				call lineout tcp32rspfile, '		FilePath='cd_drive'\cid\server\tcpapps\install\makecmd.exe'
+			found2 = 0
+		end
+
+		if found3 = 1 then do
+			call lineout tcp32rspfile, '		EditLine=PATH'
+			found3 = 0
+		end
+
+		if found4 = 1 then do
+			l = '		Value='TCP_Drive
+			found4 = 0
+		end
+
+		if pos('Description=Where Package is put', l) > 0 then found = 1
+		if pos('FilePath={Current_path}\install\makecmd.exe', l) > 0 then found2 = 1
+		if pos('EditLine=PATH=', l) > 0 then found3 = 1
+		if pos('Description=The drive letter of InstallDir', l) > 0 then found4 = 1
+
+		if found2 <> 1 & found3 <> 1 then call lineout tcp32rspfile, l
+	end
+
+	call lineout tcp32rspfile
+
+RETURN
+

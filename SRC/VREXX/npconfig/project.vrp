@@ -1,0 +1,18 @@
+VX-REXX OS/2 V2.14 Build B3
+VRX: Window1.VRX
+VRX: cddlg.VRX
+VRX: newprdlg.VRX
+VRX: DetlsDlg.VRX
+VRX: RebootDG.VRX
+VRX: TuneDLG.VRX
+MacroPath: VRM:F:\OS2\VXREXX\Projects\npconfig
+EXEPath: E:\updcd\NEWINST\npconfig.EXE
+RunParameters: /pass2
+RunDirectory: F:\OS2\VXREXX\Projects\npconfig
+VRXWindow: __VREMainWindow,1,0,3674,8597,7588
+VRXWindow: __VREFileListWindow,1,4713,5601,2665,3358
+VRXWindow: __VRESectionListWindow,1,4336,4035,3674,3342
+VRXWindow: __VREToolsWindow,1,798,4396,2499,3208
+VRXWindow: __VREWindListWindow,1,2665,5360,2915,3349
+UserFile: 3
+UserWindow: newprdlg,1

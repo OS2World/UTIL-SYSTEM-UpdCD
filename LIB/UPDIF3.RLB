@@ -1,0 +1,284 @@
+/*****************************************************************/
+/* updcd rexx library - updif3 specific functions                */
+/* created: 09.11.2003                                           */
+/* 03.22.2004: added support for update dani drivers             */
+/* 04.23.2004: added support for up2TB.flt                       */
+/* 04.25.2004: ibm1s506 was not replaced by danis506 in os2image */
+/* 05.07.2004: fixed incomplete do end loop                      */
+/* 08.12.2004: added fat32 support                               */
+/* 08.19.2004: added new configuration options                   */
+/* 09.18.2004: new configuration options were not working ok     */
+/* 12.12.2004: added optional removal of os2logo                 */
+/* 02.24.2005: nologo option did not work                        */
+/* 04.04.2005: testcase.dsk is not present on eCS 1.2            */
+/* 11.27.2005: nomenu?.dsk is not present on eCS 1.2R            */
+/*****************************************************************/
+
+/* load language file */
+call load_language 'ENG NOSAVE'
+call load_language 'DEFAULT'
+
+/* get command line parameters */
+parse arg cddir fpdir n.errors n.warnings n.elapsed log ver add.dani.ide add.dani.flt add.dani.boot add.dani.dasd add.up2tb add.fat32 add.dummy f1dir f2dir
+if datatype(f1dir) = 'NUM' then do
+	vers = f1dir
+	f1dir = ''
+end
+
+/* reset timer */
+call time 'E'
+
+/* we need to know the absolute path */
+cdir  = chdir()
+fpdir = chdir(fpdir)
+cdir  = chdir(cdir) 
+cddir = chdir(cddir)
+cdir  = chdir(cdir)
+iddir = cddir||'\DISKIMGS'
+exdir = cddir||'\DISKIMGS'
+
+/* load configuration file */
+call read_config_file 'updcd.cfg'
+
+/* reset screen */
+call display_startup_screen flpdrv'\' iddir msg.0240'*'msg.0241
+
+/* determine disk image expander program */
+if stream(exdir'\emt4warp.exe', 'c', 'query exists') <> '' then do
+	imgldprg = exdir'\emt4warp.exe'
+	imgsvprg = exdir'\emt4warp.exe'
+	imgldopt = '/n'
+	imgsvopt = '/n'
+end
+else do
+	imgldprg = exdir'\loaddskf.exe'
+	imgsvprg = 'bin\savedskf.exe'
+	imgldopt = '/Y /Q /S /F'
+	imgsvopt = '/N /A /D'
+end
+
+/* insert 1.44MB floppy */
+rcode = 1
+do while rcode <> 0
+	rcode = size_floppy(flpdrv '1.44')
+	if rcode <> 0 then do
+		say '1B'x || '[19;2H'msg.0242
+		'@pause >nul 2>>&1'
+	end
+end
+
+/* update floppy images */
+call lineout log, 'Info: Creating installation floppies from 'iddir' and 'fpdir'... ('date() time()', version 'ver')'
+call lineout log
+
+call create_flop 'ecs0'
+call report_status
+call create_flop 'ecs1'
+call report_status
+call create_flop 'ecs2'
+call report_status
+call create_flop 'boot_upd'
+call report_status
+if stream(iddir'\nomenu0.dsk', 'c', 'query exists') <> '' then do
+	call create_flop 'nomenu0'
+	call report_status
+end
+if stream(iddir'\nomenu1.dsk', 'c', 'query exists') <> '' then do
+	call create_flop 'nomenu1'
+	call report_status
+end
+if stream(iddir'\nomenu2.dsk', 'c', 'query exists') <> '' then do
+	call create_flop 'nomenu2'
+	call report_status
+end
+if stream(iddir'\testcase.dsk', 'c', 'query exists') <> '' then do
+	call create_flop 'testcase'
+	call report_status
+end
+
+/* insert 2.88MB floppy */
+rcode = 1
+do while rcode <> 0
+	rcode = size_floppy(flpdrv '2.88')
+	if rcode <> 0 then do
+		say '1B'x || '[19;2H'msg.0248
+		'@pause >nul 2>>&1'
+	end
+end
+
+/* update boot images */
+iddir = cddir||'\BOOTIMGS'
+exdir = cddir||'\ECS'
+call lineout log, 'Info: Creating boot images from 'iddir' and 'fpdir'... ('date() time()', version 'ver')'
+call lineout log
+
+call create_flop2 'ECSDISK0'
+call report_status
+call create_flop2 'ECSDISK1'
+call report_status
+call create_flop2 'ECSDISK2'
+call report_status
+
+if n.elapsed > 0 then do
+	call lineout 'result.out', n.errors' 'n.warnings, 1
+end
+
+exit 
+
+/* create and update install floppy */
+create_flop: procedure expose log iddir fpdir cddir exdir n. ver flpdrv compress f1dir f2dir vers add. addons burn rootdir msg. imgldprg imgldopt imgsvprg imgsvopt nologo
+
+	parse upper arg disk
+	image = iddir'\'disk'.dsk'
+
+	/* create installation floppy */
+	say '1B'x || '[7;26H'msg.0236' 'disk
+	call execute '@'imgldprg' 'image' 'flpdrv' 'imgldopt
+
+	/* preprocessing */
+	if nologo = 1 then '@echo dummy > fix\os2logo'
+
+	/* update floppy */
+	call run_it 'bin\updcd.cmd 'flpdrv fpdir n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+	/* postprocessing floppy */
+	say '1B'x || '[7;26H'substr(msg.0237' 'disk, 1, 50)
+	if compress = 1 then call execute '@bin\lxlite 'flpdrv'\*'
+	if add.dummy = 1 then call add_adds flpdrv'\config.sys'
+
+	/* add the dani drivers if they are there  */
+	if add.dani.ide = 1 then do
+		if stream(addons'\21_DNIDE\DaniS506.ADD', 'c', 'query exists') <> '' & stream(flpdrv'\DaniS506.ADD', 'c', 'query exists') <> '' then do
+			call execute '@copy 'addons'\21_DNIDE\DaniS506.ADD 'flpdrv'\.'
+			call execute '@copy 'addons'\21_DNIDE\DaniS506.ADD fix\ibm1s506.add'
+		end
+		if add.dani.flt = 1 & stream(addons'\20_DNFLT\DANIATAP.FLT', 'c', 'query exists') <> '' & stream(flpdrv'\DANIATAP.FLT', 'c', 'query exists') <> '' then 
+			call execute '@copy 'addons'\20_DNFLT\DANIATAP.FLT 'flpdrv'\.'
+	end
+
+	if add.up2tb = 1 & stream(addons'\21_DNIDE\up2tb.flt', 'c', 'query exists') <> '' & stream(flpdrv'\config.sys', 'c', 'query exists') <> '' then do
+		call execute '@copy 'addons'\21_DNIDE\up2tb.flt 'flpdrv'\.'
+		'@echo basedev=up2tb.flt >> 'flpdrv'\config.sys'
+		call execute '@copy 'addons'\21_DNIDE\UP2TB.FLT fix\.'
+		call add_line_to_file cddir"\ecs\install\hwmerge.cmd if stream(instdrv'\os2\boot\up2tb.flt', 'c', 'query exists') <> '' then '@CALL CUBE { ADDLINE ""BASEDEV=UP2TB.FLT"" (BEFORE ""BASEDEV"" }' confsys"
+	end
+
+	/* generate updated image */
+	say '1B'x || '[4;2H'msg.0165' 'substr(iddir, 1, 50)
+	say '1B'x || '[5;2H'msg.0166' 'substr(flpdrv'\', 1, 50)
+	call display_action msg.0238
+	call execute '@'imgsvprg' 'flpdrv' 'image' 'imgsvopt
+
+	/* clean up */
+	call deldir 'tmp' 
+
+return
+
+/* create and update boot device */
+create_flop2: procedure expose log iddir fpdir cddir exdir n. ver flpdrv compress f1dir f2dir vers add. addons burn rootdir msg. nologo
+
+	parse upper arg disk
+	image = iddir'\'disk'.pf'
+
+	/* clean up */
+	call deldir flpdrv 
+
+	/* create installation floppy */
+	say '1B'x || '[7;26H'msg.0236' 'disk
+	call execute '@bin\e_pf.exe 'iddir'\'disk'.pf 'flpdrv
+
+	/* preprocessing */
+	if nologo = 1 then '@echo dummy > fix\os2logo'
+
+	/* update floppy */
+	call run_it 'bin\updcd.cmd 'flpdrv fpdir n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+	/* postprocessing floppy */
+	say '1B'x || '[7;26H'substr(msg.0237' 'disk, 1, 50)
+	if add.dummy = 1 then call add_adds flpdrv'\config.sys'
+	if compress = 1 then call execute '@bin\lxlite 'flpdrv'\*'
+
+	/* add the dani drivers if they are there  */
+	if add.dani.ide = 1 then do
+		if stream(addons'\21_DNIDE\DaniS506.ADD', 'c', 'query exists') <> '' & stream(flpdrv'\DaniS506.ADD', 'c', 'query exists') <> '' then
+			call execute '@copy 'addons'\21_DNIDE\DaniS506.ADD 'flpdrv'\.'
+		if add.dani.flt = 1 & stream(addons'\20_DNFLT\DANIATAP.FLT', 'c', 'query exists') <> '' & stream(flpdrv'\DANIATAP.FLT', 'c', 'query exists') <> '' then 
+			call execute '@copy 'addons'\20_DNFLT\DANIATAP.FLT 'flpdrv'\.'
+	end
+
+	/* up2tb */
+	if add.up2tb = 1 & stream(addons'\21_DNIDE\up2tb.flt', 'c', 'query exists') <> '' & stream(flpdrv'\config.sys', 'c', 'query exists') <> '' then do
+		call execute '@copy 'addons'\21_DNIDE\up2tb.flt 'flpdrv'\.'
+		'@echo basedev=up2tb.flt >> 'flpdrv'\config.sys'
+	end
+
+	/* add fat32 support */
+	if add.fat32 = 1 & stream(addons'\22_FAT32\fat32.ifs', 'c', 'query exists') <> '' & stream(flpdrv'\config.sys', 'c', 'query exists') <> '' then do
+		call execute '@copy 'addons'\22_FAT32\fat32.ifs    'flpdrv'\.'
+		call execute '@copy 'addons'\22_FAT32\ufat32.dll   'flpdrv'\.'
+		call execute '@copy 'addons'\22_FAT32\CACHEF32.EXE 'flpdrv'\.'
+		'@echo IFS=Z:\FAT32.IFS /CACHE:2048 >> 'flpdrv'\config.sys'
+		'@echo CALL=CACHEF32.EXE /F         >> 'flpdrv'\config.sys'
+	end
+
+	/* generate updated image */
+	say '1B'x || '[4;2H'msg.0165' 'substr(iddir, 1, 50)
+	say '1B'x || '[5;2H'msg.0166' 'substr(flpdrv'\', 1, 50)
+	call display_action msg.0238
+	if disk = 'ECSDISK0' then do
+		message = 'Unpacking eComStation installation diskette files to memory disk ...'
+		pointer = 'ecsdisk1.pf'
+	end
+	if disk = 'ECSDISK1' then do
+		message = 'Unpacking eComStation diskette 1 files to memory disk ...'
+		pointer = 'ecsdisk2.pf'
+	end
+	if disk = 'ECSDISK2' then do
+		message = 'Unpacking eComStation diskette 2 files to memory disk ...'
+		pointer = ''
+	end
+	'@echo create archive 'iddir'\'disk'.pf > 'disk'.scr'
+  '@echo add file 'flpdrv'\* >> 'disk'.scr'
+  '@echo output "'message'" >> 'disk'.scr'
+  '@echo newline >> 'disk'.scr'
+  if pointer <> '' then '@echo next pointer 'pointer' >> 'disk'.scr'
+	'@echo close archive >> 'disk'.scr'
+	call execute '@bin\packfile.exe  'disk'.scr'
+	'@del 'disk'.scr >nul 2>>&1'
+
+return
+
+/* adds line to file */
+add_line_to_file: procedure expose cddir msg. log n.
+
+	parse arg f line
+
+	if stream(f, 'c', 'query exists') <> '' then do
+		i=1
+		do while lines(f)
+			l.i=linein(f)
+			i=i+1
+		end
+		l.0=i-1
+		call lineout f
+		'@del 'f
+		do i=1 to l.0
+			if pos('RETURN 0', translate(l.i)) > 0 then do
+				call lineout f, "/* zsolt begin */"
+				call lineout f, line
+				call lineout f, "/* zsolt end */"
+			end
+			call lineout f, l.i
+		end
+		call lineout f
+		call execute '@mkdir tmp'
+		call execute '@bin\unzip.exe 'cddir'\cid\server\ecspkg\install.zip -d tmp'
+		call execute '@del 'cddir'\cid\server\ecspkg\install.zip'
+		call execute '@copy 'cddir'\ecs\install\hwmerge.cmd tmp\install\.'
+		'@cd tmp'
+		call execute '@..\bin\zip.exe -r -m -9 'cddir'\cid\server\ecspkg\install.zip *'
+		'@cd ..'
+		call deldir tmp
+	end
+
+return

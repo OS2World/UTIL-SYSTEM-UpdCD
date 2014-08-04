@@ -1,0 +1,15 @@
+VX-REXX OS/2 V2.14 Build B3
+VRX: Window1.VRX
+VRX: DirDialg.VRX
+VRX: OptDialg.VRX
+MacroPath: VRM:c:\utils\vxrexx\projects\pmupdcd
+EXEPath: E:\updcd\PMUPDCD.EXE
+RunParameters: 
+RunDirectory: c:\utils\vxrexx\projects\pmupdcd
+VRXWindow: __VREMainWindow,1,166,6890,11322,7721
+VRXWindow: __VREFileListWindow,1,3026,8733,2665,3358
+VRXWindow: __VRESectionListWindow,1,6354,8733,2650,3342
+VRXWindow: __VREToolsWindow,0,1265,13057,3978,1667
+VRXWindow: __VREWindListWindow,1,3056,8733,2650,3150
+UserFile: 1
+UserWindow: Main,1

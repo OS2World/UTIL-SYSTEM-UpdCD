@@ -1,0 +1,206 @@
+/**************************************************************/
+/* updcd rexx library - updif2 specific functions             */
+/* created: 12.17.2001                                        */
+/* 03.03.2002: fixed problem with handling drive a:           */
+/* 03.30.2002: fixed add add's option which was broken in 2.0 */
+/* 11.21.2002: aligned with dd fpk 3                          */
+/* 11.25.2002: fixed problem with handling 2.8Mb floppy       */
+/* 12.17.2002: added /N /A /D to savedskf                     */
+/* 03.18.2003: added nls language support                     */
+/* 04.10.2003: removed expert mode                            */
+/* 12.06.2003: removed older ADDs to make space for FP4 files */
+/* 08.19.2004: added new configuration options                */
+/* 09.18.2004: new configuration options were not working ok  */
+/* 12.12.2004: added optional removal of os2logo              */
+/**************************************************************/
+
+/* load language file */
+call load_language 'ENG NOSAVE'
+call load_language 'DEFAULT'
+
+/* get command line parameters */
+parse arg cddir fpdir n.errors n.warnings n.elapsed log ver add.dani.ide add.dani.flt add.dani.boot add.dani.dasd add.up2tb add.fat32 add.dummy f1dir f2dir
+if datatype(f1dir) = 'NUM' then do
+	vers = f1dir
+	f1dir = ''
+end
+
+/* reset timer */
+call time 'E'
+
+/* we need to know the absolute path */
+cdir  = chdir()
+fpdir = chdir(fpdir)
+cdir  = chdir(cdir) 
+cddir = chdir(cddir)
+cdir  = chdir(cdir)
+iddir = cddir||'\DISKIMGS'
+exdir = cddir||'\DISKIMGS'
+
+/* load configuration file */
+call read_config_file 'updcd.cfg'
+
+/* reset screen */
+call display_startup_screen flpdrv'\' iddir msg.0240'*'msg.0241
+
+/* insert 1.44MB floppy */
+rcode = 1
+do while rcode <> 0
+	rcode = size_floppy(flpdrv '1.44')
+	if rcode <> 0 then do
+		say '1B'x || '[19;2H'msg.0242
+		'@pause >nul 2>>&1'
+	end
+end
+
+/* update floppy images */
+call lineout log, 'Info: Creating installation floppies from 'iddir' and 'fpdir'... ('date() time()', version 'ver')'
+call lineout log
+call create_flop 'ECS0'
+call report_status
+call create_flop 'ECS1'
+call report_status
+call create_flop 'ECS2'
+call report_status
+call create_flop 'ECSNCSM0'
+call report_status
+call create_flop 'ECSNCSM1'
+call report_status
+call create_flop 'ECSNCSM2'
+call report_status
+
+/* update boot images */
+iddir = cddir||'\BOOTIMGS'
+exdir = cddir||'\ECS'
+call lineout log, 'Info: Creating boot images from 'iddir' and 'fpdir'... ('date() time()', version 'ver')'
+call lineout log
+
+/* insert 2.88MB floppy */
+rcode = 1
+do while rcode <> 0
+	rcode = size_floppy(flpdrv '2.88')
+	if rcode <> 0 then do
+		say '1B'x || '[19;2H'msg.0248
+		'@pause >nul 2>>&1'
+	end
+end
+
+/* unpack and update boot images */
+call execute '@'exdir'\image.exe 'iddir'\disk_0_1.img 'flpdrv
+call execute '@copy fix\os2dasd.dmd fix\ecsdasd.dmd'
+call execute '@copy fix\os2lvm.dmd  fix\ecslvm.dmd'
+call execute '@copy newinst\nulldev.sys 'flpdrv'\aic7770.add'
+call execute '@copy newinst\nulldev.sys 'flpdrv'\ini610.add'
+call execute '@copy newinst\nulldev.sys 'flpdrv'\ini910.add'
+'@del fix\aic7770.add >nul 2>>&1'
+'@del fix\ini610.add  >nul 2>>&1'
+'@del fix\ini910.add  >nul 2>>&1'
+if nologo = 1 then '@echo dummy > fix\os2logo'
+call run_it 'bin\updcd.cmd 'flpdrv fpdir n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+cdir = chdir()
+rc = chdir(burn'\ecs')
+call execute '@os2csm.exe 'flpdrv' /I'
+rc = chdir(cdir)
+call execute '@xcopy 'flpdrv'\* 'cddir'\updcd\bootimg\DISK_0_1.IMG\.'
+call execute '@'exdir'\image.exe 'flpdrv iddir'\disk_0_1.img'
+call execute '@'exdir'\image.exe 'iddir'\disk_2.img 'flpdrv
+call run_it 'bin\updcd.cmd 'flpdrv fpdir n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+call execute '@xcopy 'flpdrv'\* 'cddir'\updcd\bootimg\DISK_2.IMG\.'
+call execute '@'exdir'\image.exe 'flpdrv iddir'\disk_2.img'
+
+if n.elapsed > 0 then do
+	call lineout 'result.out', n.errors' 'n.warnings, 1
+end
+
+exit 
+
+/* create and update install floppy */
+create_flop: procedure expose log iddir fpdir cddir exdir n. ver flpdrv compress f1dir f2dir vers add.dummy add.dani.ide addons burn rootdir msg.
+
+	parse upper arg disk
+	image = iddir'\'disk'.dsk'
+
+	/* create installation floppy */
+	say '1B'x || '[7;26H'msg.0236' 'disk
+	call execute '@'exdir'\loaddskf 'image flpdrv' /Y /Q /S /F '
+
+	/* preprocessing */
+	if disk = 'ECS0' | disk = 'ECSNCSM0' then do
+		if nologo = 1 then call execute '@del 'flpdrv'\aha152x.add'
+	end
+
+	if disk = 'ECS1' | disk = 'ECSNCSM1' then do
+		call execute '@del 'flpdrv'\aha152x.add'
+		call execute '@del 'flpdrv'\aha154x.add'
+		call execute '@del 'flpdrv'\aha174x.add'
+		call execute '@del 'flpdrv'\aic7770.add'
+		call execute '@del 'flpdrv'\aicu160.add'
+		call execute '@del 'flpdrv'\dac960.add'
+		call execute '@del 'flpdrv'\dpt20xx.add'
+		call execute '@del 'flpdrv'\flashpt.add'
+		call execute '@del 'flpdrv'\ini610.add'
+		call execute '@del 'flpdrv'\ini910.add'
+		call execute '@del 'flpdrv'\ini910u.add'
+		call execute '@del 'flpdrv'\inia100.add'
+		call execute '@del 'flpdrv'\ipsraid.add'
+		call execute '@del 'flpdrv'\ql10os2.add'
+		call execute '@del 'flpdrv'\ql12os2.add'
+		call execute '@del 'flpdrv'\ql40os2.add'
+	end
+	if disk = 'ECS2' then call execute '@del 'flpdrv'\jfs.ifs'
+
+	/* update floppy */
+	call run_it 'bin\updcd.cmd 'flpdrv fpdir n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+	/* postprocessing floppy */
+	say '1B'x || '[7;26H'substr(msg.0237' 'disk, 1, 50)
+
+	if disk = 'ECS0' | disk = 'ECSNCSM0' then do
+		call execute '@del 'flpdrv'\os2krnli'
+		call execute '@copy 'fpdir'\os2krnl 'flpdrv'\os2krnli'
+		if disk = 'ECS0' then do
+			cdir = chdir()
+			rc = chdir(burn'\ecs')
+			call execute '@copy 'flpdrv'\config.s 'flpdrv'\config.sys'
+			call execute '@os2csm.exe 'flpdrv' /I'
+			call execute '@del 'flpdrv'\config.sys'
+			rc = chdir(cdir)
+		end
+		if compress = 1 then call execute '@bin\lxlite 'flpdrv'\*'
+	end
+
+	if disk = 'ECS1' | disk = 'ECSNCSM1' then do
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\aha152x.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\aha154x.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\aha174x.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\aic7770.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\aicu160.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\dac960.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\dpt20xx.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\flashpt.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\ini610.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\ini910.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\ini910u.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\inia100.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\ipsraid.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\ql10os2.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\ql12os2.add'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\ql40os2.add'
+		if add.dummy = 1 then call add_adds flpdrv'\config.sys'
+		if compress = 1 then call execute '@bin\lxlite 'flpdrv'\*'
+	end
+
+	if disk = 'ECS2' | disk = 'ECSNCSM2' then do
+		call execute '@bin\lxlite 'flpdrv'\*'
+	end
+
+	/* generate updated image */
+	say '1B'x || '[4;2H'msg.0165' 'substr(iddir, 1, 50)
+	say '1B'x || '[5;2H'msg.0166' 'substr(flpdrv'\', 1, 50)
+	call display_action msg.0238
+	call execute '@bin\savedskf 'flpdrv image' /N /A /D'
+
+	/* clean up */
+	call deldir 'tmp' 
+
+return

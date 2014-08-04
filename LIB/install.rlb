@@ -1,0 +1,616 @@
+/************************************************************/
+/* updcd rexx library - install specific functions          */
+/* created: 02.19.2002                                      */
+/* 03.10.2002: value rootdir should not be migrated         */
+/* 08.23.2002: made check_vrobj function more robust        */
+/* 08.26.2002: corrected typo in check_vrobj                */
+/* 01.09.2003: changed dani drv option description          */
+/*             added uninstall icon creation                */
+/* 02.26.2003: added nls language support                   */
+/* 03.16.2003: improved nls language support                */
+/* 04.10.2003: removed expert mode                          */
+/* 08.17.2003: added rdrive setting to cfg file             */
+/* 09.21.2003: added support for no-emulation boot          */
+/* 12.06.2003: added creation of Feature Matrix icon        */
+/* 06.14.2004: added deletion of cdloader.bin               */
+/* 08.11.2004: cdloader.bin was not deleted                 */
+/* 08.19.2004: added new configuration options              */
+/* 09.18.2004: move JAVAK files has been added              */
+/* 11.06.2004: removed homepage mirror object+DVD           */
+/* 12.11.2004: added removal of wxupdkit.htm                */
+/* 12.12.2004: new config options                           */
+/* 01.02.2005: fixed better_than_nothing bug                */
+/* 01.15.2005: added nosniff/nodasd options                 */
+/* 01.22.2005: temp.raw - image.iso                         */
+/* 02.19.2005: added nonetscape, nojava, noshield, extrap2  */
+/* 03.12.2005: add path to netscape/mozilla icons on Warp 3 */
+/* 03.14.2005: extrap2 shold be reset to empty string       */
+/* 05.14.2005: relocated addons scripts were not updated    */
+/* 10.16.2005: remove 64_OPSSH addon                        */
+/* 10.22.2005: don't def RSJ to def brnprg when CR selected */
+/* 11.27.2005: updated UpdCD URL                            */
+/* 02.19.2006: added usb boot CD support                    */
+/* 08.28.2006: remove 12_AMUSE addon                        */
+/* 23.01.2007: noshield, nonetscape, nojava default = 0     */
+/************************************************************/
+
+/* check rexx version */
+call load_language 'ENG NOSAVE'
+call load_language 'DEFAULT'
+call check_rexx
+
+/* get arguments */
+parse arg key
+
+/* check system */
+insttype = value('UPDCD_INST', , 'OS2ENVIRONMENT')
+cdpath   = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+
+/* are you sure? */
+'@cls'
+say
+if insttype <> 1 & cdpath <> '' then do
+	say ' 'msg.0113
+	say ' 'msg.0114
+	say ' 'msg.0115
+	say
+	say ' 'msg.0116
+end
+else do
+	say ' 'msg.0117
+	if key <> 'QUIET' then do
+		say ' 'msg.0089
+		'@pause >nul'
+	end
+end
+
+/* load rexx functions */
+call load_rexxutil
+
+/* get and store updcd version */
+version = get_updcd_version()
+call set_updcd_version version
+
+/* check for url object creation */
+call check_wpurl_class
+
+path = directory()
+if cdpath = '' then do
+	/* create objects */
+	say
+	say ' -> 'msg.0118
+
+	/* store dir */	
+	call SysIni , 'UPDCD', 'PATH', path
+	call create_objects
+
+	/* check vrobj.dll */
+	call check_vrobj
+end
+
+/* create some empty dirs */
+'@mkdir fixes >nul 2>>&1'
+'@mkdir updates >nul 2>>&1'
+'@mkdir fix >nul 2>>&1'
+'@mkdir burn >nul 2>>&1'
+'@mkdir addons >nul 2>>&1'
+
+/* start creating cfg file */
+say
+say ' -> 'msg.0119
+cfgfile = path'\updcd.cfg'
+call generate_cfg_defaults
+
+/* read and backup existing config */
+if stream(cfgfile, 'c', 'query exists') <> '' then do
+	call Read_Config_File cfgfile
+	bakfile = path'\updcd.bak'
+	'@copy 'cfgfile' 'bakfile' >nul 2>>&1'
+end
+
+/* update relocated addon scripts */
+local_addons = determine_full_path('addons')
+if translate(local_addons) <> translate(addons) then do
+	'@xcopy 'local_addons'\* 'addons'\. /O/S/V >nul 2>>&1'
+	call cleanup_dir local_addons' S'
+end
+
+/* remove 64_OPSSH addon */
+call cleanup_dir addons'\64_OPSSH S'
+
+/* remove 12_AMUSE addon */
+call cleanup_dir addons'\12_AMUSE S'
+
+/* check to see if user has RSJ installed */
+call check_if_rsj_installed
+
+/* Locate mkisofs.exe */
+call locate_mkisofs
+
+/* write config */
+say ' -> 'msg.0120
+'@del 'cfgfile' >nul 2>>&1'
+rootdir = path
+call Save_Config_File cfgfile
+
+/* check installed software */
+if cdpath = '' then call check_tooling
+else do
+	i=1
+	cfgfl = 'maint\config.sys'
+	do while lines(cfgfl)
+		l.i = linein(cfgfl)
+		if translate(l.i) = 'SET UPDCD_INST=1' then l.i = 'SET UPDCD_INST=0' 
+		i=i+1
+	end
+	call lineout cfgfl
+	l.0 = i-1
+	'@del 'cfgfl
+	do i=1 to l.0
+		call lineout cfgfl, l.i
+	end
+	call lineout cfgfl
+	do while stream('a:\config.sys', 'c', 'query exists') = ''
+		say
+		say ' 'msg.0121
+		'@pause >nul'
+	end
+	'@copy 'cfgfl' a:\config.sys'
+	say
+	say ' 'msg.0122
+	say ' 'msg.0123
+	say ' 'msg.0124
+	say 
+	say ' 'msg.0125
+	say ' 'msg.0126
+	say ' 'msg.0127
+	say ' 'msg.0128
+	say ' 'msg.0129
+end
+
+/* ready */
+say
+say ' 'msg.0130
+
+exit
+
+/**************************/
+/* read updcd config file */
+/**************************/
+Read_Config_File: 
+
+	/* interpret cfgfile */
+	parse arg cfgfile
+	do while lines(cfgfile)
+		l = linein(cfgfile)
+		interpret l
+	end
+	call lineout cfgfile 
+
+	/* need to know full path */
+	fixes   = determine_full_path(fixes)
+	updates = determine_full_path(updates)
+	addons  = determine_full_path(addons)
+	w4cd    = determine_full_path(w4cd)
+	burn    = determine_full_path(burn)
+	cdrdir  = determine_full_path(cdrdir)
+	log     = determine_full_path(log)
+	burnlog = determine_full_path(burnlog)
+	tempraw = determine_full_path(tempraw)
+
+	/* check virtual disk */
+	if substr(flpdrv, 2, 1) <> ':' | length(flpdrv) <> 2 then flpdrv = 'A:' 
+	else flpdrv = translate(flpdrv)
+
+	/* get SCSI ID's */
+	id.1 = substr(device, 1, 1)
+	id.2 = substr(device, 3, 1)
+	id.3 = substr(device, 5, 1)
+	if datatype(id.1) <> 'NUM' then id.1 = 0
+	if datatype(id.2) <> 'NUM' then id.2 = 0
+	if datatype(id.3) <> 'NUM' then id.3 = 0
+
+	/* check extrap */
+	if Symbol('extrap')  <> 'VAR' then extrap  = ''
+	if Symbol('extrap2') <> 'VAR' then extrap2 = ''
+
+	/* do some other checks */
+	if datatype(iaddons)       <> 'NUM' then iaddons       = 1
+	if datatype(compress)      <> 'NUM' then compress      = 1
+	if datatype(add.dani.ide)  <> 'NUM' then add.dani.ide  = 0
+	if datatype(add.dani.flt)  <> 'NUM' then add.dani.flt  = 0
+	if datatype(add.dani.boot) <> 'NUM' then add.dani.boot = 0
+	if datatype(add.dani.dasd) <> 'NUM' then add.dani.dasd = 0
+	if datatype(add.up2tb)     <> 'NUM' then add.up2tb     = 0
+	if datatype(add.fat32)     <> 'NUM' then add.fat32     = 0
+	if datatype(add.usb)       <> 'NUM' then add.usb       = 0
+	if datatype(add.dummy)     <> 'NUM' then add.dummy     = 0
+	if datatype(speed)         <> 'NUM' then speed         = 2
+	if datatype(emulate)       <> 'NUM' then emulate       = 1
+	if datatype(use_dvd)       <> 'NUM' then use_dvd       = 0
+	if datatype(nologo)        <> 'NUM' then nologo        = 0
+	if datatype(nojoliet)      <> 'NUM' then nojoliet      = 0
+	if datatype(nosniff)       <> 'NUM' then nosniff       = 0
+	if datatype(nodasd)        <> 'NUM' then nodasd        = 1
+	if datatype(noshield)      <> 'NUM' then noshield      = 0
+	if datatype(nonetscape)    <> 'NUM' then nonetscape    = 0
+	if datatype(nojava)        <> 'NUM' then nojava        = 0
+
+	/* reservedriveletter */
+	if length(rdrive) <> 1 | datatype(rdrive) = 'NUM' then rdrive = 'W'
+
+	/* emulation mode */
+	if datatype(emulate) <> 'NUM' then emulate = 1
+		
+return
+
+/**************************/
+/* save updcd config file */
+/**************************/
+Save_Config_File: 
+
+	parse arg cfgfile
+	if cdpath <> '' then w4cd = cdpath
+	call lineout cfgfile, "/* UpdCD configuration file, edit with care! */"
+	call lineout cfgfile, " "
+	call lineout cfgfile, "/* Go4It parameters */"
+	call lineout cfgfile, "burn    = '"burn"' /* location updated CD-ROM */"
+	call lineout cfgfile, "w4cd    = '"w4cd"' /* location original CD-ROM */"
+	call lineout cfgfile, "fixes   = '"fixes"' /* fixes directory */"
+	call lineout cfgfile, "updates = '"updates"' /* updates directory */"
+	call lineout cfgfile, "addons  = '"addons"' /* addons directory */"
+	call lineout cfgfile, "iaddons = "iaddons" /* 1 = integrate add-on products */"
+	call lineout cfgfile, "log     = '"log"'  /* log file */"
+	call lineout cfgfile, " "
+	call lineout cfgfile, "/* updif parameters */"
+	call lineout cfgfile, "flpdrv  = translate('"flpdrv"') /* <----- change it match your virtual floppy */"
+	call lineout cfgfile, "compress = "compress" /* 0 = do not compress files on boot diskette */"
+	call lineout cfgfile, "add.dani.ide = "add.dani.ide" /* 1 = add DANI IDE driver if it is available as addon's */"
+	call lineout cfgfile, "add.dani.flt = "add.dani.flt" /* 1 = add DANI FLT driver if it is available as addon's */"
+	call lineout cfgfile, "add.dani.boot = "add.dani.boot" /* 1 = add DANI Boot driver if it is available as addon's */"
+	call lineout cfgfile, "add.dani.dasd = "add.dani.dasd" /* 1 = add DANI DASD driver if it is available as addon's */"
+	call lineout cfgfile, "add.up2tb = "add.up2tb" /* 1 = add Up2TB driver */"
+	call lineout cfgfile, "add.fat32 = "add.fat32" /* 1 = add FAT32 driver to boot CD */"
+	call lineout cfgfile, "add.usb = "add.usb" /* 1 = add USB drivers to boot CD */"
+	call lineout cfgfile, "add.dummy = "add.dummy" /* 0 = do not add new ADD's and do not replace SCSI drivers with dummy driver to save space */"
+	call lineout cfgfile, "rdrive = '"rdrive"' /* drive letter to reserve with reservedriveletter in cfg.sys */"
+	call lineout cfgfile, "emulate = "emulate" /* floppy emulation mode; do not emulate floppy = 0 */"
+	call lineout cfgfile, "nologo = "nologo" /* 1 = remove os2logo */"
+	call lineout cfgfile, " "
+	call lineout cfgfile, "/* misc parameters */"
+	call lineout cfgfile, "nosniff = "nosniff" /* 1 = do not detect ISA NIC's during install */"
+	call lineout cfgfile, "nodasd = "nodasd" /* 1 = do not check free disk space during install */"
+	call lineout cfgfile, "noshield = "noshield" /* 1 = disable installation shield */"
+	call lineout cfgfile, "nonetscape = "nonetscape" /* 1 = remove netscape communicator */"
+	call lineout cfgfile, "nojava = "nojava" /* 1 = remove old java run-time */"
+	call lineout cfgfile, " "
+	call lineout cfgfile, "/* burning parameters */"
+	call lineout cfgfile, "rootdir = '"rootdir"'"
+	call lineout cfgfile, "device  = '"id.1","id.2","id.3"' /* SCSI device ID (bus, unit, lun) */"
+	call lineout cfgfile, "speed   = "speed" /* burning speed  */"
+	call lineout cfgfile, "tempdir = '"strip(filespec('drive', tempraw)||filespec('path', tempraw), 'T', '\')"' /* imagefile dir  */"
+	call lineout cfgfile, "tempraw = '"tempraw"' /* ISO image file */"
+	call lineout cfgfile, "source  = '"burn"' /* burn directory */"
+	call lineout cfgfile, "cdrdir  = '"cdrdir"' /* mkisofs (and cdrecord) dir */"
+	call lineout cfgfile, "svdc_drive = flpdrv /* virtual flop   */"
+	call lineout cfgfile, "burnlog = '"burnlog"' /* burn log file  */"
+	call lineout cfgfile, "viewer  = 'more <'"
+	call lineout cfgfile, "extrap  = '"extrap"' /* Extra parameters for cdrecord/2 */"
+	call lineout cfgfile, "extrap2 = '"extrap2"' /* Extra parameters for mkisofs */"
+	call lineout cfgfile, "use_dvd = "use_dvd" /* 1 = use DVDDAO instead of CDRECORD */"
+	call lineout cfgfile, "nojoliet = "nojoliet" /* 1 = do not use joliet support */"
+	call lineout cfgfile
+
+return
+
+/***********************************/
+/* find CD or virtual floppy drive */
+/***********************************/
+find_drive: procedure
+
+	parse arg option
+	drives = SysDriveMap('C:', 'LOCAL')
+	do while length(drives) > 0
+		parse var drives drv drives
+		rc = sysdriveinfo(drv)
+		if rc <> '' then do
+			parse var rc . free total label
+			if option = 'VFDISK' & (total = 1457664 | total = 2931712) then return drv
+			if option = 'CD-ROM' & free = 0 then return drv
+		end
+		else do
+			trace -3
+			'@vfctrl 'drv' 0 >nul 2>>&1'
+			'@vfctrl 'drv' 1 >nul 2>>&1'
+			if option = 'VFDISK' & rc = 0 then return drv
+			else do
+				trace -5
+				'@SVDC /ef     'drv' >nul 2>>&1'
+				'@SVDC /r:1.44 'drv' >nul 2>>&1'
+				'@SVDC /i:1.44 'drv' >nul 2>>&1'
+				if option = 'VFDISK' & rc = 0 then return drv
+			end
+		end
+	end
+
+	/* best guess */
+	alphabet = 'CDEFGHIJKLMNOPQRSTUVWXYZ'
+	p = pos(translate(substr(drv, 1, 1)), alphabet)
+	if p > 0 & p <= 23 then guess = substr(alphabet, p+1, 1)||':'
+	else guess = 'C:'
+
+return guess
+
+/************************************/
+/* check if we have the WPURL class */
+/************************************/
+check_wpurl_class: procedure expose found_wpurl msg.
+
+	found_wpurl = 0
+	cdpath = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+	if cdpath <> '' then return
+	Call SysQueryClassList 'junk.'
+	i = 1
+	Do i = 1 to junk.0
+		If translate(word(junk.i, 1)) = "WPURL" Then do
+			found_wpurl = 1
+			LEAVE
+		End
+	End
+
+return
+
+/************************/
+/* Create UpdCD objects */
+/************************/
+create_objects: 
+
+	rc1 = SysCreateObject('WPFolder', 'UpdCD 'version, '<WP_DESKTOP>', 'OBJECTID=<UpdCD_Folder>', 'R')
+	rc2 = create_object('PRG*UpdCD*EXENAME='path'\pmupdcd.exe;STARTUPDIR='path';')
+	rc3 = create_object('PRG*Readme*EXENAME=e.exe;PARAMETERS='path'\readme.eng;')
+	rc4 = create_object('PRG*Default Configuration*EXENAME=e.exe;PARAMETERS='path'\updcd.cfg;')
+	rc5 = create_object('PRG*LxLite Configuration*EXENAME=e.exe;PARAMETERS='path'\bin\lxlite.cfg;')
+	rc6 = create_object('PRG*UpdCD Log*EXENAME=e.exe;PARAMETERS='path'\updcd.log;')
+	if found_wpurl = 1 then do /* warp 4 or higher */
+		rc7 = create_object('URL*UpdCD HomePage*NOTDEFAULTICON=YES;DEFAULTVIEW=CONTENTS;URL=http://www.updcd.tk;')
+		rc8 = create_object('URL*UpdCD Discussion Group*NOTDEFAULTICON=YES;DEFAULTVIEW=CONTENTS;URL=http://groups.yahoo.com/group/updcd/messages;')
+		rc9 = create_object('URL*UpdCD FAQ*NOTDEFAULTICON=YES;DEFAULTVIEW=CONTENTS;URL=file:///'translate(translate(path,'|',':'), '/', '\')'/doc/updcdfaq.htm;')
+		rc10 = create_object('URL*Order Warp Update Kit*NOTDEFAULTICON=YES;DEFAULTVIEW=CONTENTS;URL=file:///'translate(translate(path,'|',':'), '/', '\')'/doc/wupdkit.htm;')
+		rc11 = create_object('URL*UpdCD HomePage (local)*NOTDEFAULTICON=YES;DEFAULTVIEW=CONTENTS;URL=file:///'translate(translate(path,'|',':'), '/', '\')'/updcd.htm;')
+		rc12 = create_object('URL*Feature Matrix*NOTDEFAULTICON=YES;DEFAULTVIEW=CONTENTS;URL=file:///'translate(translate(path,'|',':'), '/', '\')'/doc/matrix.htm;')
+	end
+	else do
+		browserdir = ''
+		browser = 'mozilla.exe' 
+		browserdir = space(translate(find_key('USER Mozilla Install Directory'),' ',x2c('00')))
+		if browserdir = '' then do
+			browser = 'netscape.exe'
+			browserdir = space(translate(find_key('USER Netscape 4.6'),' ',x2c('00')))
+			if browserdir <> '' then browserdir =browserdir'\PROGRAM'
+		end
+		if browserdir <> '' then browser = browserdir'\'browser
+		rc7 = create_object('PRG*UpdCD HomePage*Exename='browser';PARAMETERS=http://xenia.sote.hu/~kadzsol/rexx/sajat/updcd.htm;')
+		rc8 = create_object('PRG*UpdCD Discussion Group*Exename='browser';PARAMETERS=http://groups.yahoo.com/group/updcd/messages;')
+		rc9 = create_object('PRG*UpdCD FAQ*Exename='browser';PARAMETERS=file:///'translate(translate(path,'|',':'), '/', '\')'/doc/updcdfaq.htm;')
+		rc10 = create_object('PRG*Order Warp Update Kit*Exename='browser';PARAMETERS=file:///'translate(translate(path,'|',':'), '/', '\')'/doc/wupdkit.htm;')
+		rc11 = create_object('PRG*UpdCD HomePage (local)*Exename='browser';PARAMETERS=file:///'translate(translate(path,'|',':'), '/', '\')'/updcd.htm;')
+		rc12 = create_object('PRG*Feature Matrix*Exename='browser';PARAMETERS=file:///'translate(translate(path,'|',':'), '/', '\')'/doc/matrix.htm;')
+	end
+
+	rc13 = SysCreateObject('WPProgram','Uninstall UpdCD','<UpdCD_Folder>','PROGTYPE=WINDOWABLEVIO;EXENAME='path'\uninstal.cmd;NOAUTOCLOSE=YES;')
+
+	/* check result */
+	if rc1 <> 1 | rc2 <> 1 | rc3 <> 1 | rc4 <> 1 | rc5 <> 1 | rc6 <> 1 | rc7 <> 1 | rc8 <> 1 | rc9 <> 1 | rc10 <> 1 | rc11 <> 1 | rc12 <> 1 | rc13 <> 1 then do
+		say ' -> 'msg.0131
+		say ' RC = 'rc1 rc2 rc3 rc4 rc5 rc6 rc7 rc8 rc9 rc10 rc11 rc12 rc13
+		exit 9
+	end
+	else say ' -> 'msg.0132
+
+return
+
+/***********************/
+/* create updcd object */
+/***********************/
+create_object: procedure
+
+	parse arg parameters
+	parse value parameters with type '*' name '*' parameters
+	select
+		when type = 'PRG' then rc = SysCreateObject('WPProgram', name, '<UpdCD_Folder>', parameters, 'R')
+		when type = 'URL' then rc = SysCreateObject('WPUrl',     name, '<UpdCD_Folder>', parameters, 'R')
+		otherwise rc = 1000
+	end
+
+return rc
+
+/**************************/
+/* generate some defaults */
+/**************************/
+generate_cfg_defaults:
+
+	/* get CDRecord env */
+	speed  = value('CDR_SPEED',  , 'OS2ENVIRONMENT')
+	if datatype(speed) <> 'NUM' then speed = 2
+	cdr_dev  = value('CDR_DEVICE', , 'OS2ENVIRONMENT')
+	parse value cdr_dev with id.1 ',' id.2 ',' id.3
+	if datatype(id.1) <> 'NUM' then id.1 = 0
+	if datatype(id.2) <> 'NUM' then id.2 = 1
+	if datatype(id.3) <> 'NUM' then id.3 = 0
+
+	/* define additional defaults */
+	rc		= sysdrivemap('C:', 'LOCAL')
+
+	burn		= path'\burn'
+	w4cd		= find_drive('CD-ROM')
+	fixes		= path'\fixes'
+	updates		= path'\updates'
+	addons		= path'\addons'
+	iaddons		= 1
+	log		= path'\updcd.log'
+
+	flpdrv		= find_drive('VFDISK')
+	compress	= 1 
+	add.dani.ide	= 1 
+	add.dani.flt	= 1
+	add.dani.boot	= 1 
+	add.dani.dasd	= 1 
+	add.up2tb	= 0 
+	add.fat32	= 0 
+	add.usb 	= 0 
+	add.dummy 	= 0
+	rdrive		= 'W'
+	emulate		= 1
+	nologo 		= 0
+
+	rootdir		= directory()
+	tempdir		= path
+	tempraw		= path'\image.iso'
+	source		= burn
+	cdrdir		= ''
+	svdc_drive = flpdrv
+	burnlog		= path'\burn.log'
+	viewer		= 'more <'
+	extrap		= '' 
+	extrap2		= '' 
+	use_dvd		= 0
+	nojoliet	= 0
+	nosniff		= 0
+	nodasd		= 1
+	noshield	= 0
+	nonetscape = 0
+	nojava		= 0
+
+return
+
+/******************************************/
+/* check to see if user has RSJ installed */
+/******************************************/
+check_if_rsj_installed: procedure
+
+	bprog = SysIni(, 'UPDCD', 'BPROG')
+	if bprog = "ERROR:" then do
+		cdpath = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+		if cdpath <> '' then return
+		Call SysQueryClassList 'junk.'
+		i = 1
+		Do i = 1 to junk.0
+			If translate(word(junk.i, 1)) = 'CDWRITER' Then Do
+				call SysIni , 'UPDCD', 'BPROG', 'RSJ'
+				LEAVE
+			End
+		End
+	End
+
+return
+
+/********************/
+/* find mkisofs.exe */
+/********************/
+locate_mkisofs: procedure expose cdrdir msg.
+
+	if cdrdir = '' then Do
+		cdrdir = find_file('mkisofs.exe')
+		if cdrdir = '' Then Do
+			cdrdir = translate(curdir)
+			say ' 'msg.0133
+		End
+	End
+
+return
+
+/*********************************************************/
+/* determine full dir path and remove trailing backslash */
+/*********************************************************/
+determine_full_path: procedure
+
+	parse arg dir
+	curdir = strip(directory(), 'T', '\')
+	if pos(':', dir) = 0 then
+		if substr(dir, 1, 1) = '\' then dir = translate(substr(curdir, 1, 2)||dir)
+		else dir = translate(curdir'\'dir)
+	else dir = translate(dir)
+	dir = strip(dir, 'T', '\')
+
+return dir
+
+/**********************************************************/
+/* check if vrobj.dll version 2.14 or higher is installed */
+/* if not copy it to os2\dll                              */
+/**********************************************************/
+check_vrobj: procedure expose msg.
+
+	bdrive = bootdrive()
+	if stream(bdrive'\os2\dll\vrobj.dll', 'c', 'query exists') = '' then do
+		say ' 'msg.0134' 'bdrive'\os2\dll'
+		'@copy bin\vrobj.dll 'bdrive'\os2\dll\. >nul'
+	end
+	else do
+		call RXFuncAdd 'VRLoadFuncs', 'VROBJ', 'VRLoadFuncs'
+		call VRLoadFuncs
+		call VRVersion('vrobj.dll')
+		parse var result vx_version .
+		if datatype(vx_version) <> 'NUM' | vx_version < 2.14 then do
+			say ' 'msg.0134' 'bdrive'\os2\dll'
+			'@copy bin\vrobj.dll 'bdrive'\os2\dll\. >nul'
+		end
+	end
+
+return
+
+/******************/
+/* check software */
+/******************/
+check_tooling:
+
+	flag. = ''
+	call check_installed_components bootdrive()'\config.sys'
+	say
+	call charout ,' -> 'msg.0135' '
+	if found.svdisk = 0 then do
+		if found.vfdisk = 0 then say '	'msg.0140
+		else say '	'msg.0137
+	end
+	else say '	'msg.0138
+	call charout ,' -> 'msg.0139
+	if flag.3 <> '' then say '	'msg.0140
+	else say '	'msg.0141
+	call charout ,' -> 'msg.0142
+	if flag.4 <> '' then say '	'msg.0140
+	else say '	'msg.0141
+	call charout ,' -> 'msg.0143
+	if found.daniid = 0 then say '	'msg.0140
+	else say '	'msg.0141
+	call charout ,' -> 'msg.0144
+	if found.danifl = 0 then say '	'msg.0140
+	else say '	'msg.0141
+	call charout ,' -> 'msg.0145
+	if found.cdrec2 = 0 then do
+		if found.rsj = 0 then say '	 'msg.0140
+		else say '	'msg.0146
+	end
+	else say '	'msg.0147
+
+return
+
+/*****************************************************/
+/* find out value key belonging to app stored in ini */
+/*****************************************************/
+find_key: procedure
+	parse upper arg ini app key
+	call rxfuncadd sysini, rexxutil, sysini
+	call SysIni ini, 'All:', 'Apps.'
+	if Result \= 'ERROR:' then
+		do i = 1 to Apps.0
+			If translate(left(apps.i,8)) = app then do 
+				call SysIni ini, Apps.i, 'All:', 'Keys'
+				if Result \= 'ERROR:' then
+					do j=1 to Keys.0
+						if translate(Keys.j) = translate(key) then do
+							val = SysIni(ini, Apps.i, Keys.j)
+							return space(val)
+						end
+					end
+			end
+		end
+return ''

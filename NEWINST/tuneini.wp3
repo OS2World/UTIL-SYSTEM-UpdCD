@@ -1,0 +1,9 @@
+; First parameter : USER = OS2.INI file
+;                   SYSTEM = OS2SYS.INI file
+; Second parameter: application name
+; Third parameter : key name
+; Fourth parameter: key value
+
+USER PM_Fonts SYSMONOI \OS2\DLL\SYSMONOI.FON
+USER PM_RunInstallProgram \OS2\INSTALL\IBMDAPIN.EXE 0
+

@@ -1,0 +1,202 @@
+/* Main installation procedure for add-on products                             */
+/* It provides the following services:                                         */
+/* 1. Defines environment variables according to section GLOBAL of addon.cfg   */
+/* 2. Puts the Netscape and MMOS2 directories in environment (NS_DIR, MM_DIR)  */
+/* 3. Defines environment variables according to product specific sections     */
+/* 4. Creates the installation directories if any (product_drv+product_path)   */
+/* 5. Starts the addon installation scripts and logs the result                */
+/* 6. Adjusts the progress indicator                                           */
+/* 05.24.2002: added support for uninstallation                                */
+/* 05.27.2002: reversed uninstallation order                                   */
+/* 06.07.2002: aligned with warp 3 addons                                      */
+/* 11.23.2003: fixed cosmetic issue with progress bar (by Lars)                */
+/* 11.30.2003: fixing cosmetic issues broke addon install on Warp Connect      */
+/* 12.03.2003: Selective Install for addon products was broken                 */
+/* 10.10.2004: added fixes/improvements by Lars                                */
+/* 31.01.2005: warp 3 progress indicator displays ready before finishing       */
+/* 03.07.2005: no call to progress indicator is needed on plain warp 3         */
+/* 03.01.2006: no call to progress indicator is needed on ecs 1.x              */
+
+/* get command line parameters */
+parse upper arg source target percent_completed mode
+
+/* be sure we have no spaces */
+source = space(source)
+target = space(target)
+
+/* determine inst_dir_ibm */
+inst_dir_ibm = 'warpsrv'
+if stream(target'\'inst_dir_ibm'\coninst.exe', 'c', 'query exists') = '' then inst_dir_ibm = 'grpware'
+if stream(target'\'inst_dir_ibm'\coninst.exe', 'c', 'query exists') = '' then inst_dir_ibm = 'ibminst'
+
+/* get global configuration parameters */
+cfg_file = target'\'inst_dir_ibm'\tables\addons.cfg'
+call get_parameters cfg_file 'XX_GLOBAL'
+if inst_dir_ibm = 'grpware' then inst_dir_ibm = 'grpware\clients'
+product_log = value("PRODUCT_LOG",,"OS2ENVIRONMENT")
+product_log = target'\'inst_dir_ibm'\logs\addon\'product_log' 2>>&1'
+call value "PRODUCT_LOG", product_log, "OS2ENVIRONMENT"
+
+/* get netscape directory from OS2.INI and set environment */
+call value "NS_DIR", get_ini_key(netscape 4.6), "OS2ENVIRONMENT"
+/* set MMOS2 directory */
+call value "MM_DIR", target'\MMOS2', "OS2ENVIRONMENT"
+
+/* find and start add-on installation programs */
+call RxFuncAdd 'SysFileTree', 'RexxUtil', 'SysFileTree'
+call SysFileTree source'\updcd\addons\addonins.cmd', 'inst_prog.', 'FSO'
+if mode = 'UNINSTALL' then 
+	'ECHO 'date() time()' - Addon Uninstallation started ('percent_completed') >> 'product_log
+else
+	'ECHO 'date() time()' - Addon Installation started ('percent_completed')   >> 'product_log
+
+/* do the real thing */
+if mode = 'UNINSTALL' then do
+	start_num = inst_prog.0 - 1
+	end_num = 2
+	step = -1
+end
+else do
+	start_num = 2
+	end_num = inst_prog.0 - 1
+	step = 1
+end
+call run_install_program 1
+do i = start_num to end_num by step
+	call run_install_program i
+end
+call run_install_program inst_prog.0
+
+/* finish */
+'ECHO 'time()' - Completed! >>' product_log
+
+exit
+
+/* reads configuration parameters from a given section of the config file */
+get_parameters: procedure expose source target
+
+	parse arg file section
+	start = 0
+	do while lines(file)
+		l=linein(file)
+		if start = 0 & translate(l) = translate(section) then do
+			start = 1
+			iterate
+		end
+		if start = 1 & translate(l) = 'END' then do
+			start = 0
+			call lineout file
+			leave
+		end
+		if start = 1 then do
+			interpret l
+			parse upper var l kw '=' kwval
+			kw = strip(strip(kw,,' '),,'	')
+			kwval = value(kw)
+			rc = value(kw, kwval, "OS2ENVIRONMENT")			
+		end
+	end
+		
+return
+
+/* get apps key value from OS2.INI */
+get_ini_key: procedure
+
+	parse upper arg apps key
+
+	call rxfuncadd sysini, rexxutil, sysini
+	call SysIni 'USER', 'All:', 'Apps.'
+	do i = 1 to Apps.0	
+		if translate(apps.i) = apps then do
+			call SysIni 'USER', Apps.i, 'All:', 'Keys'
+ 	   	do j=1 to Keys.0
+ 	   		if translate(Keys.j) = key then do
+					val = SysIni('USER', Apps.i, Keys.j)
+					return val
+				end
+    	end
+  	end
+	end
+
+return ''
+
+/* create directories on drive instdrv specified in instpath */
+create_dir: procedure
+
+	parse arg instdrv instpath
+
+	if length(instpath) = 0 then return
+	call rxfuncadd sysmkdir, rexxutil, sysmkdir
+	path = ''
+	do while length(instpath) > 0
+		parse value instpath with dir '\' instpath
+		path = path'\'dir
+		call sysmkdir instdrv||path
+	end
+
+return
+
+/* run install program */
+run_install_program: 
+
+	parse arg i
+
+	/* check environment to see if install is needed */
+	inst_env = 'ADDONINS'||substr(inst_prog.i, lastpos('_', inst_prog.i), 6)
+	inst_env = value(inst_env,,"OS2ENVIRONMENT")
+	if inst_env = 1 then do
+
+		'ECHO 'time()' - Calling 'inst_prog.i' >>' product_log
+
+		/* get global parameters */
+		call get_parameters cfg_file 'XX_GLOBAL'
+		product_log = value("PRODUCT_LOG",,"OS2ENVIRONMENT")
+		product_log = target'\'inst_dir_ibm'\logs\addon\'product_log' 2>>&1'
+		call value "PRODUCT_LOG", product_log, "OS2ENVIRONMENT"
+
+		/* get product specific parameters */
+		call get_parameters cfg_file substr(inst_prog.i, lastpos('_', inst_prog.i)-2, 8)
+		product_name      = value("PRODUCT_NAME"     , ,"OS2ENVIRONMENT")
+		product_version   = value("PRODUCT_VERSION", ,"OS2ENVIRONMENT")
+
+		/* start */
+		if mode = 'UNINSTALL' then 
+			'ECHO 'time()' - UnInstallation of 'product_name product_version' has been started ('percent_completed') >>' product_log
+		else
+			'ECHO 'time()' - Installation of 'product_name product_version' has been started ('percent_completed')   >>' product_log
+
+		/* adjust progress indicator */
+		if percent_completed < 100 then percent_completed = percent_completed + 1
+		if inst_dir_ibm = 'grpware\clients' then do
+			if stream(target'\grpware\noprog.flg', 'c', 'query exists') = '' then call ProgressChangeProduct product_name
+		end
+		else do
+			if stream(target'\ibminst\noprog.flg', 'c', 'query exists') = '' then call ProgressChangeProduct product_name, percent_completed
+		end			
+		rcode = result
+
+		/* set environment */
+		inst_dir = value("INST_DIR", substr(inst_prog.i, 1, lastpos('\', inst_prog.i)-1), "OS2ENVIRONMENT")			
+
+		/* create installation directory */
+		product_path = value("PRODUCT_PATH", ,"OS2ENVIRONMENT")
+		if product_path <> '\' then do
+			product_drv = value("PRODUCT_DRV", ,"OS2ENVIRONMENT")
+			call create_dir product_drv product_path
+		end
+
+		/* start install script */
+		'call 'inst_prog.i target source mode
+		if inst_dir_ibm = 'ibminst' then do
+		/* update the progress indicator for this action */
+			if RxFuncQuery('ProgressCompleted') = 0 then call ProgressCompleted
+		end
+
+		/* log result */
+		if rc <> 0 then 'ECHO 'time()' - Error: (Un)Installation of 'product_name' ended abnormally (rc='rc') >>' product_log
+		else 'ECHO 'time()' - Info: (Un)Installation of 'product_name' completed successfully ('result')>>' product_log
+
+	end
+
+return
+

@@ -1,0 +1,72 @@
+/* cleanup plug-in, created on 06.02.2001                            */
+/* 06.03.2001: added removal of RO attributes                        */
+/* 12.20.2001: replaced deldir with cleanup_dir to minimize logging  */
+/* 02.09.2002: added askpsp, netware, nsc                            */
+/* 05.04.2002: changed file not deleted warnings to info             */
+/* 11.21.2002: added technote.txt to delete list                     */
+/* 12.22.2002: added psfonts to delete list                          */
+/* 04.19.2003: added prodinst.cmd to delete list                     */
+/* 05.18.2003: added BONUSPAK.INS to delete list                     */
+/* 11.29.2003: added ecs 1.1 root files to delete list               */
+/* 02.24.2005: added warp connect red pack root files to delete list */
+/* 08.16.2005: updcd's readme.1st renamed to readme.ucd              */
+/* 02.19.2006: added eCS 1.2R root files to delete list              */
+
+/* remove RO attributes from burn */
+'@attrib -r -s -h -a 'burn'\* /s >nul 2>>&1'
+
+/* del eadata */
+'@del "'burn'\os2image\disk_0\ea data. sf" >nul 2>>&1'
+'@del "'burn'\os2image\disk_1\ea data. sf" >nul 2>>&1'
+'@del "'burn'\os2image\disk_2\ea data. sf" >nul 2>>&1'
+'@del "'burn'\WP ROOT. SF" >nul 2>>&1'
+
+/* delete dirs */
+call cleanup_dir burn'\fi S' 
+call cleanup_dir burn'\ecs S' 
+call cleanup_dir burn'\bootimgs S'
+call cleanup_dir burn'\report S' 
+call cleanup_dir burn'\options S' 
+call cleanup_dir burn'\images S' 
+call cleanup_dir burn'\info S'
+call cleanup_dir burn'\books S'
+call cleanup_dir burn'\os2image S'
+call cleanup_dir burn'\ibminst S'
+call cleanup_dir burn'\cid S'
+call cleanup_dir burn'\diskimgs S'
+call cleanup_dir burn'\updcd S'
+call cleanup_dir burn'\warpsrv S'
+call cleanup_dir burn'\GRPWARE S'
+call cleanup_dir burn'\os2 S'
+call cleanup_dir burn'\dos S'
+call cleanup_dir burn'\mmpm2 S'
+call cleanup_dir burn'\mmos2 S'
+call cleanup_dir burn'\askpsp S'
+call cleanup_dir burn'\bookinst S'
+call cleanup_dir burn'\netware S'
+call cleanup_dir burn'\nsc S'
+call cleanup_dir burn'\GrahamUtil S'
+call cleanup_dir burn'\os2image-Java S'
+call cleanup_dir burn'\netscape S'
+call cleanup_dir burn'\language S'
+call cleanup_dir burn'\bonuspak S'
+call cleanup_dir burn'\acrobat S'
+call cleanup_dir burn'\ZipFiles S'
+call cleanup_dir burn'\TVoice S'
+call cleanup_dir burn'\PatchLDR S'
+call cleanup_dir burn'\SoftwareChoice S'
+call cleanup_dir burn'\tmppdpsi S'
+call cleanup_dir burn'\ziptemp S'
+call cleanup_dir burn'\psfonts S'
+
+/* clean files in root */
+call delete_if_exist burn'\readme.1st 'burn'\OS2SE20.SRC 'burn'\README 'burn'\README.INS 'burn'\RSPINST.EXE 'burn'\PRODDSKS.CMD 'burn'\INSTALL.CMD 'burn'\SAMPLE.RSP 'burn'\CDINST.CMD 'burn'\CDINST.BAT 'burn'\DMF_PS2.CMD 'burn'\VCU.EXE 'burn'\makedisk.cmd 'burn'\readme2.txt 'burn'\.listing'
+call delete_if_exist burn'\VCU.MSG 'burn'\chkinst.exe 'burn'\readme.txt 'burn'\runtime.exe 'burn'\makedsks.cmd 'burn'\boot.catalog 'burn'\eCS_license.htm 'burn'\known.issues 'burn'\ReadME.FIRST 'burn'\ReadME-BootMenu.TXT 'burn'\mdnocsm.bat 'burn'\mdnocsm.cmd 'burn'\makedisk.bat 'burn'\readme.add'
+call delete_if_exist burn'\ecsmakedisk.exe 'burn'\ecsmakedisk.hlp 'burn'\image.exe 'burn'\install.ibm 'burn'\install_ibm.cmd 'burn'\inswmloc.exe 'burn'\known_issues.html 'burn'\readme.os2 'burn'\tvoice.zip 'burn'\tvoiceu.dll 'burn'\vrobj.dll' burn'\DISK_0_1.IMG 'burn'\DISK_2.IMG 'burn'\advance.ins'
+call delete_if_exist burn'\easy.ins 'burn'\instutil.dll 'burn'\instutil.exe 'burn'\instutil.hlp 'burn'\technote.txt 'burn'\prodinst.cmd 'burn'\BONUSPAK.INS 'burn'\md5.lis 'burn'\faq.txt 'burn'\license.txt 'burn'\bootmenu.txt 'burn'\lvmhelp.inf 'burn'\readme.ibm 'burn'\readme2.ibm'
+call delete_if_exist burn'\bpiu.exe 'burn'\cdread.me 'burn'\error.txt 'burn'\install.in_ 'burn'\installp.exe 'burn'\license.agr 'burn'\makeldrq.cmd 'burn'\products 'burn'\qstart.txt 'burn'\readme.2 'burn'\unarj.exe 'burn'\readme.ucd'
+call delete_if_exist burn'\md5sums 'burn'\checksum.md5 'burn'\check-cd.sh 'burn'\biostips.txt 'burn'\whatsnew.txt 'burn'\startup.cmd 'burn'\check-cd.bat 'burn'\check-cd.cmd'
+
+/* check result */
+call SysFileTree burn'\*', 'ini.', 'FSO',,'**---'
+if ini.0 > 0 then do; call lineout log, 'Warning: Number of files remaining in burn after cleanup: 'ini.0; n.warnings=n.warnings+1; do i=1 to ini.0; call lineout log, 'Info: File: 'ini.i; end; end

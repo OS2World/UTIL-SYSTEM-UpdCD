@@ -1,0 +1,21 @@
+/* Postprocessing steps for incorporating incremental MPTS fixpaks in base */
+/* fixpaks. Tested with fixpaks WR08610 (base) and WR08621 (incremental)   */
+
+/* zip extras */
+/*           target zip                    path            files to add    */
+call add2zip 'ibmcom\protocol\protocol.zip ibmcom\protocol KDBNET.SYS KDBNET.NIF'
+call add2zip 'ibmcom\macs\macs.zip         ibmcom\macs     I2OLOSM.OS2 I2OLOSM.NIF IBMESAN2.OS2 IBMESAN2.NIF E100B.OS2 E100BEO2.NIF TL3C3X9.OS2 TL3C3X9.NIF EL90X.OS2 EL515.OS2 EL515IO2.NIF EL90XIO2.NIF'
+call add2zip 'mptn\msg\nls\nls.zip         mptn\msg\nls    LOOK.CAT'
+call add2zip 'mptn\protocol\mprot2.zip     mptn\protocol   SOCKETSK.SYS AFINETK.SYS SOCKETSK.SYM AFINETK.SYM'
+call add2zip 'mptn\bin\bin.zip             mptn\bin        NSLOOKUP.EXE'
+if stream(fpdir'\MPTSAPI.DLL ', 'c', 'query exists') <> '' then call add2zip 'mptn\dll\MDLL.ZIP            mptn\dll        MPTSAPI.DLL'
+	
+/* copy extras */
+if stream(fpdir'\readme.1st ', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\readme.1st     'cddir
+if stream(fpdir'\README.TCP ', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\README.TCP     'cddir
+if stream(fpdir'\wr08621.inf', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\wr08621.inf    'cddir
+if stream(fpdir'\wr_8621.cid', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\wr_8621.cid    'cddir
+
+/* rename some files */
+if stream(fpdir'\DHCPSD.ZIP ', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\DHCPSD.ZIP     'cddir'\DHCPSD.Z_P'
+if stream(fpdir'\TCPCOEX.ZIP', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\TCPCOEX.ZIP    'cddir'\TCPCOEX.Z_P'

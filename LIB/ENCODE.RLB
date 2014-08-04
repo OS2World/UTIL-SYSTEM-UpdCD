@@ -1,0 +1,89 @@
+/*****************************************************************/
+/* updcd rexx library - encode/decode HPFS386.IFS functions      */
+/* created: 12.17.2001                                           */
+/* 08.27.2002: corrected syntax error                            */
+/* 03.17.2003: added nls language support                        */
+/*****************************************************************/
+
+/*****************************************************************/
+/* Encode/Decode binary files                                    */
+/* Usage: encode <input file> <output file> <e/d>                */
+/* Example: encode hpfs386.ifs ifs386.lma e (encode hpfs386.ifs) */
+/*****************************************************************/
+encode_it: procedure 
+
+	parse arg in out mode
+
+	/* load conversion tables */
+	call create_tables mode 
+
+	/* create crypted file */
+	'@del 'out' >nul 2>>&1'
+	do while chars(in) > 0
+		chr = charin(in)
+		cc = crypted(chr)
+		if cc = '-1' then do
+			say msg.0324' 'c2x(chr)
+			exit
+		end
+		else
+			call charout out, cc
+	end
+	call lineout in
+	call lineout out
+
+return
+
+/*****************************/
+/* prepare conversion tables */
+/*****************************/
+create_tables:
+
+	parse arg m
+
+	etbl.1 = '4D5A003304FF080240800E1FBAB409CD21B8014C546869732070726F67616D636E74626575444F53642E0D0A24583F10F35DE805C49C94030B06AC07899F6632'
+	etbl.2 = 'F035C01223135082C5450C29DC363C3A773E7B7C7D858D959DA3ABB218283038486078889098A0A8B0C8D0D8E0F841557ABC14465F434E4B5251574947420F11'
+	etbl.3 = '5915161719561A1B1C1D1E222526272A2B2CE484D4A4F434C181EE8BD3EDDD3DFC4AAF7E8EAD2D31376AE9AEBEE7A15CD2D6DACCE2FE6C8A2F5EA2A68C39EC3B'
+	etbl.4 = 'C6C7CA79CE8F91999A9B9EDEA7E1A5E66BF7FAFD7F97EBEFB7DFC3C2F2E5D5E3FB71DBCFF6B1EA93BDB3C9BFA9D7B6F987B983F596B5CB5BBB86D9AAD192F176'
+	ctbl.1 = 'E8FFA596A15AADA7E525ABBA1F11AC68841DA4E9F1CDCCD685D5D7CAC2C4C8C6CBD1C7C0D0E1EAF6C18BA8AF81FD9AB556F84DA0613931A6AEA309A22C3AC397'
+	ctbl.2 = '559065B786B6F52760E0A98C7993999FD29BDED9D820283038060E17BD8D959DEDC5DD2D353D050D156D757D455DE4F0DF19B1E3FAE6EBEEF7F4F2ECE2E7AAB4'
+	ctbl.3 = 'FCB0B3B2BCF3BFBEB9B8BB878083828F8E8941217101519164244B2E7648789859EF0ADB2B08889492CF4C0B1B4204F977737F69475BC92F8AFB0703299C499E'
+	ctbl.4 = '63626FDC6B2A343C3F3E3B7B02440043CE525F58DA324E4A127A6667574070465ED47E6A53144F3618166C1A0C72135C221C265033106EFE1E237C0F743754D3'
+
+	if m = 'e' then do
+		etbl = etbl.1||etbl.2||etbl.3||etbl.4
+		ctbl = ctbl.1||ctbl.2||ctbl.3||ctbl.4
+	end
+	else do
+		ctbl = etbl.1||etbl.2||etbl.3||etbl.4
+		etbl = ctbl.1||ctbl.2||ctbl.3||ctbl.4
+	end
+
+	tmp_table = ''
+	do while length(etbl) > 0
+		tmp_table = tmp_table||x2c(substr(etbl, 1, 2))
+		etbl = substr(etbl, 3)
+	end
+	etbl = tmp_table
+	tmp_table = ''
+	do while length(ctbl) > 0
+		tmp_table = tmp_table||x2c(substr(ctbl, 1, 2))
+		ctbl = substr(ctbl, 3)
+	end
+	ctbl = tmp_table
+
+return
+
+/*********************/
+/* crypting function */
+/*********************/
+crypted: 
+
+	parse arg c
+	
+	/* find out position character in encrypted table */
+	p = pos(c, etbl)
+	if p = 0 then c = -1
+	else c = substr(ctbl, p, 1)
+
+return c

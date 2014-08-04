@@ -1,0 +1,22 @@
+/* Postprocessing steps for incorporating eCS DE modules */
+
+/* copy extras */
+call execute '@copy 'cddir'\os2\dll\ehxdlmri.dll 'cddir'\language\en\.'
+call execute '@copy 'fpdir'\ehxdlmri.dll 'cddir'\os2\dll\.'
+call execute '@copy 'fpdir'\GLOCMRI.DLL  'cddir'\os2\dll\.'
+call execute '@copy 'fpdir'\WPSTKMRI.DLL 'cddir'\os2\dll\.'
+call execute '@copy 'fpdir'\e.exe        'cddir'\os2\.'
+call execute '@copy 'fpdir'\dspres.dll   'cddir'\os2\install\vga\.'
+call execute '@copy 'fpdir'\dspres.dll   'cddir'\os2\dll\.'
+call execute '@copy 'fpdir'\epm.exe      'cddir'\os2\apps\.'
+call execute '@copy 'fpdir'\epmmri.dll   'cddir'\os2\apps\dll\.'
+call execute '@copy 'fpdir'\install.dll  'cddir'\os2\dll\.'
+call execute '@copy 'fpdir'\install.dll  'cddir'\os2\install\wsfi\fisetup\.'
+call execute '@copy 'fpdir'\mmptmri.dll  'cddir'\mmos2\dll\.'
+
+/* pack extras */
+
+/* relocate stuff */
+call execute '@copy 'cddir'\ECS\DLG\DSPIMRI\dspinstl.exe 'cddir'\os2\install\.'
+
+/* delete stuff */

@@ -1,0 +1,19 @@
+/* Postprocessing steps for incorporating LS fixpaks */
+/* Tested with fixpak IP08608                        */
+/* MCP does not have server files                    */
+
+/* zip extras */
+/*           target zip                             path            fixpak files to add    */
+call add2zip 'CID\SERVER\IBMLS\IBM500R3\UPMFILE1.ZIP MUGLIB UPMTFMT.EXE'
+call add2zip 'CID\SERVER\IBMLS\IBM500D1\dlsnetdr.zip . RPLBOOT.EXE'
+if stream(cddir'\CID\SERVER\IBMLS\IBM500S1\srvrfils.zip', 'c', 'query exists') <> '' then call add2zip 'CID\SERVER\IBMLS\IBM500S1\srvrfils.zip IBMLAN\NETPROG RPLS8608.CMD'
+if stream(cddir'\CID\SERVER\IBMLS\IBM500S1\os2ripll.zip', 'c', 'query exists') <> '' then call add2zip 'CID\SERVER\IBMLS\IBM500S2\os2ripll.zip IBMLAN\NETPROG RPLRESET.CMD RPLRESET.MSG RPLS8528.MSG RPLWCUPD.CMD RPLWCUPD.MSG'
+
+/* copy some files */
+if stream(cddir'\en\hpfs386\ifs386.lma', 'c', 'query exists') <> '' then call execute '@copy fix\HPFS386.IFS 'cddir'\en\hpfs386\.'
+
+/* encode hpfs386.ifs */
+if stream(cddir'\en\hpfs386\ifs386.lma', 'c', 'query exists') <> '' then call encode_it cddir'\en\hpfs386\hpfs386.ifs 'cddir'\en\hpfs386\ifs386.lma e'
+
+/* delete some files */
+if stream(cddir'\en\hpfs386\hpfs386.ifs', 'c', 'query exists') <> '' then call execute '@del 'cddir'\en\hpfs386\hpfs386.ifs'

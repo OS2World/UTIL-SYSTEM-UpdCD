@@ -1,0 +1,13 @@
+INSTALL_MODE=UNATTENDED
+CONFIG_NO_INSTALL=N
+TARGET_DRIVE =
+LOG_PATH1=\TCPAPPS\TCPINST1.LOG
+LOG_PATH2=\TCPAPPS\TCPINST2.LOG
+BOOT_DRIVE = 
+PACKAGES=(
+                    BASE_APPS=Y
+                    DHCP_DDNS_SERVER=N
+                    VPN=N
+                    NFS=N
+                 )
+

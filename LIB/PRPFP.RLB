@@ -1,0 +1,117 @@
+/*************************************************/
+/* updcd rexx library - prpfp specific functions */
+/* created: 12.17.2001                           */
+/* 08.27.2002: set default value n.elapsed       */
+/* 09.20.2002: moved 'DD fixpack' and 'FI Setup' */
+/*             out of 'OS/2 fixpack' DO-END due  */
+/*             to fixpk and DDpack split process */
+/* 12.23.2002: cosmetic change                   */
+/* 03.18.2003: added nls language support        */
+/* 03.05.2005: aligned with fixpak 44            */
+/*************************************************/
+
+/* load language file */
+call load_language 'ENG NOSAVE'
+call load_language 'DEFAULT'
+
+parse arg fpdir n.errors n.warnings n.elapsed ver log vers
+
+/* reset timer */
+call time 'E'
+
+/* we need to know the absolute path */
+cdir  = chdir()
+fpdir = chdir(fpdir)
+cdir  = chdir(cdir)
+
+/* reset screen */
+if datatype(n.elapsed) <> 'NUM' then n.elapsed = 0
+call display_startup_screen fpdir fpdir msg.0245'*'msg.0241
+
+/* logging some info */
+call lineout log, 'Info: Preprocessing fixpak files in directory 'fpdir'... ('date() time()', version: 'ver')'
+say '1B'x || '[7;26H'msg.0230
+
+/* OS/2 fixpak */
+if stream(fpdir'\os2krnl.___', 'c', 'query exists') <> '' | stream(fpdir'\os2krnl.un_', 'c', 'query exists') <> '' then do
+	say '1B'x || '[7;26H'msg.0231  /* by Isma - 20/09/2002  */
+	call lineout log, 'Info: Found OS/2 fixpak.'
+	call delete_if_exist fpdir'\new_dirs.os2 'fpdir'\CSBKEOS2.EXE 'fpdir'\CSEXTOS2.DLL 'fpdir'\CSEXTOS2.EXE 'fpdir'\os2krnl.un_'
+
+end				/* by Isma - 20/09/2002  */
+
+/* by Isma - 20/09/2002  moved out of DO-END from OS/2 fixpack  */
+
+/* DD fixpak */
+else if stream(fpdir'\srv_prod.bdd', 'c', 'query exists') <> '' then do
+        say '1B'x || '[7;26H'msg.0232  /* by Isma - 20/09/2002  */
+	call lineout log, 'Info: Found DD fixpak.'
+	call delete_if_exist fpdir'\srv_prod.bdd 'fpdir'\new_dirs.bdd'
+end
+
+/* by Isma - 20/09/2002  moved out of DO-END from OS/2 fixpack  */
+
+/* FI Setup */
+else if stream(fpdir'\fisetup.exe', 'c', 'query exists') <> '' then do
+	call lineout log, 'Info: Found Feature Installer.'
+	call delete_if_exist fpdir'\checkasd.exe 'fpdir'\checkasd.msg 'fpdir'\fisetmri.dll 'fpdir'\fisetup.exe 'fpdir'\readme 'fpdir'\rejoinea.exe'
+
+end
+
+/* MPTS fixpak */
+else if stream(fpdir'\afinet.sy_', 'c', 'query exists') <> '' then do
+	say '1B'x || '[7;26H'msg.0233
+	call lineout log, 'Info: Found MPTS fixpak.'
+	call delete_if_exist fpdir'\csbketrp.exe 'fpdir'\csexttrp.exe'
+end
+
+/* PEER/LS fixpak */
+else if stream(fpdir'\net.ex_', 'c', 'query exists') <> '' then do
+	say '1B'x || '[7;26H'msg.0234
+	call lineout log, 'Info: Found PEER/LS fixpak.'
+	call delete_if_exist fpdir'\csexthfs.exe 'fpdir'\new_dirs.srv 'fpdir'\CSBKEREQ.EXE 'fpdir'\SERVICE.RE_ 'fpdir'\CSBKEUPE.EXE 'fpdir'\SERVICE.UP_ 'fpdir'\CSBKEMUG.EXE 'fpdir'\SERVICE.MU_'
+end
+
+/* TCP/IP fixpak */
+else if stream(fpdir'\ppp.ex_', 'c', 'query exists') <> '' then do
+	say '1B'x || '[7;26H'msg.0235
+	call lineout log, 'Info: Found TCP/IP fixpak.'
+	call delete_if_exist fpdir'\CSINITCP.EXE 'fpdir'\CSBKETCP.EXE 'fpdir'\APPSREAD.ME_'
+end
+
+/* scanning fixpak directory */
+call SysFileTree fpdir'\*.??_', 'ffp.full.', 'FSO',,'**---'
+if result <> 0 then do
+		call lineout log, 'Error: 'fpdir' seems not to be a fixpack directory!'
+		exit 1
+end 
+
+/* unpack files */
+do i=1 to ffp.full.0
+	call execute '@bin\unpack 'ffp.full.i filespec('drive', ffp.full.i)||filespec('path', ffp.full.i)||'. '
+	if result = 0 then call execute '@del 'ffp.full.i
+end
+
+/* do some postprocessing */
+say '1B'x || '[7;26H'substr(msg.0228, 1, 50)
+call lineout log, 'Info: Postprocessing files...'
+if stream(fpdir'\vdma.sys',     'c', 'query exists') <> '' then call execute '@copy 'fpdir'\vdma.sys     'fpdir'\vdmaat.sys'
+call delete_if_exist fpdir'\vdma.sys'
+if datatype(vers) = 'NUM' then do
+	if stream(fpdir'\times.fon',    'c', 'query exists') <> '' then call execute '@copy 'fpdir'\times.fon    'fpdir'\times.bga'
+	if stream(fpdir'\helv.fon',     'c', 'query exists') <> '' then call execute '@copy 'fpdir'\helv.fon     'fpdir'\helv.bga'
+	if stream(fpdir'\courier.fon',  'c', 'query exists') <> '' then call execute '@copy 'fpdir'\courier.fon  'fpdir'\courier.bga'
+end
+
+/* warp 4 or higher */
+if stream(fpdir'\os2krnl', 'c', 'query exists') <> '' & datatype(vers) <> 'NUM' then do
+	if stream(fpdir'\crexx.dll',    'c', 'query exists') <> '' then call execute '@copy 'fpdir'\crexx.dll    'fpdir'\rexx.dll'
+	if stream(fpdir'\crexutil.dll', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\crexutil.dll 'fpdir'\rexxutil.dll'
+	if stream(fpdir'\crex.msg',     'c', 'query exists') <> '' then call execute '@copy 'fpdir'\crex.msg     'fpdir'\rex.msg'
+	call delete_if_exist fpdir'\crexx.dll 'fpdir'\crexutil.dll 'fpdir'\crex.msg'
+end
+
+if n.elapsed > 0 then call lineout 'result.out', n.errors' 'n.warnings, 1
+else call lineout log, 'Detected 'n.errors' error(s) and 'n.warnings' warning(s) during processing.'
+
+exit 

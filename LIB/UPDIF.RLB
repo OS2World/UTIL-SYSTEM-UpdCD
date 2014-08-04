@@ -1,0 +1,574 @@
+/**********************************************************************/
+/* updcd rexx library - updif specific functions                      */
+/* created: 02.24.2002                                                */
+/* 03.03.2002: fixed problem with handling drive a:                   */
+/* 03.30.2002: fixed add add's option which was broken in 2.0         */
+/* 06.09.2002: extended add daniide option with adding dasd and boot  */
+/* 06.22.2002: danidasd should not be added to non-lvm systems        */
+/* 07.08.2002: enabled dani driver integration for warp 3             */
+/* 08.23.2002: aligned with dd fpk 3                                  */
+/* 10.11.2002: added joliet extension to cfg.sys                      */
+/* 11.13.2002: i2oxport.sys should only be added if it is missing     */
+/* 12.10.2002: DANIATAPI.FLT was not incorporated correctly           */
+/* 12.17.2002: added /N /A /D to savedskf                             */
+/* 03.18.2003: added nls language support                             */
+/* 04.10.2003: removed expert mode                                    */
+/* 08.17.2003: added rdrive setting to cfg file                       */
+/* 09.21.2003: added support for no-emulation boot                    */
+/* 09.28.2003: improved no-emulation boot support                     */
+/* 09.30.2003: fixed format problem on Warp 4 using no-emulation boot */
+/* 04.18.2004: added support for up2TB.flt                            */
+/* 05.29.2004: add chkdsk.sys to config.sys                           */
+/* 06.14.2004: cdloader.bin has been renamed                          */
+/* 08.12.2004: added fat32 support                                    */
+/* 08.19.2004: added new configuration options                        */
+/* 09.18.2004: new configuration options were not working ok          */
+/* 10.18.2004: memdisk.add should be added after dani/ibm1s506.add    */
+/* 12.12.2004: added optional removal of os2logo, memdisk.add > lastl */
+/* 05.02.2005: made copy of jfs and vcu files optional                */
+/* 07.19.2005: lxlite floppy image before updating to save space      */
+/* 08.19.2005: add relative os2image pathes to config.sys             */
+/* 02.19.2006: added usb support                                      */
+/**********************************************************************/
+
+/* load language file */
+call load_language 'ENG NOSAVE'
+call load_language 'DEFAULT'
+
+/* get command line parameters */
+parse arg cddir fpdir n.errors n.warnings n.elapsed log ver add.dani.ide add.dani.flt add.dani.boot add.dani.dasd add.up2tb add.fat32 add.usb add.dummy emulate rdrv f1dir f2dir
+if datatype(f1dir) = 'NUM' then do
+	vers = f1dir
+	f1dir = ''
+end
+
+/* reset timer */
+call time 'E'
+
+/* we need to know the absolute path */
+cdir  = chdir()
+fpdir = chdir(fpdir)
+cdir  = chdir(cdir) 
+cddir = chdir(cddir)
+cdir  = chdir(cdir)
+iddir = cddir||'\DISKIMGS\OS2\35'
+exdir = cddir||'\DISKIMGS'
+emdir = cddir||'\BOOTIMGS'
+
+/* load configuration file */
+call read_config_file 'updcd.cfg'
+
+/* reset screen */
+call display_startup_screen flpdrv'\' iddir msg.0240'*'msg.0241
+
+/* insert 1.44MB floppy */
+rcode = 1
+do while rcode <> 0
+	rcode = size_floppy(flpdrv '1.44')
+	if rcode <> 0 then do
+		say '1B'x || '[19;2H'msg.0242
+		'@pause >nul 2>>&1'
+	end
+end
+
+/* log */
+rc = lineout(log, 'Info: Creating installation floppies from 'iddir' and 'fpdir'... ('date() time()', version 'ver')')
+rc = lineout(log)
+
+/* determine CD drive letter */
+cdrv = 'x'
+p = pos(translate(rdrv), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+if p > 0 then cdrv = substr('ABCDEFGHIJKLMNOPQRSTUVWXYZ', p+1, 1)
+if cdrv = '' then cdrv = 'x'
+
+/* start the real work */
+call create_flop 'DISK0'
+call report_status
+call create_flop 'DISK1_CD'
+call report_status
+if datatype(vers) <> 'NUM' then do
+	call create_flop 'DISK2'
+	call report_status
+end
+
+/* create non-emulated boot files */
+if emulate = 0 then call create_bootimgs emdir
+
+/* quit */
+if n.elapsed > 0 then do
+	call lineout 'result.out', n.errors' 'n.warnings, 1
+end
+
+exit 
+
+/* create and update install floppy */
+create_flop: procedure expose log iddir fpdir cddir exdir n. ver flpdrv compress f1dir f2dir vers add. addons burn rootdir msg. rdrv cdrv emulate nologo
+
+	parse arg disk
+	image = iddir'\'disk'.dsk'
+
+	/* create installation floppy */
+	call display_action msg.0236' 'disk
+	rcode = 1
+	do while rcode <> 0
+		say '1B'x || '[19;2H'substr(' ', 1, 70)
+		if (f1dir <> '' & disk = 'DISK1_CD') then do
+			call deldir flpdrv
+			call execute '@xcopy 'f1dir'\* 'flpdrv' /H/O/T/R'
+			call execute '@label 'flpdrv'DISK 1'
+		end
+		else if (f2dir <> '' & disk = 'DISK2') then do
+			call deldir flpdrv
+			call execute '@xcopy 'f2dir'\* 'flpdrv' /H/O/T/R'
+			call execute '@label 'flpdrv'DISK 2'
+		end
+		else
+			call execute '@'exdir'\loaddskf 'image flpdrv' /Y /Q /S /F '
+		rcode = result
+		if rcode <> 0 then do
+			say '1B'x || '[19;2H'msg.0244
+			'@pause >nul 2>>&1'
+		end
+	end
+
+	/* create some space */
+	call delete_if_exist flpdrv'\bundle 'flpdrv'\readme.ins 'flpdrv'\readme.cid'
+	if nologo = 1 then '@echo dummy > fix\os2logo'
+	if stream(flpdrv'\IBM2FLPY.ADD', 'c', 'query exists') <> '' then call execute '@del 'flpdrv'\ibm2*'
+	if stream(flpdrv'\xdfloppy.flt', 'c', 'query exists') <> '' then '@echo dummy > 'flpdrv'\xdfloppy.flt'
+
+	if translate(disk) = 'DISK1_CD' then do
+		if datatype(vers) = 'NUM' then do /* warp 3 */
+			/* do not update keyboard.dcp on boot floppy 1 (no space) */
+			call execute '@copy fix\keyboard.dcp fix\keyboard.org'
+			call execute '@del  fix\keyboard.dcp'
+
+			/* delete editor */
+			call delete_if_exist flpdrv'\tedit.exe 'flpdrv'\tedit.hlp'
+
+			/* do not update aic7870.add on boot floppy 1 (no space) */ 
+			call execute '@copy fix\aic7870.add fix\aic7870.org'
+			call execute '@del fix\aic7870.add'
+
+		end
+		/* delete some old drivers */
+		call delete_if_exist flpdrv'\btscsi.add 'flpdrv'\dpt20xx.add 'flpdrv'\aha152x.add 'flpdrv'\aha154x.add 'flpdrv'\aha164x.add 'flpdrv'\aha174x.add 'flpdrv'\aic7770.add 'flpdrv'\fd16-700.add 'flpdrv'\fd7000ex.add 'flpdrv'\fd8xx.add 'flpdrv'\tmv1scsi.add'
+	end
+
+	/* create even more space */
+	if n.elapsed > 0 & compress = 1 then call execute '@bin\lxlite 'flpdrv'\*'
+
+	/* update floppy */
+	call run_it 'bin\updcd.cmd 'flpdrv fpdir n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+	/* postprocessing floppy */
+	call display_action msg.0237' 'disk
+
+	if translate(disk) = 'DISK0' then do
+
+		call execute '@del 'flpdrv'\os2krnli'
+		if emulate = 0 then call execute '@bin\rboot.exe 'flpdrv' os2ldr.sek'
+
+		if n.elapsed > 0 then do
+
+			call copydir flpdrv cddir'\updcd\bootimg\DISK_0_1.IMG'
+
+			if compress = 1 then do
+				/* clean up */
+				call deldir 'tmp' 
+				call execute '@mkdir tmp'
+				call execute '@mkdir tmp\disk0'
+				call execute '@xcopy 'cddir'\updcd\bootimg\DISK_0_1.IMG\* tmp\disk0\.'
+				call execute '@copy 'fpdir'\os2krnl tmp\disk0\os2krnli'
+			end
+
+			call execute '@copy 'fpdir'\os2krnl 'cddir'\updcd\bootimg\DISK_0_1.IMG\.'
+		end
+
+		call execute '@copy 'fpdir'\os2krnl 'flpdrv'\os2krnli'
+
+		if n.elapsed > 0 & compress = 1 then do
+			call execute '@bin\lxlite tmp\disk0\*'
+			call execute '@del 'flpdrv'\os2krnli'
+			call execute '@xcopy tmp\disk0\* 'flpdrv
+		end
+
+	end
+
+	if translate(disk) = 'DISK1_CD' then do
+
+		/* read config.sys from boot floppy */
+		config_file = flpdrv'\CONFIG.SYS'
+		found_i2ox = 0
+		found_chkdsk = 0
+		i = 1
+		do while lines(config_file)
+			l.i = linein(config_file)
+			if pos('I2OXPORT.SYS', translate(l.i)) > 0 then found_i2ox = 1
+			if pos('CHKDSK.SYS', translate(l.i)) > 0 then found_chkdsk = 1
+			if pos('EARLYMEMINIT=TRUE', translate(l.i)) > 0 then found_i2ox = 1 /* fake it for cp2 */
+			i = i+1
+		end
+		rc = lineout(config_file)
+
+		/* customize config.sys */
+		l.0 = i - 1
+		call execute '@del 'config_file
+		do i = 1 to l.0
+			/* add line */
+			if found_chkdsk = 0 & stream('fix\chkdsk.sys', 'c', 'query exists') <> '' then do
+				found_chkdsk = 1
+				rc = lineout(config_file, 'basedev=chkdsk.sys')
+			end
+			/* skip line */
+			if pos('XDFLOPPY',   translate(l.i)) > 0 then iterate /* remove XDF driver   */
+			if pos('COPYFROMFLOPPY', translate(l.i)) > 0 then iterate; /* remove copyfromfloppy */
+			if pos('CDFS.IFS', translate(l.i)) > 0 then l.i = l.i || ' /W'  /* add joliet */
+			/* write line */
+			rc = lineout(config_file, l.i)
+			/* add line */
+			if pos('BASEDEV=IBMKBD.SYS', translate(l.i)) > 0 then do /* add i2oxport.sys */
+				if found_i2ox = 0 then 
+					if stream('fix\i2oxport.sys', 'c', 'query exists') <> '' then rc = lineout(config_file, 'basedev=i2oxport.sys')
+			end
+			if pos('BASEDEV=OS2DASD.DMD', translate(l.i)) > 0 then do /* add large disk support */
+				if add.up2tb = 1 & stream(addons'\21_DNIDE\UP2TB.FLT', 'c', 'query exists') <> '' then rc = lineout(config_file, 'basedev=up2tb.flt')
+			end
+		end
+		rc = lineout(config_file, 'RESERVEDRIVELETTER='rdrv)
+		rc = lineout(config_file)
+
+		/* restore old keyboard.dcp if needed (warp 3) */
+		if stream('fix\keyboard.org', 'c', 'query exists') <> '' then do
+			/* restore keyboard.dcp */
+			call execute '@copy fix\keyboard.org fix\keyboard.dcp'
+			call execute '@del  fix\keyboard.org'
+			/* do update aic7870.add on the CD */
+			call execute '@copy fix\aic7870.org fix\aic7870.add'
+			call execute '@del fix\aic7870.org'
+		end
+
+		/* replace PS/2 drivers with dummy */
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\IBM2SCSI.ADD'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\IBM2FLPY.ADD'
+		call execute '@copy newinst\nulldev.sys 'flpdrv'\IBM2ADSK.ADD'
+
+		/* replace some SCSI drivers with DANI's dummy driver to gain more space */
+		call replace_with_dummy 'aha152x.add aha154x.add aha164x.add aha174x.add aic7770.add btscsi.add dac960.add dpt20xx.add fd16-700.add fd7000ex.add fd8xx.add flashpt.add ql10os2.add ql40os2.add ql510.add tmv1scsi.add'
+
+		/* put back dummy for deleted drivers */
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\btscsi.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\dpt20xx.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\aha152x.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\aha154x.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\aha164x.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\aha174x.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\aic7770.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\fd16-700.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\fd7000ex.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\fd8xx.add'
+   	call execute '@copy newinst\nulldev.sys 'flpdrv'\tmv1scsi.add'
+
+		/* add i2oxport.sys to disk 1 */
+		if found_i2ox = 0 then 
+			if stream('fix\i2oxport.sys', 'c', 'query exists') <> '' then 
+				call execute '@copy fix\i2oxport.sys  'flpdrv'\.'
+
+		/* add chkdsk.sys to disk 1 */
+		if stream('fix\chkdsk.sys', 'c', 'query exists') <> '' & stream(flpdrv'\chkdsk.sys', 'c', 'query exists') = '' then 
+			call execute '@copy fix\chkdsk.sys  'flpdrv'\.'
+
+		/* add scsi drivers if they are placed in newinst */
+		if add.dummy = 1 then do
+			if stream('fix\aic78u2.add', 'c', 'query exists') <> '' & stream('newinst\aic78u2.add', 'c', 'query exists') = '' then call execute '@copy fix\aic78u2.add newinst\.'
+			call add_adds flpdrv'\config.sys'
+		end
+
+		/* create dir for boot image file */
+		if n.elapsed > 0 then do
+			call copydir flpdrv cddir'\updcd\bootimg\DISK_0_1.IMG'
+
+			if compress = 1 then do
+				call execute '@mkdir tmp'
+				call execute '@mkdir tmp\disk1'
+				call copydir flpdrv 'tmp\disk1'
+			end
+
+			config_file = cddir'\updcd\bootimg\DISK_0_1.IMG\CONFIG.SYS'
+			i = 1
+			do while lines(config_file)
+				l.i = linein(config_file)
+				i = i+1
+			end
+			rc = lineout(config_file)
+			l.0 = i - 1
+			call execute '@copy 'config_file cddir'\updcd\bootimg\.'
+			call execute '@del 'config_file
+
+			/* change things */
+			do i = 1 to l.0
+				select 
+					when pos('COPYFROMFLOPPY', translate(l.i)) > 0 then nop; /* remove copyfromfloppy */
+					when pos('IBM1FLPY.ADD', translate(l.i)) > 0 & datatype(vers) <> 'NUM' then do
+						rc = lineout(config_file, 'basedev=IBM1FLPY.ADD /A:0 /FORCE:1 /U:0 /F:2.88MB')
+					end
+					when pos('IBMIDECD.FLT', translate(l.i)) > 0 then do
+						rc = lineout(config_file, l.i)
+						if datatype(vers) = 'NUM' then 
+							rc = lineout(config_file, 'BASEDEV=CD_BOOT.FLT /D:2')
+						else 
+							rc = lineout(config_file, 'BASEDEV=CD_BOOT.FLT /D:3')
+					end
+					when pos('LIBPATH=', translate(l.i)) > 0 then do
+						rc = lineout(config_file, l.i||cdrv':\os2image\disk_0;\os2image\disk_0;'cdrv':\os2image\disk_2;\os2image\disk_2;'cdrv':\os2image\disk_3;\os2image\disk_3;'cdrv':\os2image\disk_6;\os2image\disk_6;')
+					end
+					when pos('SET PATH=', translate(l.i)) > 0 then do
+						rc = lineout(config_file, l.i||';'cdrv':\os2image\disk_0;\os2image\disk_0;'cdrv':\os2image\disk_2;\os2image\disk_2;'cdrv':\os2image\disk_3;\os2image\disk_3;'cdrv':\os2image\disk_6;\os2image\disk_6;')
+					end
+					when pos('SET DPATH=', translate(l.i)) > 0 then do
+						rc = lineout(config_file, l.i||';'cdrv':\os2image\disk_0;\os2image\disk_0;'cdrv':\os2image\disk_2;\os2image\disk_2;'cdrv':\os2image\disk_3;\os2image\disk_3;'cdrv':\os2image\disk_6;\os2image\disk_6;')
+					end
+					otherwise
+						rc = lineout(config_file, l.i)
+				end
+			end
+
+			/* append to config.sys */
+			rc = lineout(config_file, 'SET BOOTEDFROMCD=YES')
+			rc = lineout(config_file)
+		end
+
+		/* compress */
+		if n.elapsed > 0 & compress = 1 then do
+			call execute '@bin\lxlite tmp\disk1\*'
+			call execute '@del 'flpdrv'\aic7870.add'
+			call execute '@xcopy tmp\disk1\* 'flpdrv
+			call execute '@bin\lxlite 'cddir'\updcd\bootimg\DISK_0_1.IMG\*'
+		end
+
+		/* add the dani ide driver if it is there  */
+		if add.dani.ide = 1 & stream(addons'\21_DNIDE\DaniS506.ADD', 'c', 'query exists') <> '' then do
+
+				/* add to floppy */
+				call execute '@del 'flpdrv'\ibm1s506.add'
+				call execute '@copy 'addons'\21_DNIDE\DaniS506.ADD 'flpdrv'\ibm1s506.add'
+
+				/* dani flt */
+				if add.dani.flt = 1 & stream(addons'\20_DNFLT\DANIATAP.FLT', 'c', 'query exists') <> '' then do
+					if stream(flpdrv'\IBMIDECD.FLT', 'c', 'query exists') <> '' then do
+						call execute '@del 'flpdrv'\IBMIDECD.FLT'
+						call execute '@copy 'addons'\20_DNFLT\DANIATAP.FLT 'flpdrv'\IBMIDECD.FLT'
+					end
+					if stream(flpdrv'\IBMATAPI.FLT', 'c', 'query exists') <> '' then do
+						call execute '@del 'flpdrv'\IBMATAPI.FLT'
+						call execute '@copy 'addons'\20_DNFLT\DANIATAP.FLT 'flpdrv'\IBMATAPI.FLT'
+					end
+				end
+
+				/* add to boot image */
+				call execute '@del 'cddir'\updcd\bootimg\DISK_0_1.IMG\ibm1s506.add'
+				call execute '@copy 'addons'\21_DNIDE\DaniS506.ADD 'cddir'\updcd\bootimg\DISK_0_1.IMG\ibm1s506.add'
+
+				if add.dani.flt = 1 & stream(addons'\20_DNFLT\DANIATAP.FLT', 'c', 'query exists') <> '' then do
+					if stream(flpdrv'\IBMIDECD.FLT', 'c', 'query exists') <> '' then do
+						call execute '@del 'cddir'\updcd\bootimg\DISK_0_1.IMG\IBMIDECD.FLT'
+						call execute '@copy 'addons'\20_DNFLT\DANIATAP.FLT 'cddir'\updcd\bootimg\DISK_0_1.IMG\IBMIDECD.FLT'
+					end
+					if stream(flpdrv'\IBMATAPI.FLT', 'c', 'query exists') <> '' then do
+						call execute '@del 'cddir'\updcd\bootimg\DISK_0_1.IMG\IBMATAPI.FLT'
+						call execute '@copy 'addons'\20_DNFLT\DANIATAP.FLT 'cddir'\updcd\bootimg\DISK_0_1.IMG\IBMATAPI.FLT'
+					end
+				end
+
+				/* add to fix directory */
+				call execute '@copy 'addons'\21_DNIDE\DaniS506.ADD fix\ibm1s506.add'
+
+				if add.dani.flt = 1 & stream(addons'\20_DNFLT\DANIATAP.FLT', 'c', 'query exists') <> '' then do
+					if stream(flpdrv'\IBMIDECD.FLT', 'c', 'query exists') <> '' then 
+						call execute '@copy 'addons'\20_DNFLT\DANIATAP.FLT fix\IBMIDECD.FLT'
+					if stream(flpdrv'\IBMATAPI.FLT', 'c', 'query exists') <> '' then 
+						call execute '@copy 'addons'\20_DNFLT\DANIATAP.FLT fix\IBMATAPI.FLT'
+				end
+
+		end
+
+		/* dani dasd */
+		if add.dani.dasd = 1 & stream(addons'\22_FAT32\DANIDASD.DMD', 'c', 'query exists') <> '' & stream(flpdrv'\OS2LVM.DMD', 'c', 'query exists') = '' then do
+			call execute '@del 'flpdrv'\os2dasd.dmd'
+			call execute '@copy 'addons'\22_FAT32\DANIDASD.DMD 'flpdrv'\os2dasd.dmd'
+			call execute '@del 'cddir'\updcd\bootimg\DISK_0_1.IMG\os2dasd.dmd'
+			call execute '@copy 'addons'\22_FAT32\DANIDASD.DMD 'cddir'\updcd\bootimg\DISK_0_1.IMG\os2dasd.dmd'
+			call execute '@copy 'addons'\22_FAT32\DANIDASD.DMD fix\os2dasd.dmd'
+		end
+
+		/* dani boot */
+		if add.dani.boot = 1 & stream(addons'\21_DNIDE\DANIBOOT.FLT', 'c', 'query exists') <> '' then do
+			call execute '@copy 'addons'\21_DNIDE\DANIBOOT.FLT fix\cd_boot.flt'
+		end
+
+		/* up2tb */
+		if add.up2tb = 1 & stream(addons'\21_DNIDE\UP2TB.FLT', 'c', 'query exists') <> '' then do
+			call execute '@copy 'addons'\21_DNIDE\UP2TB.FLT 'flpdrv'\.'
+			call execute '@copy 'addons'\21_DNIDE\UP2TB.FLT fix\.'
+			call execute '@copy 'addons'\21_DNIDE\UP2TB.FLT 'cddir'\updcd\bootimg\DISK_0_1.IMG\.'
+			call execute '@copy 'addons'\21_DNIDE\UP2TB.FLT fix\.'
+		end
+
+	end
+
+	if translate(disk) = 'DISK2' then do
+
+		if n.elapsed > 0 then do
+			call copydir flpdrv cddir'\updcd\bootimg\DISK_2.IMG'
+
+			if compress = 1 then do
+				call execute '@mkdir tmp'
+				call execute '@mkdir tmp\disk2'
+				call execute '@xcopy 'cddir'\updcd\bootimg\DISK_2.IMG\* tmp\disk2\.'
+				call execute '@bin\lxlite tmp\disk2\*'
+				call delete_if_exist flpdrv'\sysinst2.exe'
+				call execute '@xcopy tmp\disk2\* 'flpdrv
+				call execute '@bin\lxlite 'cddir'\updcd\bootimg\DISK_2.IMG\*'
+			end
+		end
+	end
+
+	/* generate updated image */
+	say '1B'x || '[4;2H'msg.0165' 'substr(iddir, 1, 50)
+	say '1B'x || '[5;2H'msg.0166' 'substr(flpdrv'\', 1, 50)
+	call display_action msg.0238
+	say '1B'x || '[19;2H'substr(' ', 1, 70)
+	call execute '@bin\savedskf 'flpdrv image' /N /A /D'
+
+	/* clean up */
+	call deldir 'tmp' 
+
+return
+
+/* create files used for non-emulation boot */
+create_bootimgs: procedure expose n. log msg. emulate cddir addons cdrv add. nologo
+
+	parse arg img_dir
+
+	'@mkdir 'img_dir' >nul 2>>&1'
+	call execute '@bin\packfile.exe newinst\memdisk.scr'
+	call execute '@copy memdisk.pf       'img_dir
+	call execute '@del memdisk.pf'
+	call execute '@del os2ldr.sek'
+	call execute '@copy bin\memboot.ben  'img_dir'\memboot.bin'
+	call execute '@bin\memcfg.exe 'img_dir'\memboot.bin < newinst\memboot.scr'
+	call execute '@copy bin\cdloader.ben 'img_dir'\cdloader.bin'
+	'@mkdir 'img_dir'\tmp'
+	call execute '@xcopy 'cddir'\updcd\bootimg\DISK_0_1.IMG\* 'img_dir'\tmp'
+	call execute '@xcopy 'cddir'\updcd\bootimg\DISK_2.IMG\*   'img_dir'\tmp'
+	call execute '@copy  'cddir'\updcd\bootimg\config.sys     'img_dir'\tmp'
+	call execute '@copy  bin\memdisk.add                      'img_dir'\tmp'
+	call execute '@copy  bin\dummycsm.bin                     'img_dir'\tmp\os2csm.bin'
+	if nologo = 0 then '@echo dummy.snp >> 'img_dir'\tmp\snoop.lst'
+	/* add fat32 support */
+	cfile = img_dir'\tmp\config.sys'
+	if add.fat32 = 1 & stream(addons'\22_FAT32\fat32.ifs', 'c', 'query exists') <> '' then do
+		call execute '@copy 'addons'\22_FAT32\fat32.ifs    'img_dir'\tmp'
+		call execute '@copy 'addons'\22_FAT32\ufat32.dll   'img_dir'\tmp'
+		call execute '@copy 'addons'\22_FAT32\CACHEF32.EXE 'img_dir'\tmp'
+		'@echo IFS=Z:\FAT32.IFS /CACHE:2048 >> 'cfile
+		'@echo CALL=CACHEF32.EXE /F         >> 'cfile
+	end
+	/* add usb support */
+	if add.usb = 1 & stream(addons'\23_USBDV\usbd.sys', 'c', 'query exists') <> '' then do
+		call execute '@copy 'addons'\23_USBDV\usbd.sys     'img_dir'\tmp'
+		call execute '@copy 'addons'\23_USBDV\usbuhcd.sys  'img_dir'\tmp'
+		call execute '@copy 'addons'\23_USBDV\usbohcd.sys  'img_dir'\tmp'
+		call execute '@copy 'addons'\23_USBDV\usbehcd.sys  'img_dir'\tmp'
+		call execute '@copy 'addons'\23_USBDV\usbhid.sys   'img_dir'\tmp'
+		'@echo BASEDEV=USBD.SYS /I13 >> 'cfile
+		'@echo BASEDEV=USBUHCD.SYS   >> 'cfile
+		'@echo BASEDEV=USBOHCD.SYS   >> 'cfile
+		'@echo BASEDEV=USBEHCD.SYS   >> 'cfile
+		'@echo BASEDEV=USBHID.SYS    >> 'cfile
+		/* add USB keyboard */
+		if stream(addons'\23_USBDV\usbkbd.sys', 'c', 'query exists') <> '' then do
+			call execute '@copy 'addons'\23_USBDV\usbkbd.sys   'img_dir'\tmp'
+			if stream(addons'\23_USBDV\ibmkbd.sys', 'c', 'query exists') <> '' then 
+				call execute '@copy 'addons'\23_USBDV\ibmkbd.sys 'img_dir'\tmp'
+			'@echo DEVICE=\USBKBD.SYS  >> 'cfile
+		end
+		/* add USB Mass Storage */
+		if stream(addons'\23_USBDV\usbmsd.add', 'c', 'query exists') <> '' then do
+			call execute '@copy 'addons'\23_USBDV\usbmsd.add   'img_dir'\tmp'
+			'@echo BASEDEV=USBMSD.ADD  >> 'cfile
+			/* disable IBM1FLPY.ADD when using USB floppy drive to install */
+		end
+		/* add USB CD-ROM */
+		if stream(addons'\23_USBDV\usbcdrom.add', 'c', 'query exists') <> '' then do
+			call execute '@copy 'addons'\23_USBDV\usbcdrom.add   'img_dir'\tmp'
+			'@echo BASEDEV=USBCDROM.ADD >> 'cfile
+		end
+	end
+	lvm = 1
+	if stream(img_dir'\tmp\os2lvm.dmd', 'c', 'query exists') = '' then do
+		call execute '@copy 'addons'\24_lvmjs\lvm.exe 			'img_dir'\tmp'
+		call execute '@copy 'addons'\24_lvmjs\lvm.msg 			'img_dir'\tmp'
+		call execute '@copy 'addons'\24_lvmjs\lvmh.msg 			'img_dir'\tmp'
+		call execute '@copy 'addons'\24_lvmjs\lvm.dll 			'img_dir'\tmp'
+		call execute '@copy 'addons'\24_lvmjs\os2lvm.dmd 		'img_dir'\tmp'
+		call execute '@copy 'addons'\24_lvmjs\os2dasd.dmd 	'img_dir'\tmp'
+		if stream(addons'\24_lvmjs\jfs.ifs', 'c', 'query exists') <> '' then do
+			call execute '@copy 'addons'\24_lvmjs\ujfs.dll 			'img_dir'\tmp'
+			call execute '@copy 'addons'\24_lvmjs\uconv.dll 		'img_dir'\tmp'
+			call execute '@copy 'addons'\24_lvmjs\jfs.msg 			'img_dir'\tmp'
+			call execute '@copy 'addons'\24_lvmjs\jfsh.msg 			'img_dir'\tmp'
+			call execute '@copy 'addons'\24_lvmjs\jfs.ifs 			'img_dir'\tmp'
+			call execute '@copy 'addons'\24_lvmjs\jfschk32.exe 	'img_dir'\tmp'
+		end
+		if stream(addons'\24_lvmjs\vcu.exe', 'c', 'query exists') <> '' then 
+			call execute '@copy 'addons'\24_lvmjs\vcu.exe 			'img_dir'\tmp'
+		if stream(addons'\24_lvmjs\vcu.msg', 'c', 'query exists') <> '' then 
+			call execute '@copy 'addons'\24_lvmjs\vcu.msg 			'img_dir'\tmp'
+		lvm = 0
+	end
+	i=1
+	do while lines(cfile)
+		l.i = linein(cfile)
+		i=i+1
+	end
+	call lineout cfile
+	l.0=i-1
+	'@del 'cfile
+	do i=1 to l.0
+		if pos('LIBPATH=', translate(l.i))   > 0 then l.i = l.i || cdrv':\os2image\disk_0;\os2image\disk_0;'cdrv':\os2image\disk_2;\os2image\disk_2;'cdrv':\os2image\disk_3;\os2image\disk_3;'cdrv':\os2image\disk_6;\os2image\disk_6;z:\;'
+		if pos('SET PATH=', translate(l.i))  > 0 then l.i = l.i || cdrv':\os2image\disk_0;\os2image\disk_0;'cdrv':\os2image\disk_2;\os2image\disk_2;'cdrv':\os2image\disk_3;\os2image\disk_3;'cdrv':\os2image\disk_6;\os2image\disk_6;z:\;'
+		if pos('SET DPATH=', translate(l.i)) > 0 then l.i = l.i || cdrv':\os2image\disk_0;\os2image\disk_0;'cdrv':\os2image\disk_2;\os2image\disk_2;'cdrv':\os2image\disk_3;\os2image\disk_3;'cdrv':\os2image\disk_6;\os2image\disk_6;z:\;'
+		call lineout cfile, l.i
+		if pos('OS2DASD.DMD', translate(l.i)) > 0 & lvm = 0 then do
+			call lineout cfile, 'BASEDEV=OS2LVM.DMD'
+			if stream(addons'\24_lvmjs\jfs.ifs', 'c', 'query exists') <> '' then call lineout cfile, 'IFS=JFS.IFS'
+		end
+	end
+	call lineout cfile, 'BASEDEV=MEMDISK.ADD /Q'
+	call lineout cfile
+	call execute '@bin\ac.exe 'img_dir'\tmp\os2ldr bin\OS2BOOT_.AEN'
+	'@echo create archive 'img_dir'\bootdisk.pf > 'img_dir'\bootdisk.scr'
+	'@echo add file 'img_dir'\tmp\* >> 'img_dir'\bootdisk.scr'
+	'@echo newline >> 'img_dir'\bootdisk.scr'
+	'@echo output " Unpacking boot image files, please wait..."; >> 'img_dir'\bootdisk.scr'
+	'@echo newline >> 'img_dir'\bootdisk.scr'
+	'@echo close archive >> 'img_dir'\bootdisk.scr'
+	call execute '@bin\packfile.exe 'img_dir'\bootdisk.scr'
+	call execute '@del 'img_dir'\bootdisk.scr'
+	call deldir img_dir'\tmp'
+
+return
+
+/* replace SCSI driver with dummy */
+replace_with_dummy: procedure expose n. log flpdrv msg.
+
+	parse arg file_list
+
+	do while length(file_list) > 0
+		parse var file_list file file_list
+		if stream(flpdrv'\'file, 'c', 'query exists') <> '' then 
+				call execute '@copy newinst\nulldev.sys 'flpdrv'\'file
+	end
+
+return

@@ -1,0 +1,80 @@
+@SET TARGET=A:
+@IF NOT %1.==. SET TARGET=%1
+@Echo off
+
+REM This .CMD file creates the two installation diskettes required
+REM to install OS/2 Warp Server for e-business from CD-ROM.
+REM
+
+REM Display Installation Instructions
+
+CLS
+ECHO Welcome to OS/2 Warp Server for e-business.
+ECHO ...
+ECHO To install this version of OS/2 from CD-ROM,
+ECHO you must first create three installation diskettes.
+ECHO Follow the directions on your screen to create
+ECHO these diskettes.
+ECHO ...
+ECHO To QUIT, press Ctrl+C.
+ECHO ...
+PAUSE
+CLS
+
+REM Test for CDROM
+IF EXIST \DISKIMGS\loaddskf.EXE GOTO START
+
+ECHO This program must be started from your CD-ROM Drive.
+
+GOTO EXIT
+
+:START
+
+REM OK, we are going to create the disks.
+
+ECHO Label a blank diskette "OS/2 Warp Server for e-business Diskette 1" and
+ECHO insert it into Drive %TARGET%
+PAUSE
+ECHO Now creating the
+ECHO OS/2 Diskette 1.
+\DISKIMGS\loaddskf \DISKIMGS\OS2\35\DISK1_CD.DSK %TARGET% /Y/Q/F
+IF ERRORLEVEL 1 GOTO BAD
+CLS
+ECHO Please remove the diskette from Drive %TARGET%
+Pause
+
+ECHO Label another blank diskette "OS/2 Warp Server for e-business Diskette 2" and
+ECHO insert it into Drive %TARGET%
+PAUSE
+ECHO Now creating the
+ECHO OS/2 Diskette 2.
+\DISKIMGS\loaddskf \DISKIMGS\OS2\35\DISK2.DSK %TARGET% /Y/Q/F
+IF ERRORLEVEL 1 GOTO BAD
+CLS
+ECHO Please remove the diskette from Drive %TARGET%
+Pause
+
+CLS
+ECHO Label another blank diskette "Installation Diskette" and
+ECHO insert it into Drive %TARGET%
+PAUSE
+ECHO Now creating the
+ECHO Installation Diskette.
+\DISKIMGS\loaddskf \DISKIMGS\OS2\35\DISK0.DSK %TARGET% /Y/Q/F
+IF ERRORLEVEL 1 GOTO BAD
+
+CLS
+ECHO To install OS/2 Warp Server for e-business:
+
+ECHO 1) Leave the Installation Diskette in Drive %TARGET%
+ECHO 2) Press Ctrl, Alt, and Del to restart your computer.
+ECHO 3) After restarting your computer, follow the
+ECHO    instructions on your screen.
+GOTO EXIT
+
+:BAD
+ECHO A problem occured while creating the installation
+ECHO diskettes.  Refer to the README.TXT file located in
+ECHO the root directory on the CD-ROM for additional help.
+:EXIT
+

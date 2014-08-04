@@ -1,0 +1,99 @@
+/* Postprocessing steps for incorporating OS/2 fixpak            */
+/* Tested with FixPak 3 (XR0E003) and DD 02 (XR0DD02)            */
+/* 18.04.2004: added support for up2tb                           */
+/* 19.09.2004: added opengl stuff                                */
+/* 30.10.2004: postprocessing printer sym files generated errors */
+/* 20.12.2004: cardbus support                                   */
+/* 12.02.2005: prdesc2 integration, os2krnl.sym installation     */
+/* 03.04.2006: added slpr files                                  */
+/* 05.04.2006: added WPGSVPWR.HLP                                */
+
+/* copy extras */
+call execute '@copy 'fpdir'\CD_BOOT.FLT  'cddir'\updcd\bootimg\DISK_0_1.IMG\.'
+call execute '@copy 'fpdir'\os2krnl      'cddir'\os2image\disk_0\os2krnli'
+call execute '@copy 'fpdir'\cmd640x.add  'cddir'\os2image\disk_1\.'
+call execute '@copy 'fpdir'\DETNE2.SYS   'cddir'\os2image\disk_1\.'
+call execute '@copy 'fpdir'\hpfs.tdf     'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\PMWP.TDF     'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\CDFS.TDF     'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\TRC0012.TFF  'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\TRC0118.TFF  'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\TRC0119.TFF  'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\TRC012C.TFF  'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\TRC012D.TFF  'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\TRC012E.TFF  'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\PMVDMP.TDF   'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+call execute '@copy 'fpdir'\PMVIOP.TDF   'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+if stream(fpdir'\TRC006D.TFF',  'c', 'query exists') <> '' then call execute '@copy 'fpdir'\TRC006D.TFF  'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+if stream(fpdir'\OS2KRNLR.TDF', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\OS2KRNLR.TDF 'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+
+if stream(fpdir'\PIN.SYM',      'c', 'query exists') <> '' then call execute '@copy 'fpdir'\PIN.SYM      'location.pscript_sym'\.'
+if stream(fpdir'\PPDENC.SYM',   'c', 'query exists') <> '' then call execute '@copy 'fpdir'\PPDENC.SYM   'location.pscript_sym'\.'
+
+/* pack extras */
+call add2bundle 'RINSTPRN.EXE   os2image\disk_0\bundle \OS2'
+call add2bundle 'PSSEMS.EXE     os2image\disk_0\bundle \OS2'
+call add2bundle 'PSFILES.EXE    os2image\disk_0\bundle \OS2'
+call add2bundle 'CACHEJFS.EXE   os2image\disk_0\bundle \OS2'
+call add2bundle 'CHKLGJFS.EXE   os2image\disk_0\bundle \OS2'
+call add2bundle 'LOGDUMP.EXE    os2image\disk_0\bundle \OS2'
+call add2bundle 'SYSLEVEL.FPK   os2image\disk_0\bundle \OS2\INSTALL'
+call add2bundle 'RSPIMRI.DLL    os2image\disk_0\bundle \OS2\DLL'
+call add2bundle 'GSVINST.EXE    os2image\disk_0\bundle \OS2'
+call add2bundle 'USBMON.EXE     os2image\disk_0\bundle \OS2'
+call add2bundle 'USBPRT.HLP     os2image\disk_0\bundle \HELP'
+call add2bundle 'USBPRT.PDR     os2image\disk_0\bundle \OS2\DLL'
+call add2bundle 'GSVDAEMN.EXE   os2image\disk_0\bundle \OS2\BOOT'
+call add2bundle 'DSPIMRI.DLL    os2image\disk_3\bundle \OS2\DLL'
+call add2bundle 'SYSLEVEL.MSG   os2image\disk_3\bundle \OS2'
+call add2bundle 'LMS205.ADD     os2image\disk_3\cdromflt \OS2\BOOT'
+call add2bundle 'ICMEMCDD.SYS   'location.pcmcia'      \OS2\BOOT'
+call add2bundle 'ICMEMMTD.SYS   'location.pcmcia'      \OS2\BOOT'
+call add2bundle 'ICMEMFMT.EXE   'location.pcmcia'      \OS2'
+if stream(fpdir'\PRDESC.LS2',    'c', 'query exists') <> '' then call add2bundle 'PRDESC.LS2     os2image\disk_0\bundle \OS2\INSTALL'
+if stream(fpdir'\OS2KRNL.SYM',   'c', 'query exists') <> '' then call add2bundle 'OS2KRNL.SYM    os2image\disk_0\bundle '
+if stream(fpdir'\RJAPPLET.EXE',  'c', 'query exists') <> '' then call add2bundle 'RJAPPLET.EXE   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\RIPLINST.EXE',  'c', 'query exists') <> '' then call add2bundle 'RIPLINST.EXE   os2image\disk_0\bundle \OS2\INSTALL'
+if stream(fpdir'\PMPRNTXT.QPR',  'c', 'query exists') <> '' then call add2bundle 'PMPRNTXT.QPR   os2image\disk_0\bundle \OS2\DLL'
+if stream(fpdir'\WPNLS.DLL',     'c', 'query exists') <> '' then call add2bundle 'WPNLS.DLL      os2image\disk_0\bundle \OS2\DLL'
+if stream(fpdir'\USBASE.SYS',    'c', 'query exists') <> '' then call add2bundle 'USBASE.SYS     os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\POINVGA2.SYS',  'c', 'query exists') <> '' then call add2bundle 'POINVGA2.SYS   os2image\disk_4\bundle \OS2\BOOT'
+if stream(fpdir'\MMPARTS.DLL',   'c', 'query exists') <> '' then call add2bundle 'MMPARTS.DLL    'location.mmparts'     \MMOS2\DLL'
+if stream(fpdir'\SYM8XX.ADD',    'c', 'query exists') <> '' then call add2bundle 'SYM8XX.ADD     os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\SYM8XXPC.EXE',  'c', 'query exists') <> '' then call add2bundle 'SYM8XXPC.EXE   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\SYM_HI.ADD',    'c', 'query exists') <> '' then call add2bundle 'SYM_HI.ADD     os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\SYM_HIPC.EXE',  'c', 'query exists') <> '' then call add2bundle 'SYM_HIPC.EXE   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\U160PRES.EXE',  'c', 'query exists') <> '' then call add2bundle 'U160PRES.EXE   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBCDROM.ADD',  'c', 'query exists') <> '' then call add2bundle 'USBCDROM.ADD   os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\USBETHR.NIF',   'c', 'query exists') <> '' then call add2bundle 'USBETHR.NIF    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBETHR.OS2',   'c', 'query exists') <> '' then call add2bundle 'USBETHR.OS2    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBMSD.ADD',    'c', 'query exists') <> '' then call add2bundle 'USBMSD.ADD     os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\USBOHCD.SYS',   'c', 'query exists') <> '' then call add2bundle 'USBOHCD.SYS    os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\USBAUDIO.ICO',  'c', 'query exists') <> '' then call add2bundle 'USBAUDIO.ICO   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBAUDIO.SCR',  'c', 'query exists') <> '' then call add2bundle 'USBAUDIO.SCR   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBAUDIO.HLP',  'c', 'query exists') <> '' then call add2bundle 'USBAUDIO.HLP   os2image\disk_0\bundle \OS2\HELP'
+if stream(fpdir'\UP2TB.FLT',     'c', 'query exists') <> '' then call add2bundle 'UP2TB.FLT      os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\SYSLEVEL.LVM',  'c', 'query exists') <> '' then call add2bundle 'SYSLEVEL.LVM   os2image\disk_0\bundle \OS2\INSTALL'
+
+if stream(fpdir'\AUTODRV.DOC',   'c', 'query exists') <> '' then call add2bundle 'AUTODRV.DOC    'location.pcmcia' \OS2\HELP'
+if stream(fpdir'\CARDBUS.TXT',   'c', 'query exists') <> '' then call add2bundle 'CARDBUS.TXT    'location.pcmcia' \OS2\HELP'
+if stream(fpdir'\PAWFLDR.ICO',   'c', 'query exists') <> '' then call add2bundle 'PAWFLDR.ICO    'location.pcmcia' \OS2'
+if stream(fpdir'\PCMCIA2.CRD',   'c', 'query exists') <> '' then call add2bundle 'PCMCIA2.CRD    'location.pcmcia' \OS2'
+if stream(fpdir'\PROTOCOL.INI',  'c', 'query exists') <> '' then call add2bundle 'PROTOCOL.INI   'location.pcmcia' OS2\TDKFLYR'
+if stream(fpdir'\TDKENAB.OS2',   'c', 'query exists') <> '' then call add2bundle 'TDKENAB.OS2    'location.pcmcia' OS2\TDKFLYR'
+if stream(fpdir'\TDKFLYR.OS2',   'c', 'query exists') <> '' then call add2bundle 'TDKFLYR.OS2    'location.pcmcia' OS2\TDKFLYR'
+
+/* opengl stuff */
+if stream('.\fix\RASTER.DLL',    'c', 'query exists') <> '' then '@bin\pack2 \OS2\DLL\JOIN.TXT   'cddir'\'location.opengl' /R >nul'
+if stream('.\fix\RASTER.DLL',    'c', 'query exists') <> '' then call add2bundle 'RASTER.DLL     'location.opengl' \OS2\DLL'
+if stream('.\fix\GLPIPE.DLL',    'c', 'query exists') <> '' then call add2bundle 'GLPIPE.DLL     'location.opengl' \OS2\DLL'
+if stream('.\fix\WAVE.EXE',      'c', 'query exists') <> '' then call add2bundle 'WAVE.EXE       'location.opengl' \OS2'
+
+if stream(fpdir'\SLPR.PDR' ,     'c', 'query exists') <> '' then call add2bundle 'SLPR.PDR       os2image\disk_0\bundle \OS2\DLL'
+if stream(fpdir'\SLPR.HLP' ,     'c', 'query exists') <> '' then call add2bundle 'SLPR.HLP       os2image\disk_0\bundle \OS2\DLL'
+if stream(fpdir'\WPGSVPWR.HLP',  'c', 'query exists') <> '' then call add2bundle 'WPGSVPWR.HLP   os2image\disk_0\bundle \OS2\HELP'
+
+/* relocate stuff */
+
+/* delete stuff */
+'@bin\pack2 \MMTEMP\JOIN.TXT 'cddir'\'location.mmtemp' /R >nul'

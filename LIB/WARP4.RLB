@@ -1,0 +1,1240 @@
+/*********************************************************************/
+/* updcd rexx library - warp 4 specific functions                    */
+/* created: 02.23.2002                                               */
+/* 03.08.2002: removed file warning not used warning                 */
+/* 05.05.2002: improved mpts fixpak postprocessing                   */
+/* 05.06.2002: added support for integration of res files            */
+/* 05.13.2002: added extra dependence check                          */
+/* 05.28.2002: added support for handling extra nic's                */
+/* 07.11.2002: aligned with warp 3 printer fixpak integration        */
+/* 08.23.2002: added support for java toolkit fixpak                 */
+/* 09.09.2002: fixed bug in java toolkit fixpak integration          */
+/* 09.13.2002: aligned with device driver fixpak 3                   */
+/* 09.25.2002: fixpack and DDpack processing will done by            */
+/*             release date, added Volume name of burned CD          */
+/* 10.24.2002: added reparation of tcp/ip 4.1 rsp file               */
+/* 10.26.2002: fixed peer uninstallation problem                     */
+/* 11.13.2002: added support for tcp/ip 4.3 fixpaks                  */
+/* 11.23.2002: fixed problem with tcp/ip 4.3 fixpak install          */
+/* 11.30.2002: added code to remove get netscape icon                */
+/* 12.08.2002: improved postprocessing faxworks                      */
+/*             remove netscape icon did not work for NLS Warp        */
+/* 12.14.2002: lapspm.dll should sometimes be restored               */
+/* 01.08.2003: fixed problem with queue cleanup                      */
+/* 02.09.2003: solved errors related to unpacking dbtags.dat         */
+/*             fixed os2ldr problem with Korean Warp                 */
+/* 03.16.2003: added nls language support                            */
+/* 04.10.2003: removed expert mode                                   */
+/* 04.18.2003: NLS TCP/IP syslevel file was not updated              */
+/* 16.05.2003: incorporating mpts fix 8706 might break install       */
+/* 05.19.2003: create directories in upper case                      */
+/* 08.17.2003: added rdrive setting to cfg file                      */
+/* 09.06.2003: added support for tcp/ip fixpak un2101                */
+/* 09.21.2003: added support for no-emulation boot                   */
+/* 10.11.2003: fixed tcp/ip 4.3 problem with cmd files (jvc2)        */
+/* 11.02.2003: delete setuf.inf (win-os2 will not install)           */
+/* 12.02.2003: added removal of RO attribs of floppy images          */
+/* 01.08.2004: regenerate cdinst.??? to support drive B:             */
+/* 01.10.2004: aligned with fixpak 17                                */
+/* 01.12.2004: added removal of elephant                             */
+/* 01.31.2004: support for pmfax pro (see known problems)            */
+/* 08.19.2004: added new configuration options                       */
+/* 09.18.2004: new configuration options were not working ok         */
+/* 10.10.2004: added support for protocol driver integration         */
+/* 10.30.2004: added incorporation of play.cmd                       */
+/* 02.20.2005: added nojava and nonetscape options                   */
+/* 03.27.2005: old java entries were left in config.sys              */
+/* 04.03.2005: nsc/java should't be added if they are removed        */
+/* 04.17.2005: improved support for 32 bit TCP/IP fixpaks            */
+/* 08.16.2005: added check to see if CD already updated              */
+/* 02.19.2006: added usb boot CD support                             */
+/* 06.17.2006: macs.zip should be recrated in eCS MPTS distr.        */
+/* 09.16.2006: updated tcpinst.rsp was not used by clifi             */
+/* 12.04.2006: added check for attrib on empty fixes and updates dir */
+/*********************************************************************/
+
+/*******************/
+/* start things up */
+/*******************/
+
+/* declare os type */
+os2_version = 'warp4'
+
+/* start */
+call start_up
+
+/* check if we have the right components */
+call check_components 'fpk.dd.dir fpk.os2.dir upd.fii.dir'
+call check_dependecies os2_version
+
+/* check if CD already updated */
+if stream(w4cd'\readme.ucd', 'c', 'query exists') <> '' then do
+	say 
+	say ' 'msg.0589
+	if (GetKeyYN() = translate(msg.0479)) then do
+		'@del go4it.bsy >nul'
+		exit
+	end
+end
+
+/* startup screen */
+call display_startup_screen burn burn 'Update 'os2_version' installation CD-ROM*Cleaning up 'burn
+
+/**********************/
+/* Clean up old image */
+/**********************/
+
+/* clean up burn */
+call cleanup_burn
+
+/* reset timer */
+call time 'E'
+
+/* remove RO attributes */
+call execute '@attrib -r -s -h -a * /s'
+call SysFileTree fixes'\*', 'ini.', 'BSO'
+if ini.0 > 0 then call execute '@attrib -r -s -h -a 'fixes'\* /s'
+call SysFileTree updates'\*', 'ini.', 'BSO'
+if ini.0 > 0 then call execute '@attrib -r -s -h -a 'updates'\* /s'
+
+/* create some directories */
+'@mkdir 'burn '>nul 2>&1'
+call execute '@mkdir 'burn'\UPDCD'
+call execute '@mkdir 'burn'\UPDCD\BOOTIMG'
+call execute '@mkdir 'burn'\UPDCD\BOOTIMG\DISK_0_1.IMG'
+call execute '@mkdir 'burn'\UPDCD\BOOTIMG\DISK_2.IMG'
+
+Call SetVolumeName "OS2 Warp 4"		/* By Isma - 25/09/2002 */
+
+/*************************************/
+/* Update installation floppy images */
+/*************************************/
+
+say '1B'x || '[4;26H'substr(burn, 1, 50)
+say '1B'x || '[5;26H'substr(w4cd, 1, 50)
+call display_action msg.0200
+call execute '@mkdir 'burn'\DISKIMGS'
+call execute '@xcopy 'w4cd'\diskimgs\* 'burn'\diskimgs\. /H/O/T/R/V'
+call execute '@mkdir 'burn'\DISKIMGS\OS2'
+call execute '@mkdir 'burn'\DISKIMGS\OS2\35'
+call execute '@copy 'w4cd'\diskimgs\os2\35\disk0.dsk 'burn'\diskimgs\os2\35\.'
+call execute '@copy 'w4cd'\diskimgs\os2\35\disk1_cd.dsk 'burn'\diskimgs\os2\35\.'
+call execute '@copy 'w4cd'\diskimgs\os2\35\disk2.dsk 'burn'\diskimgs\os2\35\.'
+
+/* 19/9/2002 - By Isma: Check the fixpack and DDpack levels */
+/* and do the copy and unpacking in the correct order       */
+
+/* DATES: FP7  - 10/08/1998    FP9  - 10/12/1998 */
+/*        FP10 - 27/04/1999    FP11 - xx/xx/1999 */
+/*        FP13 - 07/07/2000    FP14 - 01/12/2000 */
+/*        FP15 - 11/01/2001    FP16 - xx/03/2002 */
+
+/*        DD01 - 17/08/1999    DD02 - 21/09/2000 */
+/*        DD03 - 10/05/2002                      */
+
+ 
+If ((fpk.dd.num = 4) | ((fpk.dd.num = 3) & (fpk.os2.num < 17)) | ((fpk.dd.num = 2) & (fpk.os2.num < 14)) | ((fpk.dd.num = 1) & (fpk.os2.num < 11))) then
+   Do			/* do base Fixpack first because DDpack is newer */
+     Call ProcessFixpack
+     Call ProcessDDpack
+   End
+Else			/* do DDpack first because Base Fixpack is newer */  
+   Do
+     Call ProcessDDpack
+     Call ProcessFixpack
+   End
+
+/* handle fixvga from floppy update */
+if stream(upd.fd2.dir'\fixvga', 'c', 'query exists') <> '' then do
+	call execute '@mkdir tmpvga'
+	call execute '@copy 'upd.fd2.dir'\fixvga tmpvga\.'
+	call execute '@del 'upd.fd2.dir'\fixvga'
+	call execute '@bin\unpack tmpvga\fixvga fix\. /N:BVHVGA.DLL'
+end
+
+/* add resource files */
+call SysFileTree 'fix\*.res', 'resfile.', 'FO', ,'**---'
+do i=1 to resfile.0
+	fixfile = translate(filespec('name', resfile.i), '.', '_')
+	fixfile = 'fix\'substr(fixfile, 1, length(fixfile)-4)
+	if stream(fixfile, 'c', 'query exists') <> '' then do
+		call execute '@rc -n -w2 -x2' resfile.i fixfile
+		call execute '@del 'resfile.i
+	end
+end
+
+/* finally run update */
+call execute '@attrib -r -s -h -a 'burn'\* /s'
+call run_it 'bin\updif.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver add.dani.ide add.dani.flt add.dani.boot add.dani.dasd add.up2tb add.fat32 add.usb add.dummy emulate rdrive upd.fd1.dir upd.fd2.dir 
+
+/* put fixvga back */
+if stream('tmpvga\fixvga', 'c', 'query exists') <> '' then do
+	call execute '@copy tmpvga\fixvga 'upd.fd2.dir'\.'
+	call execute '@del tmpvga\fixvga'
+	call execute '@rmdir tmpvga'
+end
+
+/* do the rest */
+say '1B'x || '[4;26H'substr(burn, 1, 50)
+say '1B'x || '[5;26H'substr(w4cd, 1, 50)
+call display_action msg.0200
+call execute '@xcopy 'w4cd'\* 'burn'\. /H/O/T/R/V'
+
+/* remove RO attribute */
+call SysFileTree burn'\*', ini., 'BSO',,'**---'
+call execute '@attrib -r -s -h -a 'burn'\* /s'
+
+/* we do not support installation from floppies any more */
+call delete_if_exist burn'\MAKEDSKS.BAT 'burn'\MAKEDSKS.CMD 'burn'\proddsks.cmd'
+
+call execute '@mkdir 'burn'\CID'
+call execute '@xcopy 'w4cd'\cid\* 'burn'\cid\. /H/O/T/S/R/V/E'
+
+call execute '@mkdir 'burn'\IBMINST'
+call execute '@xcopy 'w4cd'\ibminst\* 'burn'\ibminst\. /H/O/T/S/E/R/V'
+
+call execute '@mkdir 'burn'\IMAGES'
+'@echo Update of installation floppy images is not supported by UpdCD. > 'burn'\images\images.txt'
+
+call execute '@mkdir 'burn'\INFO'
+call execute '@xcopy 'w4cd'\info\* 'burn'\info\. /H/O/T/S/E/R/V'
+
+call execute '@mkdir 'burn'\OS2IMAGE'
+call execute '@xcopy 'w4cd'\os2image\* 'burn'\os2image\. /H/O/T/S/R/V/E'
+
+/* remove RO attribute */
+call display_action msg.0215' 'burn
+call SysFileTree burn'\*', ini., 'BSO',,'**---'
+call execute '@attrib -r -s -h -a 'burn'\* /s'
+
+/* add updated program database */
+call execute '@copy newinst\database.txt fix\.'
+bundle_file = find_bundled_file(w4cd'\os2image bundle dbtags.dat')
+call execute '@bin\unpack 'bundle_file' fix\. /N:DBTAGS.DAT'
+call execute '@PARSEDB fix\DBTAGS.DAT fix\DATABASE.TXT fix\DATABASE.DAT'
+call execute '@del fix\dbtags.dat'
+
+/* add updated play.cmd */
+call execute '@copy newinst\play.cmd fix\.'
+
+/********************************************************************/
+/* incorporate OS/2 and Device Driver fixpaks and Feature Installer */
+/********************************************************************/
+
+/* copy FI update to fixdir */
+if upd.fii.dir <> '' then do
+	/* save pmddeml.dll */
+	call execute '@copy fix\pmddeml.dll fix\pmddeml.org'
+	/* copy FI files */
+	call execute '@xcopy 'upd.fii.dir'\* fix\.'
+	/* remove files that are not needed */
+	call execute '@del fix\checkasd.exe'
+	call execute '@del fix\checkasd.msg'
+	call execute '@del fix\fisetmri.dll'
+	call execute '@del fix\fisetup.exe '
+	call execute '@del fix\readme      '
+	call execute '@del fix\rejoinea.exe'
+	/* restore pmddeml.dll from fixpak */
+	call execute '@copy fix\pmddeml.org fix\pmddeml.dll'
+	call execute '@del fix\pmddeml.org'
+
+	/* move FI plug-in if Netscape is found */
+	if upd.nsc.dir <> '' then do
+		call execute '@mkdir 'burn'\CID\IMG\NETSCAPE'
+		call execute '@copy fix\npfi.dll 'burn'\cid\img\netscape'
+		call execute '@del fix\npfi.dll'
+	end
+end
+
+/* copy sym files from printer driver fixpak */
+if fpk.pdd.dir <> '' then do
+	call execute '@xcopy 'fpk.pdd.dir'\*.sym fix\.'
+end
+
+/* add updated printer list */
+if fpk.pdd.dir <> '' then do
+	call execute '@copy newinst\PRDESC.LST fix\.'
+	call create_printer_list
+end
+
+/* delete SMP drivers */
+if fpk.dd.num > 1 then do
+	call delete_if_exist 'fix\106base.sys fix\axbase.sys'
+end
+
+/* delete updated setuf.inf, otherwise win-os2 will not install */
+call delete_if_exist 'fix\SETUP.INF'
+
+/* run update */
+'@copy pin\basefpk.wp4 pin\basefpk.pin >nul'
+call delete_if_exist 'fix\WARNING'
+call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+/* delete art */
+call deldir burn'\os2image\fi\art'
+
+/* delete stuff from fix */
+call cleanup_dir fix
+
+/*************************************/
+/* incorporate printer driver fixpak */
+/*************************************/
+
+if fpk.pdd.dir <> '' then do
+	/* copy fix */
+	call display_action msg.0201
+	call execute '@xcopy 'fpk.pdd.dir'\* fix\.'
+
+	/* remove some files */
+	call delete_if_exist 'fix\readme fix\license fix\pscript.lst fix\plotters.lst fix\omni.lst fix\laserjet.lst'
+
+	/* rename some files */
+	call execute '@copy fix\*.ea fix\*.ea_'
+	call execute '@del fix\*.ea' 
+
+	/* run update */
+	'@copy pin\PRNTFPK.WP4 pin\PRNTFPK.PIN >nul'
+	call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+	/* delete stuff from fix */
+	call cleanup_dir fix
+
+end
+
+/******************************************/
+/* incorporate MPTS replacement and fixes */
+/******************************************/
+
+if upd.mpt.dir <> '' then do
+	/* delete old mpts */
+	call deldir burn'\cid\img\mpts'
+	call execute '@mkdir 'burn'\CID\IMG\MPTS'
+
+	/* copy replacement mpts */
+	call display_action msg.0202
+	call execute '@xcopy 'upd.mpt.dir'\* 'burn'\cid\img\mpts\. /H/O/T/S/R/V/E'
+
+	/* create macs.zip if needed */
+	if stream(burn'\cid\img\mpts\ibmcom\macs\macs.zip', 'c', 'query size') < 500 then do
+		nic_list = ''
+		call SysFileTree burn'\cid\img\mpts\ibmcom\macs\*', 'ini.', 'FO'
+		if ini.0 > 0 then 
+			do i=1 to ini.0
+				temp_nic = filespec('name', ini.i)
+				if translate(temp_nic) <> 'MACS.ZIP' then nic_list = nic_list' 'temp_nic
+			end
+		if nic_list <> '' then do
+			cddir = burn'\cid\img\mpts'
+			fpdir = burn'\cid\img\mpts\ibmcom\macs'
+			call add2zip 'ibmcom\macs\macs.zip ibmcom\macs 'nic_list
+		end
+	end
+
+	/* add mpts fixpak */
+	if fpk.mpt.dir <> '' then do
+		/* copy fix */
+		call display_action msg.0203
+		call execute '@xcopy 'fpk.mpt.dir'\fix\MPT.1\* fix\.'
+		call execute '@xcopy 'fpk.mpt.dir'\fix\TRP.2\* fix\.'
+		call execute '@xcopy 'fpk.mpt.dir'\fix\DHC.3\* fix\.'
+
+		if fpk.mpt.num < 8706 then do
+			call execute '@xcopy 'fpk.mpt.dir'\fix\SIF.4\* fix\.'
+			call execute '@xcopy 'fpk.mpt.dir'\fix\LCU.5\* fix\.'
+		end
+
+		/* then prepare it */
+		call run_it 'bin\prpfp.cmd fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) ver log
+
+		/* add MPTS addons */
+		call SysFileTree fpk.mpt.dir'\addons\*', 'ini.', 'FO'
+		if ini.0 > 0 then call execute '@xcopy 'fpk.mpt.dir'\addons\* fix\.'
+
+		/* add resource files */
+		call SysFileTree 'fix\*.res', 'resfile.', 'FO', ,'**---'
+		do i=1 to resfile.0
+			fixfile = translate(filespec('name', resfile.i), '.', '_')
+			fixfile = 'fix\'substr(fixfile, 1, length(fixfile)-4)
+			if stream(fixfile, 'c', 'query exists') <> '' then do
+				call execute '@rc -n -w2 -x2' resfile.i fixfile
+				call execute '@del 'resfile.i
+			end
+		end
+
+		/* Fix: MPTS FP 8620/8621 breaks CID install in combination with MPTS 8600 */
+		if (upd.mpt.num = 8600 & fpk.mpt.num > 8610) then do /* remove bad file from fix */
+			call execute '@del fix\LAPSMCID.DLL'
+		end
+
+		/* finally run update */
+		if fpk.mpt.num < 8600 then '@copy pin\MPTSFPK.W40 pin\MPTSFPK.pin >nul'
+		else '@copy pin\MPTSFPK.W41 pin\MPTSFPK.pin >nul'
+		call run_it 'bin\updcd.cmd 'burn'\cid\img\mpts fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+		/* handle nic's */
+		nic_list = ''
+		call SysFileTree fpk.mpt.dir'\addons\macs\*', 'ini.', 'FO'
+		if ini.0 > 0 then 
+			do i=1 to ini.0
+				nic_list = nic_list' 'filespec('name', ini.i)
+			end
+		if nic_list <> '' then do
+			cddir = burn'\cid\img\mpts'
+			fpdir = fpk.mpt.dir'\addons\macs'
+			call add2zip 'ibmcom\macs\macs.zip ibmcom\macs 'nic_list
+		end
+
+		/* handle protocols */
+		proto_list = ''
+		call SysFileTree fpk.mpt.dir'\addons\protocols\*', 'ini.', 'FO'
+		if ini.0 > 0 then 
+			do i=1 to ini.0
+				proto_list = proto_list' 'filespec('name', ini.i)
+			end
+		if proto_list <> '' then do
+			cddir = burn'\cid\img\mpts'
+			fpdir = fpk.mpt.dir'\addons\protocols'
+			call add2zip 'ibmcom\protocol\protocol.zip ibmcom\protocol 'proto_list
+		end
+
+		/* delete stuff from fix */
+		call cleanup_dir fix
+	end
+
+	/* update sniffer */
+	if stream(burn'\CID\IMG\MPTS\APPLETS\MPTSAPLT.ZIP', 'c', 'query exists') <> '' then do
+		call execute '@bin\unzip -jCo 'burn'\CID\IMG\MPTS\APPLETS\MPTSAPLT.ZIP APPLETS\OS2SNIFF.EXE  -d 'burn'\ibminst\. '
+		call execute '@bin\unzip -jCo 'burn'\CID\IMG\MPTS\APPLETS\MPTSAPLT.ZIP APPLETS\NCD.DLL       -d 'burn'\ibminst\. '
+		call execute '@bin\unzip -jCo 'burn'\CID\IMG\MPTS\APPLETS\MPTSAPLT.ZIP APPLETS\NCD.MSG       -d 'burn'\ibminst\. '
+		call execute '@copy 'burn'\ibminst\os2sniff.exe 'burn'\ibminst\clbsniff.exe'
+		call execute '@copy 'burn'\ibminst\ncd.dll 'burn'\ibminst\clbncd.dll'
+	end
+	else if stream(burn'\CID\IMG\MPTS\UTILITY\APPLETS\MPTSAPLT.ZIP', 'c', 'query exists') <> '' then do
+		call execute '@bin\unzip -jCo 'burn'\CID\IMG\MPTS\UTILITY\APPLETS\MPTSAPLT.ZIP APPLETS\OS2SNIFF.EXE  -d 'burn'\ibminst\. '
+		call execute '@bin\unzip -jCo 'burn'\CID\IMG\MPTS\UTILITY\APPLETS\MPTSAPLT.ZIP APPLETS\NCD.DLL       -d 'burn'\ibminst\. '
+		call execute '@bin\unzip -jCo 'burn'\CID\IMG\MPTS\UTILITY\APPLETS\MPTSAPLT.ZIP APPLETS\NCD.MSG       -d 'burn'\ibminst\. '
+		call execute '@copy 'burn'\ibminst\os2sniff.exe 'burn'\ibminst\clbsniff.exe'
+		call execute '@copy 'burn'\ibminst\ncd.dll 'burn'\ibminst\clbncd.dll'
+	end
+
+	/* Fix: MPTS FP 8424/8425 breaks CID install */
+	if (fpk.mpt.num > 8423 | fpk.mpt.num < 8600) then do /* restore good file */
+		if stream(upd.mpt.dir'\ibmcom\dll\LAPSCID.DLL', 'c', 'query exists') <> '' then 
+			call execute '@copy 'upd.mpt.dir'\ibmcom\dll\LAPSCID.DLL 'burn'\cid\img\mpts\ibmcom\dll\.'
+		if stream(upd.mpt.dir'\ibmcom\dll\LAPSPM.DLL', 'c', 'query exists') <> '' then 
+			call execute '@copy 'upd.mpt.dir'\ibmcom\dll\LAPSPM.DLL  'burn'\cid\img\mpts\ibmcom\dll\.'
+	end
+
+	/* Fix: MPTS FP 8706 in combination with MPTS update 8701 breaks install */
+	if (fpk.mpt.num > 8705 & upd.mpt.num < 8705) then do /* restore good file */
+		if stream(upd.mpt.dir'\ibmcom\dll\LAPSCID.DLL', 'c', 'query exists') <> '' then 
+			call execute '@copy 'upd.mpt.dir'\ibmcom\dll\LAPSCID.DLL 'burn'\cid\img\mpts\ibmcom\dll\.'
+		if stream(upd.mpt.dir'\ibmcom\dll\LAPSPM.DLL', 'c', 'query exists') <> '' then 
+			call execute '@copy 'upd.mpt.dir'\ibmcom\dll\LAPSPM.DLL  'burn'\cid\img\mpts\ibmcom\dll\.'
+	end
+
+	/* update files in \cid\nif with updated mpts */
+	call deldir burn'\cid\nifs'
+	call execute '@mkdir 'burn'\CID\NIFS'
+	call execute '@mkdir 'burn'\CID\NIFS\MACS'
+	call execute '@mkdir 'burn'\CID\NIFS\PROTOCOL'
+	call execute '@bin\unzip -jo 'burn'\cid\img\mpts\ibmcom\protocol\protocol.zip -d 'burn'\cid\nifs'
+	call execute '@bin\unzip -jo 'burn'\cid\img\mpts\ibmcom\protocol\protocol.zip -d 'burn'\cid\nifs\protocol'
+	call execute '@bin\unzip -jo 'burn'\cid\img\mpts\ibmcom\macs\macs.zip         -d 'burn'\cid\nifs'
+	call execute '@bin\unzip -jo 'burn'\cid\img\mpts\ibmcom\macs\macs.zip         -d 'burn'\cid\nifs\macs'
+
+end
+
+/***************************/
+/* incorporate PEER fixpak */
+/***************************/
+
+if fpk.per.dir <> '' then do
+
+	/* copy fix */
+	call display_action msg.0204
+	call execute '@xcopy 'fpk.per.dir'\fix\REQ.1\* fix\.'
+
+	call SysFileTree fpk.per.dir'\fix\UPE.2\*', 'ini.', 'FO'
+	if ini.0 > 0 then call execute '@xcopy 'fpk.per.dir'\fix\UPE.2\* fix\.'
+	else call execute '@xcopy 'fpk.per.dir'\fix\UPE.3\* fix\.'
+
+	call SysFileTree fpk.per.dir'\fix\MUG.3\*', 'ini.', 'FO'
+	if ini.0 > 0 then call execute '@xcopy 'fpk.per.dir'\fix\MUG.3\* fix\.'
+	else call execute '@xcopy 'fpk.per.dir'\fix\MUG.2\* fix\.'
+
+	/* add PEER addons */
+	call SysFileTree fpk.per.dir'\addons\*', 'ini.', 'FO'
+	if ini.0 > 0 then call execute '@xcopy 'fpk.per.dir'\addons\* fix\.'
+
+	/* add resource files */
+	call SysFileTree 'fix\*.res', 'resfile.', 'FO', ,'**---'
+	do i=1 to resfile.0
+		fixfile = translate(filespec('name', resfile.i), '.', '_')
+		fixfile = 'fix\'substr(fixfile, 1, length(fixfile)-4)
+		if stream(fixfile, 'c', 'query exists') <> '' then do
+			call execute '@rc -n -w2 -x2' resfile.i fixfile
+			call execute '@del 'resfile.i
+		end
+	end
+
+	/* then prepare it */
+	call run_it 'bin\prpfp.cmd fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) ver log
+
+	/* move fixpak files which will prevent correct installation */
+	call execute '@mkdir 'burn'\CID\IMG\IBMPEER\UPDCD'
+	if stream('fix\peerrmt.exe',   'c', 'query exists') <> '' then do
+		call execute '@copy fix\peerrmt.exe  'burn'\cid\img\ibmpeer\updcd\.'
+		call execute '@del fix\peerrmt.exe'
+	end
+	if stream('fix\lsiwdesk.exe',  'c', 'query exists') <> '' then do
+		call execute '@copy fix\lsiwdesk.exe 'burn'\cid\img\ibmpeer\updcd\.'
+		call execute '@del fix\lsiwdesk.exe'
+	end
+	if stream('fix\LSPRWPS.DLL',   'c', 'query exists') <> '' then do
+		call execute '@copy fix\LSPRWPS.DLL  'burn'\cid\img\ibmpeer\updcd\.'
+		call execute '@del fix\lsprwps.dll'
+	end
+	if stream('fix\PEERINST.DLL',   'c', 'query exists') <> '' then do
+		call execute '@copy fix\PEERINST.DLL  'burn'\cid\img\ibmpeer\updcd\.'
+		call execute '@del fix\PEERINST.DLL'
+	end
+	if stream('fix\PEERINST.EXE',   'c', 'query exists') <> '' then do
+		call execute '@copy fix\PEERINST.EXE  'burn'\cid\img\ibmpeer\updcd\.'
+		call execute '@del fix\PEERINST.EXE'
+	end
+	if stream('fix\PEERINST.PGM',   'c', 'query exists') <> '' then do
+		call execute '@copy fix\PEERINST.PGM  'burn'\cid\img\ibmpeer\updcd\.'
+		call execute '@del fix\PEERINST.PGM'
+	end
+
+	/* finally run update */
+	'@copy pin\peerfpk.wp4 pin\peerfpk.pin >nul'
+	call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+	/* delete stuff from fix */
+	call cleanup_dir fix
+
+end
+
+/***************************/
+/* incorporate NW REQ 2.12 */
+/***************************/
+
+if fpk.nwr.dir <> '' then do
+	
+	/* copy fixed nwreq */
+	call display_action msg.0205
+
+	/* copy requester files */
+	call execute '@xcopy 'fpk.nwr.dir'\requestr\*     'burn'\cid\img\nwreq\netware\. /H/O/T/S/R/V/E'
+	call execute '@xcopy 'fpk.nwr.dir'\login\*        'burn'\cid\img\nwreq\netware\. /H/O/T/R/V/E  '
+	call execute '@copy 'fpk.nwr.dir'\os2\ntr2000.sy_ 'burn'\cid\img\nwreq\netware\.'
+
+	/* copy nls files */
+	call execute '@xcopy 'fpk.nwr.dir'\login\nls\*    'burn'\cid\img\nwreq\netware\nls\. /H/O/T/R/V/E'
+
+	/* copy language dependent files */
+	select
+		when lang = 'DE' then do
+			call execute '@xcopy 'fpk.nwr.dir'\DEUTSCH\*            'burn'\cid\img\nwreq\netware\nls\DEUTSCH\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\nls\DEUTSCH\*        'burn'\cid\img\nwreq\netware\nls\DEUTSCH\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\login\nls\DEUTSCH\*  'burn'\cid\img\nwreq\netware\nls\DEUTSCH\. /H/O/T/S/R/V/E'
+		end
+		when lang = 'ES' then do
+			call execute '@xcopy 'fpk.nwr.dir'\ESPANOL\*            'burn'\cid\img\nwreq\netware\nls\ESPANOL\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\nls\ESPANOL\*        'burn'\cid\img\nwreq\netware\nls\ESPANOL\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\login\nls\ESPANOL\*  'burn'\cid\img\nwreq\netware\nls\ESPANOL\. /H/O/T/S/R/V/E'
+		end
+		when lang = 'FR' then do
+			call execute '@xcopy 'fpk.nwr.dir'\FRANCAIS\*           'burn'\cid\img\nwreq\netware\nls\FRANCAIS\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\nls\FRANCAIS\*       'burn'\cid\img\nwreq\netware\nls\FRANCAIS\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\login\nls\FRANCAIS\* 'burn'\cid\img\nwreq\netware\nls\FRANCAIS\. /H/O/T/S/R/V/E'
+		end
+		when lang = 'IT' then do
+			call execute '@xcopy 'fpk.nwr.dir'\ITALIANO\*           'burn'\cid\img\nwreq\netware\nls\ITALIANO\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\nls\ITALIANO\*       'burn'\cid\img\nwreq\netware\nls\ITALIANO\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\login\nls\ITALIANO\* 'burn'\cid\img\nwreq\netware\nls\ITALIANO\. /H/O/T/S/R/V/E'
+		end
+		when lang = 'BR' then do
+			call execute '@xcopy 'fpk.nwr.dir'\ENGLISH\*           'burn'\cid\img\nwreq\netware\nls\ENGLISH\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\nls\ENGLISH\*       'burn'\cid\img\nwreq\netware\nls\ENGLISH\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\login\nls\ENGLISH\* 'burn'\cid\img\nwreq\netware\nls\ENGLISH\. /H/O/T/S/R/V/E'
+		end
+		otherwise do
+			call execute '@xcopy 'fpk.nwr.dir'\ENGLISH\*           'burn'\cid\img\nwreq\netware\nls\ENGLISH\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\nls\ENGLISH\*       'burn'\cid\img\nwreq\netware\nls\ENGLISH\. /H/O/T/S/R/V/E'
+			call execute '@xcopy 'fpk.nwr.dir'\login\nls\ENGLISH\* 'burn'\cid\img\nwreq\netware\nls\ENGLISH\. /H/O/T/S/R/V/E'
+		end
+	end /* select */
+
+	/* copy windows files */
+	call execute '@xcopy 'fpk.nwr.dir'\windows\* 	'burn'\cid\img\nwreq\system\. /H/O/T/S/R/V/E'
+
+	/* unpack files */
+	rc = SysFileTree(burn'\cid\img\nwreq\*.??_', ini., 'FSO',,'**---')  
+	do i = 1 to ini.0
+		call execute '@'fpk.nwr.dir'\nwunpack.exe 'ini.i filespec('drive', ini.i)||filespec('path', ini.i)'.'
+		if rc = 0 then call execute '@del 'ini.i
+	end
+
+	/* copy some extra */
+	call execute '@copy 'fpk.nwr.dir'\nwcalls.dll     'burn'\cid\img\nwreq\netware\.'
+	call execute '@copy 'fpk.nwr.dir'\nwlocale.dll    'burn'\cid\img\nwreq\netware\.'
+	call execute '@copy 'fpk.nwr.dir'\install.exe     'burn'\cid\img\nwreq\netware\.'
+	call execute '@copy 'fpk.nwr.dir'\os2\drivers.os2 'burn'\cid\img\nwreq\netware\.'
+	call execute '@copy 'fpk.nwr.dir'\rpl\mini.ifs    'burn'\cid\img\nwreq\netware\.'
+
+	/* delete stuff from fix */
+	call cleanup_dir fix
+
+end
+
+/* copy updated CID procedure */
+call add_updated_cid_procedure 'wp4'
+
+/*****************************/
+/* incorporate Netscape 4.61 */
+/*****************************/
+
+if upd.nsc.dir <> '' & nonetscape <> 1 then do
+	call display_action msg.0206
+
+	/* copy files we need */
+	call execute '@copy newinst\netscape.rsp 'burn'\ibminst\tables'
+	call execute '@xcopy 'upd.nsc.dir'\* 'burn'\cid\img\netscape /H/O/T/S/R/V/E'
+end
+
+/*****************************/
+/* incorporate Java run-time */
+/*****************************/
+
+if upd.nsc.dir <> '' & upd.jav.dir <> '' & nojava <> 1 then do
+
+	/* create Java dir and copy the files needed */
+	call display_action msg.0207
+	call execute '@mkdir 'burn'\CID\IMG\JAVA'
+
+	/* copy java cid.rsp to tabledir */
+	call execute '@copy 'upd.jav.dir'\cid.rsp 'burn'\ibminst\tables\javacid.rsp'
+
+	/* copy the rest to image */
+	call execute '@xcopy 'upd.jav.dir'\* 'burn'\cid\img\java /H/O/T/R/V/E'
+	call execute '@mkdir 'burn'\CID\IMG\JAVA\PACKAGE'
+	call execute '@xcopy 'upd.jav.dir'\package\* 'burn'\cid\img\java\package /H/O/T/S/R/V/E'
+	call execute '@mkdir 'burn'\CID\IMG\JAVA\EN'
+	if lang = 'DK' | lang = 'FI' | lang = 'NL' then lang = 'EN' /* there is no java for these languages, use English version */
+	call execute '@xcopy 'upd.jav.dir'\'lang'\* 'burn'\cid\img\java\en /H/O/T/S/R/V/E'
+	
+	/* seems this file should be in the root */
+	call execute '@copy 'upd.jav.dir'\'lang'\00000000.EAS 'burn'\cid\img\java'
+
+	/* rename java response file */
+	call execute '@copy 'burn'\cid\img\java\en\java*.rsp 'burn'\cid\img\java\en\rspjava.rsp'
+	call execute '@del 'burn'\cid\img\java\en\java*.rsp'
+
+end
+
+/**************************/
+/* remove old JAVA engine */
+/**************************/
+
+if nojava = 1 then do
+
+	/* remove java 1.0.2 from FI response file */
+	if stream('fibase.loc', 'c', 'query exists') <> '' then do
+
+		/* unpack fibase.rsp */
+		location.fibase = linein('fibase.loc')
+		call lineout 'fibase.loc'
+		call execute '@bin\unpack 'location.fibase' . /N:FIBASE.RSP'
+
+		/* set some variables */
+		found_java = 0
+		create_object = 0
+		copy_file = 0
+		in  = 'fibase.rsp'
+		out = 'fibase.out'
+		'@del 'out' >nul 2>>&1'
+
+		/* read fibase */
+		do while lines(in)
+			l=linein(in)
+
+			/* where are we now? */
+			select
+				when l='JAVA=(' | l='JAVARUN=(' | l='JAVASMPLS=(' | l='JAVATLKT=(' then found_java = 1
+				when found_java = 1 & l='	ObjectCreation=(' then do
+					create_object = 1
+					iterate
+				end
+				when found_java = 1 & l='	File=(' then do
+					copy_file = 1
+					iterate
+				end
+				when found_java = 1 & l='	AsciiFile=(' then do
+					edit_file = 1
+					iterate
+				end
+				when l='	)' & found_java = 1 & (create_object = 1 | copy_file = 1 | edit_file = 1) then do
+					create_object = 0
+				 	copy_file = 0
+				 	edit_file = 0
+					iterate
+				end
+				when l=')' & found_java = 1 then found_java = 0
+				otherwise nop;
+			end
+		
+			/* write out if it is not JAVA 1.0 create object or copy file */
+			if found_java = 1 & (create_object = 1 | copy_file = 1) then iterate
+			else call lineout out, l
+		
+		end
+		call lineout in
+		call lineout out
+
+		/* pack new rsp file */
+		call execute '@copy 'out in
+		'@bin\pack2 \OS2\INSTALL\FIBASE.RSP 'location.fibase' /R >nul 2>>&1'
+		call execute '@bin\pack2 'in location.fibase' /H:\OS2\INSTALL\ /A'
+
+		/* clean up */
+		'@del 'in'  >nul 2>>&1'
+		'@del 'out' >nul 2>>&1'
+	end
+
+end
+
+/****************************/
+/* incorporate Java fixpaks */
+/****************************/
+
+if fpk.jav.dir <> '' & upd.jav.dir <> '' & nojava <> 1 then do
+
+	/* copy fix */
+	call display_action msg.0208
+	call SysFileTree fpk.jav.dir'\*', 'tmp.', 'FSO'
+	do i = 1 to tmp.0
+		call execute '@copy 'tmp.i' fix\.'
+	end
+
+	/* delete some files */
+	call execute '@del fix\FIXES.LST'
+
+	/* finally run update */
+	'@del pin\javatkt.pin >nul 2>>&1'
+	if stream(burn'\cid\img\java\syslevel.jtk', 'c', 'query exists') <> '' then '@copy pin\javatkt.118 pin\javatkt.pin >nul'
+	call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+	/* delete stuff from fix */
+	call cleanup_dir fix
+
+end
+
+/******************************/
+/* incorporate 32-bits TCP/IP */
+/******************************/
+
+if upd.tcp.dir <> '' then do
+
+	/* delete old TCP/IP */
+	call SysFileTree burn'\cid\img\tcpapps\*', ini., 'FSO',,'**---'
+	do i = 1 to ini.0
+		call execute '@del 'ini.i
+	end
+
+	/* copy new one */
+	call display_action msg.0209
+	call execute '@xcopy 'upd.tcp.dir'\* 'burn'\cid\img\tcpapps /H/O/T/S/R/V/E'
+
+	/* add new response file */
+	call execute '@copy newinst\tcpip.rsp 'burn'\ibminst\tables'
+
+	/* repair rsp file */
+	if upd.tcp.num = 1000 then call repair_tcpip_rsp burn'\cid\img\tcpapps\install\tcpinst.rsp'
+
+	/* copy rsp file for clifi */
+	call execute '@copy 'upd.tcp.dir'\install\tcpinst.rsp 'burn'\ibminst\tables\tcpinst.rsp'
+
+end
+
+/*****************************/
+/* incorporate TCP/IP fixpak */
+/*****************************/
+
+if fpk.tcp.dir <> '' then do
+
+	/* apply 16-bits fixpak on original Warp 4 TCP/IP */
+	if upd.tcp.dir = '' then do
+
+		/* copy fix */
+		call display_action msg.0210
+
+		select
+			when lang = 'DK' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.5\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.5\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'DE' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.6\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.6\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'ES' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.7\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.7\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'FI' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.8\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.8\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'FR' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.9\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.9\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'IT' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.10\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.10\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'JP' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.11\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.11\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'KO' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.12\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.12\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'NL' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.13\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.13\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'NO' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.14\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.14\srv_prod.tcp fix\srv_prod.bak'
+			end
+			when lang = 'BR' then do
+				call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.15\* fix\.'
+				call execute '@copy 'fpk.tcp.dir'\fix\TCP.15\srv_prod.tcp fix\srv_prod.bak'
+			end
+			otherwise nop;
+		end
+
+		/* TCP.1 is always needed */
+		call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.1\* fix\.'
+	
+		/* do not put English rsp on non-English Warp */
+		if lang <> 'EN' then do
+			call execute '@del fix\default.rs_'
+			call execute '@copy fix\srv_prod.bak fix\srv_prod.tcp'
+			call execute '@del fix\srv_prod.bak'
+		end
+
+		/* then prepare it */
+		call run_it 'bin\prpfp.cmd fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) ver log
+
+		/* add TCP/IP addons */
+		call SysFileTree fpk.tcp.dir'\addons\*', 'ini.', 'FO'
+		if ini.0 > 0 then call execute '@xcopy 'fpk.tcp.dir'\addons\* fix\.'
+	
+		/* finally run update */
+		'@copy pin\tcppfpk.wp4 pin\tcppfpk.pin >nul'
+		call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+	
+		/* delete stuff from fix */
+		call cleanup_dir fix
+
+		/* do some postprocessing for non English TCP/IP */
+		if lang <> 'EN' then do
+
+			/* copy language dependent DLL's to fix */
+			select
+				when lang = 'DK' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.5\cnb*.dl_ fix\.'
+					path = 'MSG\DADK850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.5\srv_prod.??? fix\.'
+				end
+				when lang = 'DE' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.6\cnb*.dl_ fix\.'
+					path = 'MSG\DEDE850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.6\srv_prod.??? fix\.'
+				end
+				when lang = 'ES' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.7\cnb*.dl_ fix\.'
+					path = 'MSG\ESES850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.7\srv_prod.??? fix\.'
+				end
+				when lang = 'FI' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.8\cnb*.dl_ fix\.'
+					path = 'MSG\FIFI850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.8\srv_prod.??? fix\.'
+				end
+				when lang = 'FR' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.9\cnb*.dl_ fix\.'
+					path = 'MSG\FRFR850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.9\srv_prod.??? fix\.'
+				end
+				when lang = 'IT' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.10\cnb*.dl_ fix\.'
+					path = 'MSG\ITIT850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.10\srv_prod.??? fix\.'
+				end
+				when lang = 'JP' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.11\cnb*.dl_ fix\.'
+					path = 'MSG\JAJP932'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.11\srv_prod.??? fix\.'
+				end
+				when lang = 'KO' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.12\cnb*.dl_ fix\.'
+					path = 'MSG\KOKR949'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.12\srv_prod.??? fix\.'
+				end
+				when lang = 'NL' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.13\cnb*.dl_ fix\.'
+					path = 'MSG\NLNL850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.13\srv_prod.??? fix\.'
+				end
+				when lang = 'NO' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.14\cnb*.dl_ fix\.'
+					path = 'MSG\NONO850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.14\srv_prod.??? fix\.'
+				end
+				when lang = 'BR' then do
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.15\cnb*.dl_ fix\.'
+					path = 'MSG\PTBR850'
+					call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.15\srv_prod.??? fix\.'
+				end
+				otherwise nop;
+			end
+	
+			/* then prepare it */
+			call run_it 'bin\prpfp.cmd fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) ver log
+		
+			/* add them to base3.zip */
+			call execute '@mkdir tmp'
+			call execute '@bin\unzip -o 'burn'\cid\img\tcpapps\base3.zip -d tmp'
+			call execute '@cd tmp'
+			call execute '@xcopy ..\fix\* 'path
+			call execute '@..\bin\zip.exe -mkr 'burn'\cid\img\tcpapps\base3.zip *'
+			call execute '@cd ..'
+			call execute '@rmdir tmp'
+	
+			/* and delete temp stuff from fix */
+			call cleanup_dir fix
+
+		end
+
+	end
+	else do /* apply 32-bits fixpak on TCP/IP update */
+
+		/* copy fix */
+		call display_action msg.0210
+		if fpk.tcp.num = '2001' then do 
+			call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.1\* fix\.'
+			call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.2\* fix\.'
+		end
+		else if fpk.tcp.num = '2101' then do
+			call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.1\* fix\.'
+			call execute '@xcopy 'fpk.tcp.dir'\fix\NFS.2\* fix\.'
+			call execute '@xcopy 'fpk.tcp.dir'\fix\DHS.3\* fix\.'
+			call execute '@xcopy 'fpk.tcp.dir'\fix\DDN.4\* fix\.'
+		end
+		else do
+			call execute '@xcopy 'fpk.tcp.dir'\fix\TCP.1\* fix\.'
+			call execute '@xcopy 'fpk.tcp.dir'\fix\DDN.2\* fix\.'
+			call execute '@xcopy 'fpk.tcp.dir'\fix\DHS.3\* fix\.'
+			call execute '@xcopy 'fpk.tcp.dir'\fix\NFS.4\* fix\.'
+		end
+
+		/* delete some files */
+		call delete_if_exist 'fix\APPSREAD.ME_ fix\CSINITCP.EXE fix\UINSTALL.EX_ fix\CSEXTTCP.EXE'
+
+		/* then prepare it */
+		call run_it 'bin\prpfp.cmd fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) ver log
+
+		/* add TCP/IP addons */
+		call SysFileTree fpk.tcp.dir'\addons\*', 'ini.', 'FO'
+		if ini.0 > 0 then call execute '@xcopy 'fpk.tcp.dir'\addons\* fix\.'
+
+		/* add resource files */
+		call SysFileTree 'fix\*.res', 'resfile.', 'FO', ,'**---'
+		do i=1 to resfile.0
+			fixfile = translate(filespec('name', resfile.i), '.', '_')
+			fixfile = 'fix\'substr(fixfile, 1, length(fixfile)-4)
+			if stream(fixfile, 'c', 'query exists') <> '' then do
+				call execute '@rc -n -w2 -x2' resfile.i fixfile
+				call execute '@del 'resfile.i
+			end
+		end
+
+		/* finally run update */
+		'@copy pin\tcppf32.wp4 pin\tcppf32.pin >nul'
+
+		if stream(burn'\cid\img\tcpapps\cfg2api.dll', 'c', 'query exists') <> '' then do
+			call execute '@copy 'burn'\cid\img\tcpapps\cfg2api.dll 'burn'\cid\img\tcpapps\cfg2api.dl'
+			call execute '@del 'burn'\cid\img\tcpapps\cfg2api.dll'
+		end
+		if stream(burn'\cid\img\tcpapps\tcpoocs.dll', 'c', 'query exists') <> '' then do
+			call execute '@copy 'burn'\cid\img\tcpapps\tcpoocs.dll 'burn'\cid\img\tcpapps\tcpoocs.dl'
+			call execute '@del 'burn'\cid\img\tcpapps\tcpoocs.dll'
+		end
+		if stream(burn'\cid\img\tcpapps\tcpoocsx.dll', 'c', 'query exists') <> '' then do
+			call execute '@copy 'burn'\cid\img\tcpapps\tcpoocsx.dll 'burn'\cid\img\tcpapps\tcpoocsx.dl'
+			call execute '@del 'burn'\cid\img\tcpapps\tcpoocsx.dll'
+		end
+
+		call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+		if stream(burn'\cid\img\tcpapps\cfg2api.dl', 'c', 'query exists') <> '' then do
+			call execute '@copy 'burn'\cid\img\tcpapps\cfg2api.dl 'burn'\cid\img\tcpapps\cfg2api.dll'
+			call execute '@del 'burn'\cid\img\tcpapps\cfg2api.dl'
+		end
+		if stream(burn'\cid\img\tcpapps\tcpoocs.dl', 'c', 'query exists') <> '' then do
+			call execute '@copy 'burn'\cid\img\tcpapps\tcpoocs.dl 'burn'\cid\img\tcpapps\tcpoocs.dll'
+			call execute '@del 'burn'\cid\img\tcpapps\tcpoocs.dl'
+		end
+		if stream(burn'\cid\img\tcpapps\tcpoocsx.dl', 'c', 'query exists') <> '' then do
+			call execute '@copy 'burn'\cid\img\tcpapps\tcpoocsx.dl 'burn'\cid\img\tcpapps\tcpoocsx.dll'
+			call execute '@del 'burn'\cid\img\tcpapps\tcpoocsx.dl'
+		end
+
+		if fpk.tcp.num > 2205 & upd.tcp.num < 2205 then do
+			call execute '@copy 'burn'\cid\img\tcpapps\install\makecmd.exe 'burn'\cid\img\tcpapps\install\makecmd2.exe'
+			call execute '@copy newinst\makecmd.exe 'burn'\cid\img\tcpapps\install\.'
+			call execute '@copy newinst\makecmd.cmd 'burn'\cid\img\tcpapps\install\.'
+		end
+
+		/* copy rsp file for clifi */
+		call execute '@copy 'burn'\cid\img\tcpapps\install\tcpinst.rsp 'burn'\ibminst\tables\tcpinst.rsp'
+
+		/* delete stuff from fix */
+		call cleanup_dir fix
+
+	end
+
+end
+
+/****************************/
+/* incorporate pmfax update */
+/****************************/
+
+if upd.fax.dir <> '' then do
+	/* copy fix */
+	call display_action msg.0216
+	call execute '@xcopy 'upd.fax.dir'\*         fix\. /H/O/T/R'
+
+	/* rename/delete some files */
+	call execute '@copy  'upd.fax.dir'\pmfax.exe fix\faxworks.exe'
+	call execute '@del fix\pmfax.exe'
+	if stream(upd.fax.dir'\fxfile.new', 'c', 'query exists') <> '' then do
+		call execute '@copy  'upd.fax.dir'\fxfile.new fix\fxfile.som'
+		call execute '@del fix\fxfile.new'
+	end
+	call delete_if_exist 'fix\LICENSE.TXT fix\readme.htm fix\fx.ins'
+	/* finally run update */
+	call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+	/* cleanup */
+	call cleanup_dir fix
+	'@del fibase.loc >nul 2>>&1'
+
+end
+
+/* remove get netscape icon */
+if stream(burn'\cid\img\tcpapps\inet1.zip', 'c', 'query exists') <> '' then do
+	/* find zip containing IAK.TXT */
+	call SysFileTree burn'\cid\img\tcpapps\*.zip', 'tmp.', 'FO'
+	do i=1 to tmp.0
+		'@bin\unzip -l 'tmp.i' | RXQUEUE'
+	  do while queued() > 0
+  	  l = translate(linein('queue:'))
+			if pos('IAK.TXT', l) > 0 then do
+				iak_zip = tmp.i
+				leave i
+			end
+		end
+	end
+	do while queued() > 0
+  	l = linein('queue:')
+	end
+	call execute '@bin\unzip -jCo 'iak_zip' BIN\IAK.TXT -d fix'
+	i=1
+	do while lines('fix\iak.txt')
+		l.i = linein('fix\iak.txt')
+		if pos('OBJECTID=<URL_GETNETSCAPE>', l.i) > 0 then l.i = '* 'l.i
+		i=i+1
+	end
+	call lineout 'fix\iak.txt'
+	call execute '@del fix\iak.txt'
+	l.0 = i-1
+	do i=1 to l.0
+		call lineout 'fix\iak.txt', l.i
+	end
+	call lineout 'fix\iak.txt'
+	cddir = burn'\cid\img\tcpapps'
+	fpdir = '..\fix'
+	call add2zip filespec('name', iak_zip) 'BIN IAK.TXT'
+	call execute '@del fix\iak.txt'
+end
+
+/* Add fixed getcfg.exe */
+call add_getcfg
+
+/* regenerate cdinst.??? */
+call regenerate_cdinst burn'\cdinst.cmd'
+call regenerate_cdinst burn'\cdinst.bat'
+
+/* add UPDCD info to CD */
+call display_action msg.0219
+call add_updcd
+
+/* clean up and report */
+call clean_up
+
+exit
+
+/* *************   By Isma - 20/09/2002   ************************* */
+/* ProcessFixpack -->  Copies base fixpack to fix directory         */
+/* unpack all the files and then copies the addons directory to fix */
+/* **************************************************************** */
+
+ProcessFixpack:
+
+   /* first copy the stuff we need to the fix directory */
+
+   call display_action msg.0211
+   call execute '@xcopy 'fpk.os2.dir'\fix\os2.1\* fix\.'
+   call execute '@xcopy 'fpk.os2.dir'\fix\os2.2\* fix\.'
+   if fpk.cp1.fnd = 1 then do
+	call execute '@xcopy 'fpk.cp1.dir'\fix\os2.1\* fix\.'
+	call execute '@xcopy 'fpk.cp1.dir'\fix\os2.5\* fix\.'
+	/* restore warp 4 fixpak file, otherwise we will have no syslevel update */
+	call execute '@copy 'fpk.os2.dir'\fix\os2.1\SRV_PROD.OS2 fix\.'
+   end
+
+   Call DeleteExtra              /* By Isma -- 25/09/2002 */
+
+   /* then prepare it */
+   call run_it 'bin\prpfp.cmd fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) ver log
+
+   /* add fixpack base addons */
+
+   call display_action msg.0212
+   call SysFileTree fpk.os2.dir'\addons\*', 'ini.', 'FO'
+   if ini.0 > 0 then call execute '@xcopy 'fpk.os2.dir'\addons\* fix\.'
+   call delete_if_exist 'fix\readme'
+
+Return
+
+/* **********   By Isma - 20/09/2002   ***************************** */
+/* ProcessDDpack -->  Copies Driver fixpack to fix directory         */
+/* unpack all the files and then copies the addons directory to fix  */
+/* ***************************************************************** */
+
+ProcessDDpack:
+
+   call display_action msg.0213
+   call execute '@xcopy 'fpk.dd.dir'\fix\bdd.1\*  fix\.'
+   if fpk.dd.num < 3 then call execute '@xcopy 'fpk.dd.dir'\fix\bdd.4\*  fix\.'
+   if fpk.dd.num = 1 then call execute '@xcopy 'fpk.dd.dir'\fix\bdd.5\*  fix\.'
+
+   Call DeleteExtra              /* By Isma -- 20/09/2002 */
+
+   /* then prepare it */
+   call run_it 'bin\prpfp.cmd fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) ver log
+
+   /* add device driver fixpack addons */
+
+   call display_action msg.0214
+   call SysFileTree fpk.dd.dir'\addons\*', 'ini.', 'FO'
+   if ini.0 > 0 then call execute '@xcopy 'fpk.dd.dir'\addons\* fix\.'
+   call delete_if_exist 'fix\readme'
+
+Return
+
+/* ************************************************* */
+/* DeleteExtra -->  Deletes PS/2, JFS and KBD files  */
+/* ************************************************* */
+
+DeleteExtra:
+
+   /* delete PS/2 files */
+   call delete_if_exist 'fix\VDMAPS2.SY_'
+
+   /* delete JFS files if any */
+   call delete_if_exist 'fix\CACHEJFS.EX_ fix\CHKLGJFS.EX_ fix\JFS.IF_ fix\LOGDUMP.EX_'
+
+   /* delete kbd files */
+   call delete_if_exist 'fix\KBD-AX.SY_ fix\KBD-106.SY_ fix\KBDBASE.SY_'
+
+	 /* delete old loader */
+	 call delete_if_exist 'fix\OS2LDRI.MS_'	
+
+Return
+
+/*********************************/
+/* repair rsp file of tcp/ip 4.1 */
+/*********************************/
+repair_tcpip_rsp: procedure
+
+	parse arg rsp_file
+
+	found_path = 0
+	found_etc  = 0
+	found_drv  = 0
+	i = 1
+	pos = 1
+	do while lines(rsp_file)
+		l.i = linein(rsp_file)
+		if pos('NEWLINE={INSTALLDIR}\DOS\BIN', translate(l.i)) > 0 then found_path = 1
+		if pos('NEWLINE={INSTALLDIR}\DOS\ETC', translate(l.i)) > 0 then found_etc = 1
+		if pos('NEWLINE={INSTALLDIR}\BIN\VDOSTCP.SYS', translate(l.i)) > 0 then found_drv = 1
+		if pos('FILENAME={BOOTDRIVE}\AUTOEXEC.BAT', translate(l.i)) > 0 then pos = i
+		i = i + 1
+	end
+	call lineout rsp_file
+	l.0 = i - 1
+
+	'@del 'rsp_file
+	do i = 1 to	l.0
+		if i = pos + 9 then do
+			if found_path = 0 then do
+				call lineout rsp_file, x2c(9)||'AsciiFile=('
+				call lineout rsp_file, x2c(9)||x2c(9)||'UseGrep=0'
+				call lineout rsp_file, x2c(9)||x2c(9)||'FileName={bootdrive}\autoexec.bat'
+				call lineout rsp_file, x2c(9)||x2c(9)||'EditLine=PATH='
+				call lineout rsp_file, x2c(9)||x2c(9)||'SearchLine={InstallDir}\dos\bin'
+				call lineout rsp_file, x2c(9)||x2c(9)||'NewLine={InstallDir}\dos\bin'
+				call lineout rsp_file, x2c(9)||x2c(9)||'AddAfterLine=\os2'
+				call lineout rsp_file, x2c(9)||x2c(9)||'Delimiter=^;'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SubstrChk=1'
+				call lineout rsp_file, x2c(9)||x2c(9)||'DelimChk=1'
+				call lineout rsp_file, x2c(9)||x2c(9)||'Action=1'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SearchFound=2'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SearchNotFound=4'
+				call lineout rsp_file, x2c(9)||x2c(9)||'NoMatchPosition=2'
+				call lineout rsp_file, x2c(9)||')'
+			end
+			if found_etc = 0 then do
+				call lineout rsp_file, x2c(9)||'AsciiFile=('
+				call lineout rsp_file, x2c(9)||x2c(9)||'FileName={bootdrive}\autoexec.bat'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SearchLine=SET ETC='
+				call lineout rsp_file, x2c(9)||x2c(9)||'NewLine=SET ETC={InstallDir}\DOS\ETC'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SearchNotFound=2'
+				call lineout rsp_file, x2c(9)||')'
+			end
+			if found_drv = 0 then do
+				call lineout rsp_file, x2c(9)||'AsciiFile=('
+				call lineout rsp_file, x2c(9)||x2c(9)||'FileName={bootdrive}\config.sys'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SearchLine=DEVICE={InstallDir}\\vdostcp.sys'
+				call lineout rsp_file, x2c(9)||x2c(9)||'NewLine=DEVICE={InstallDir}\bin\vdostcp.sys'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SrcLineOcc=1'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SearchFound=2'
+				call lineout rsp_file, x2c(9)||x2c(9)||'SearchNotFound=2'
+				call lineout rsp_file, x2c(9)||')'
+			end
+		end
+		call lineout rsp_file, l.i
+	end
+	call lineout rsp_file
+
+return

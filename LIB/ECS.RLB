@@ -1,0 +1,462 @@
+/*********************************************************************/
+/* updcd rexx library - ecs specific functions                       */
+/* created: 02.16.2001                                               */
+/* 04.23.2002: aligned with fixpak 2 files                           */
+/* 04.30.2002: added update of netscape ini files                    */
+/* 09.25.2002: added Volume name of burned CD                        */
+/* 11.23.2002: aligned with dd fixpak 3                              */
+/* 01.09.2003: fixed problem with German updates                     */
+/* 03.16.2003: added nls language support                            */
+/* 04.10.2003: removed expert mode                                   */
+/* 05.19.2003: create directories in upper case                      */
+/* 07.06.2003: adapted to latest ecs 1.0 updates                     */
+/* 11.02.2003: removed last dependency from ecsmt                    */
+/* 02.12.2003: added removal of RO attribs of floppy images          */
+/* 08.19.2004: added new configuration options                       */
+/* 09.18.2004: new configuration options were not working ok         */
+/* 04.24.2005: aligned with cp fixpak 5                              */
+/* 08.16.2005: added check to see if CD already updated              */
+/* 12.04.2006: added check for attrib on empty fixes and updates dir */
+/*********************************************************************/
+
+/*******************/
+/* start things up */
+/*******************/
+
+/* declare os type */
+os2_version = 'ecs'
+
+/* start */
+call start_up
+
+/* check if we have at least the base fixes */
+call check_components 'fpk.cp1.dir upd.dlg.dir'
+
+/* check if CD already updated */
+if stream(w4cd'\readme.ucd', 'c', 'query exists') <> '' then do
+	say 
+	say ' 'msg.0589
+	if (GetKeyYN() = translate(msg.0479)) then do
+		'@del go4it.bsy >nul'
+		exit
+	end
+end
+
+/* determine eCS base (MCP/ACP) */
+/* do not know how to do this   */
+/* let us assume we have MCP    */
+cptype = 'MCP'
+call lineout log, 'Info: Detected CP: 'cptype
+call lineout log
+
+/* startup screen */
+call display_startup_screen burn burn 'Update 'os2_version' installation CD-ROM*Cleaning up 'burn
+
+/**********************/
+/* Clean up old image */
+/**********************/
+
+/* clean up burn */
+call cleanup_burn
+
+/* reset timer */
+call time 'E'
+
+/* remove RO attributes */
+call execute '@attrib -r -s -h -a * /s'
+call SysFileTree fixes'\*', 'ini.', 'BSO'
+if ini.0 > 0 then call execute '@attrib -r -s -h -a 'fixes'\* /s'
+call SysFileTree updates'\*', 'ini.', 'BSO'
+if ini.0 > 0 then call execute '@attrib -r -s -h -a 'updates'\* /s'
+
+/* create some directories */
+'@mkdir 'burn '>nul 2>&1'
+call execute '@mkdir 'burn'\UPDCD'
+call execute '@mkdir 'burn'\UPDCD\BOOTIMG'
+call execute '@mkdir 'burn'\UPDCD\BOOTIMG\DISK_0_1.IMG'
+call execute '@mkdir 'burn'\UPDCD\BOOTIMG\DISK_2.IMG'
+
+Call SetVolumeName ("eCS_CDRun")		/* By Isma - 25/09/2002 */
+
+/* copy CD-ROM */
+say '1B'x || '[4;26H'substr(burn, 1, 50)
+say '1B'x || '[5;26H'substr(w4cd, 1, 50)
+call display_action msg.0200
+call execute '@xcopy 'w4cd'\* 'burn'\. /H/O/T/S/R/V/E'
+
+/* remove RO attribute */
+call SysFileTree burn'\*', ini., 'BSO',,'**---'
+call execute '@attrib -r -s -h -a 'burn'\* /s'
+
+/* add fixpak files */
+call display_action msg.0211
+/* do something extra for ACP? */
+call execute '@bin\unzip -oj 'fpk.cp1.dir'\xr?c*.zip -d fix'
+call execute '@bin\unzip -oj ' fpk.dd.dir'\xr?d*.zip -d fix'
+
+/* delete OREXX1.DL_ otherwise we will not have classic REXX support */
+call delete_if_exist 'fix\OREXX1.DL_'
+
+/* remove more */
+call delete_if_exist 'fix\readme.cid fix\readme.1st fix\readme2 fix\csf_disk fix\srv_prod.os2 fix\README.DBG fix\NEW_DIRS.BDD fix\README.RMS fix\APPLYSRV.CMD fix\FIXTPREP.EXE'
+call delete_if_exist 'fix\DANI172.ZIP fix\ECS_C005.TXT fix\IDE10152.ZIP fix\MULTIPT.EX_ fix\READREXX.TXT fix\UPDTBMGR.ZIP'
+
+/* only for MCP? */
+if cptype = 'MCP' then do
+	/* remove SMP/UNI files */
+	call delete_if_exist 'fix\os2krnls.___ fix\os2krnlu.___ fix\DF_DEB.SM_ fix\DF_DEB.UN_ fix\cchmain.ex_ fix\EZPLAY2.DL_ fix\GSVINST.EX_ fix\PMPRNTXT.QP_ fix\PSSDMON.EX_ fix\RJAPPLET.EX_'
+	call delete_if_exist 'fix\DF_RET.SM_ fix\DF_RET.UN_ fix\KERNELD.SM_ fix\KERNELD.UN_ fix\KERNEL.SM_ fix\KERNEL.UN_ fix\OS2LDRS.___ fix\OS2LDRSU.___ fix\WELCOME.EX_ fix\WPNLS.DL_'
+	call delete_if_exist 'fix\OS2KRNSB.SY_ fix\OS2KRNSD.SY_ fix\OS2KRNUB.SY_ fix\OS2KRNUD.SY_ fix\OS2KRNSR.SY_ fix\OS2KRNUR.SY_ fix\DOSCAL1S.DL_ fix\DOSCAL1S.SY_ fix\DOSCAL1U.DL_ fix\DOSCAL1U.SY_'
+end
+
+/* prepare it */
+call run_it 'bin\prpfp.cmd fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) ver log
+
+/* delete ps/2 drivers */
+'@del fix\IBM2*.SYS >nul 2>>&1'
+
+/* add ecs flag */
+'@echo dummy > fix\ecs$$$.flg'
+
+/* add kernel update */
+call execute '@bin\unzip -oj 'fpk.cp1.dir'\w4*.zip  -d fix'
+call delete_if_exist 'fix\readme'
+
+/* add base addons */
+call SysFileTree fpk.cp1.dir'\addons\*', 'ini.', 'FO'
+if ini.0 > 0 then call execute '@xcopy 'fpk.cp1.dir'\addons\* fix\.'
+call delete_if_exist 'fix\readme fix\warning'
+if cptype = 'ACP' then do
+	call SysFileTree fpk.cp1.dir'\addons\smp\*', 'ini.', 'FO'
+	if ini.0 > 0 then call execute '@xcopy 'fpk.cp1.dir'\addons\smp\* fix\smp\.'
+	call delete_if_exist 'fix\smp\readme'
+end
+
+/*************************************/
+/* Update installation floppy images */
+/*************************************/
+
+/* finally run update */
+call display_action msg.0220
+call execute '@attrib -r -s -h -a 'burn'\* /s'
+call run_it 'bin\updif2.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver add.dani.ide add.dani.flt add.dani.boot add.dani.dasd add.up2tb add.fat32 add.dummy upd.fd1.dir upd.fd2.dir 
+
+/* remove RO attribute */
+call SysFileTree burn'\*', ini., 'BSO',,'**---'
+call execute '@attrib -r -s -h -a 'burn'\* /s'
+
+/********************************************************************/
+/* incorporate CP1 fixpak                                           */
+/********************************************************************/
+
+call display_action msg.0221
+
+/* reorganise pmdf */
+call execute '@mkdir 'burn'\OS2\PDPSI\PMDF\WARP45'
+call copy_pmdf_files 'pmdf DF_DEB.EXE DF_RET.EXE KERNEL.SDF KERNELD.SDF PMCTLS.SYM PMMERGE.SYM PMSPL.SYM PMVIOP.SYM PMWP.SYM'
+call copy_pmdf_files 'pmdf\warp45 DF_DEB.EXE DF_RET.EXE DF_DEB.EXE DOSCALL1.SYM KERNEL.SDF KERNELD.SDF OS2KRNLB.SYM OS2KRNLD.SYM OS2KRNLR.SYM SHELL.SDF'
+call execute '@mkdir 'burn'\tmppdpsi'
+call execute '@xcopy 'burn'\OS2\PDPSI\PMDF\WARP45_U\* 'burn'\tmppdpsi\.'
+call deldir burn'\OS2\PDPSI\PMDF\WARP45_U'
+
+/* copy ecsguide to os2 to get updated */
+call execute '@copy 'burn'\ecs\ecsguide.zip 'burn'\os2\.'
+/* run update */
+call delete_if_exist 'fix\SSERIFG.FON fix\SESDB.DLL fix\SESDMON.EXE fix\SESSHELL.EXE fix\files.lst'
+'@copy pin\basefpk.ec1 pin\basefpk.pin >nul'
+call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+/* postprocessing */
+call execute '@copy 'burn'\updcd\bootimg\DISK_0_1.IMG\os2ldr 'burn'\ecs\disk01\.'
+call execute '@mkdir 'burn'\OS2\PDPSI\PMDF\WARP45_U'
+call execute '@xcopy 'burn'\tmppdpsi\* 'burn'\OS2\PDPSI\PMDF\WARP45_U\.'
+call deldir burn'\tmppdpsi'
+call execute '@copy 'burn'\os2\ecsguide.zip 'burn'\ecs\.'
+call execute '@del 'burn'\os2\ecsguide.zip'
+
+/********************************************************************/
+/* Dialog Enhancer and Theme Manager fixes                          */
+/********************************************************************/
+
+/* create and add dialog enhancer modules */
+call display_action msg.0222
+
+/* save fixpak files */
+call cleanup_dir 'fix\tmp'
+'@rmdir fix\tmp >nul 2>>&1'
+call execute '@mkdir fix\tmp'
+call execute '@xcopy fix\* fix\tmp\.'
+
+/* get original files */
+call execute '@xcopy 'burn'\os2\*.exe  fix\.'
+call execute '@xcopy 'burn'\os2\dll\*.dll  fix\.'
+call execute '@xcopy 'burn'\os2\dll\*.pdr  fix\.'
+call execute '@xcopy 'burn'\os2\dll\ibmnull\*.drv  fix\.'
+call execute '@xcopy 'burn'\mmos2\*.exe  fix\.'
+call execute '@xcopy 'burn'\mmos2\dll\*.dll  fix\.'
+call execute '@xcopy 'burn'\os2\install\*.exe  fix\.'
+call execute '@xcopy 'burn'\os2\apps\*.exe  fix\.'
+call execute '@xcopy 'burn'\os2\apps\dll\*.dll  fix\.'
+call execute '@bin\unzip -oj 'burn'\zipfiles\mptn.zip     -d fix\.'
+call execute '@bin\unzip -oj 'burn'\zipfiles\video.zip    -d fix\.'
+call execute '@bin\unzip -oj 'burn'\zipfiles\tcpip.zip    -d fix\.'
+call execute '@bin\unzip -oj 'burn'\zipfiles\muglib.zip   -d fix\.'
+call execute '@bin\unzip -oj 'burn'\zipfiles\ibmcom.zip   -d fix\.'
+call execute '@bin\unzip -oj 'burn'\zipfiles\ibmlan.zip   -d fix\.'
+call execute '@bin\unzip -oj 'burn'\zipfiles\printers.zip -d fix\.'
+
+/* remove RO */
+call SysFileTree 'fix\*', 'fixfile.', 'FO', ,'**---'
+call execute '@attrib -r -s -h -a fix\*'
+
+/* add fixpaks files on top of it */
+call execute '@xcopy fix\tmp\* fix\.'
+call cleanup_dir 'fix\tmp'
+call execute '@rmdir fix\tmp'
+
+/* delete unimportant files */
+call execute '@del fix\*.htm'
+call execute '@del fix\*.tdf'
+call execute '@del fix\*.tff'
+call execute '@del fix\*.gif'
+call execute '@del fix\*.cmd'
+call execute '@del fix\*.sym'
+call execute '@del fix\*.hlp'
+call execute '@del fix\*.sys'
+call execute '@del fix\*.txt'
+call execute '@del fix\*.vdd'
+call execute '@del fix\*.fon'
+call execute '@del fix\*.cfg'
+call execute '@del fix\*.ico'
+call execute '@del fix\*.dat'
+call execute '@del fix\*.inf'
+call execute '@del fix\*.cat'
+call execute '@del fix\*.lcl'
+call execute '@del fix\*.lst'
+call execute '@del fix\*.tcp'
+call execute '@del fix\*.jpg'
+call execute '@del fix\*.cnv'
+call execute '@del fix\*.msg'
+call execute '@del fix\*.os2'
+call execute '@del fix\*.nif'
+call execute '@del fix\*.ttf'
+call execute '@del fix\*.sdf'
+call execute '@del fix\*.jar'
+call execute '@del fix\*.zip'
+call execute '@del fix\*.rsp'
+call execute '@del fix\syslevel.*'
+
+/* get remaining file list */
+do i=1 to fixfile.0
+	resfile.i = 'fix\'translate(filespec('name', fixfile.i), '_', '.')'.res'
+end
+
+/* add resource files */
+call execute '@bin\unzip -oj 'upd.dlg.dir'\dialog*.zip -d fix\.'
+call delete_if_exist 'fix\files.lst'
+
+/* add resource compiler */
+call execute '@copy bin\RC*.E?? fix\.'
+
+/* create DE updates */
+do i=1 to fixfile.0
+	/* delete files without resource */
+	if stream(resfile.i, 'c', 'query exists') = '' then call execute '@del 'fixfile.i
+	else do
+		call execute '@fix\rc -n -w2 -x2' resfile.i fixfile.i
+		call execute '@del 'resfile.i
+	end
+end
+call execute '@del fix\rc.exe'
+call execute '@del fix\rcpp.exe'
+call execute '@del fix\rcpp.err'
+
+/* put zips to temp dir which should be updated */
+call execute '@mkdir 'burn'\ziptemp'
+call execute '@copy 'burn'\zipfiles\mptn.zip      'burn'\ziptemp\.'
+call execute '@copy 'burn'\zipfiles\video.zip     'burn'\ziptemp\.'
+call execute '@copy 'burn'\zipfiles\tcpip.zip     'burn'\ziptemp\.'
+call execute '@copy 'burn'\zipfiles\muglib.zip    'burn'\ziptemp\.'
+call execute '@copy 'burn'\zipfiles\ibmcom.zip    'burn'\ziptemp\.'
+call execute '@copy 'burn'\zipfiles\ibmlan.zip    'burn'\ziptemp\.'
+call execute '@copy 'burn'\zipfiles\printers.zip  'burn'\ziptemp\.'
+
+/* save theme manager files */
+call execute '@copy 'burn'\ecs\THEMEMGR\PMMRGRES.DLL 'burn'\ecs\THEMEMGR\PMMRGRES.SAV' 
+call execute '@del 'burn'\ecs\THEMEMGR\PMMRGRES.DLL'
+call execute '@bin\zip -j 'burn'\ecs\thememgr\thm4501.zip 'burn'\ecs\thememgr\*.dll'
+
+/* run update */
+'@copy pin\basefpk.ec2 pin\basefpk.pin >nul'
+call run_it 'bin\updcd.cmd 'burn' fix 'n.errors n.warnings trunc(time('E')/60 + n.elapsed, 2) log ver
+
+/* put back zips */
+call execute '@copy 'burn'\ziptemp\mptn.zip     'burn'\zipfiles\.'
+call execute '@copy 'burn'\ziptemp\video.zip    'burn'\zipfiles\.'
+call execute '@copy 'burn'\ziptemp\tcpip.zip    'burn'\zipfiles\.'
+call execute '@copy 'burn'\ziptemp\muglib.zip   'burn'\zipfiles\.'
+call execute '@copy 'burn'\ziptemp\ibmcom.zip   'burn'\zipfiles\.'
+call execute '@copy 'burn'\ziptemp\ibmlan.zip   'burn'\zipfiles\.'
+call execute '@copy 'burn'\ziptemp\printers.zip 'burn'\zipfiles\.'
+call deldir burn'\ziptemp'
+
+/* delete stuff from fix */
+call cleanup_dir fix
+if cptype = 'ACP' then call execute '@rmdir fix\smp'
+
+/* do some extra postprocessing (update theme files) */
+call execute '@copy bin\RD*.??? fix\.'
+call execute '@copy bin\resmgr.cmd fix\.'
+call execute '@copy 'burn'\os2\dll\pmmrgres.dll fix\.'
+call execute '@xcopy 'burn'\ecs\thememgr\*.res fix\.'
+call execute '@xcopy 'burn'\ecs\thememgr\*.bmp fix\.'
+cdir = chdir()
+call chdir 'fix'
+call update_theme
+/* call execute '@copy ecs.dll 'burn'\os2\dll\pmmrgres.dll' */
+call execute '@del pmmrgres.dll'
+call execute '@del WPTOOLS.DLL'
+call execute '@del REXXINI.DLL'
+call execute '@copy *.dll 'burn'\ecs\thememgr\.'
+call chdir cdir
+call cleanup_dir fix
+call execute '@bin\zip -j 'burn'\ecs\thememgr\thmXR0C002.zip 'burn'\ecs\thememgr\*.dll'
+call execute '@bin\zip -jm 'burn'\ecs\thememgr\thmres.zip 'burn'\ecs\thememgr\*.res'
+call execute '@copy 'burn'\os2\dll\serial.pdr 'burn'\ECS\DLG\SERIAL\.'
+/* call execute '@del 'upd.upd.dir'\ecscntl.zip' */ 
+
+/* update syslevel */
+call update_ecs_syslevel burn'\os2\install\syslevel.os2'
+
+/* update config file */
+call update_ecs_config burn'\TVOICE\WiseProg\WiseManager\System\basic.cfg'
+
+/* update netscape ini files */
+call update_netscape_ini burn'\ecs\nscp.ini 'burn'\netscape\program\netscape.ini zip exe ptf wpi'
+
+/* add UPDCD info to CD */
+call add_updcd
+
+/* clean up and report */
+call clean_up
+
+exit
+
+/* updat ecs syslevel file */
+update_ecs_syslevel: procedure expose n. log msg.
+
+	parse arg sys_lvl
+
+	/* fix syslevel */
+	sys_lvl_length = Stream(sys_lvl, 'c', 'query size')
+	Call Stream sys_lvl, 'c', 'open read'
+	sys_lvl_org = Charin(sys_lvl, 1, sys_lvl_length)
+	Call Stream sys_lvl, 'c', 'close'
+	call execute '@del 'sys_lvl
+	Call Stream sys_lvl, 'c', 'open write'
+	rc = Charout(sys_lvl, Left(sys_lvl_org, 165)) /* keep only first part */
+	Call Stream sys_lvl, 'c', 'close'
+
+	/* create backup */
+	sys_lvl_bkp = substr(sys_lvl, 1, pos('.OS2', translate(sys_lvl)))||'ORG'
+	call execute '@copy 'sys_lvl sys_lvl_bkp
+
+	/* create updated syslevel */
+	sys_lvl_length = Stream(sys_lvl, 'c', 'query size')
+	sys_lvl_org = Charin(sys_lvl, 1, sys_lvl_length)
+	Call Stream sys_lvl, 'c', 'close'
+	upd_desc = 'eComStation Operating System'
+	upd_lvl  = 'C002' /* we support only fixpak 2 at this time */
+	sys_lvl_new = Left(sys_lvl_org, 60) || Left(upd_desc, 80, '00'x)
+	sys_lvl_new = sys_lvl_new || Substr(sys_lvl_org, 141)
+	sys_lvl_new = overlay(upd_lvl, sys_lvl_new, 48)
+	call execute '@del 'sys_lvl
+	Call Stream sys_lvl, 'c', 'open write'
+	rc = Charout(sys_lvl, sys_lvl_new, 1)
+	Call Stream sys_lvl_upd, 'c', 'close'
+
+return
+
+/* copy pmdf files */
+copy_pmdf_files: procedure expose n. log burn msg.
+
+	parse arg dir file_list
+	do while length(file_list) > 0
+		parse var file_list file file_list
+		call execute '@copy 'burn'\os2\pdpsi\pmdf\warp45_u\'file burn'\os2\pdpsi\'dir'\.'
+	end
+
+return
+
+/* update ecs config file */
+update_ecs_config: procedure 
+
+	parse arg cfgfile
+
+	/* read config file in */
+	i=1
+	do while lines(cfgfile)
+		l.i=linein(cfgfile)
+		/* change some lines */
+		if pos('SET DESKTOP=',        translate(l.i)) > 0 then l.i = 'config.i = "SET SHELLHANDLESINC=20"'
+		if pos('THREADS=',            translate(l.i)) > 0 then l.i = 'config.i = "THREADS=1024"'
+		if pos('SET JAVA_HIGH_MEM=1', translate(l.i)) > 0 then l.i = 'config.i = "SET JAVA_HIGH_MEMORY=1"'
+		i=i+1
+	end
+	call lineout cfgfile
+	l.0=i-1
+
+	/* write new one */
+	if l.0 > 1 then do
+		'@del 'cfgfile
+		do i=1 to l.0
+			call lineout cfgfile, l.i
+		end
+		call lineout cfgfile
+	end
+
+return
+
+/* update theme manager files */
+update_theme: procedure expose n. log burn msg.
+
+	bmp.0 = 15
+	bmp.1 = 25
+	bmp.2 = 26
+	bmp.3 = 27
+	bmp.4 = 28
+	bmp.5 = 29
+	bmp.6 = 30
+	bmp.7 = 31
+	bmp.8 = 32
+	bmp.9 = 33
+	bmp.10 = 34
+	bmp.11 = 48
+	bmp.12 = 50
+	bmp.13 = 51
+	bmp.14 = 52
+	bmp.15 = 53
+
+	Do i = 1 To bmp.0
+	   '@call Resmgr.cmd -d pmmrgres.dll 'bmp.i'.bitmap >nul'
+	End
+
+	res.0 = 11
+	res.1 = ecs
+	res.2 = ecsmath
+	res.3 = ecswarp
+	res.4 = ecswarp2
+	res.5 = ecswin
+	res.6 = flat
+	res.7 = warp3
+	res.8 = warp4
+	res.9 = warpal
+	res.10 = win
+	res.11 = warpslv
+
+	Do i = 1 To res.0
+		call execute '@copy pmmrgres.dll' res.i || '.dll'
+		'@Call Resmgr -a' res.i || '.dll' res.i || '.res >nul'
+	End
+
+return

@@ -1,0 +1,13 @@
+/* Postprocessing steps for incorporating PMFax Lite/Pro */
+
+/* copy extras Lite */
+if stream(fpdir'\FX002.LOP', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\FX002.LOP     'cddir'\OS2IMAGE\FI\BONUSPAK\FAXWORKS\.'
+
+/* copy extras Pro */
+if stream(fpdir'\ADD.EXE',     'c', 'query exists') <> '' then call execute '@copy 'fpdir'\ADD.EXE     'cddir'\OS2IMAGE\FI\BONUSPAK\FAXWORKS\.'
+if stream(fpdir'\DEFAULT.PBK', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\DEFAULT.PBK 'cddir'\OS2IMAGE\FI\BONUSPAK\FAXWORKS\.'
+if stream(fpdir'\FAX.ADP',     'c', 'query exists') <> '' then call execute '@copy 'fpdir'\FAX.ADP     'cddir'\OS2IMAGE\FI\BONUSPAK\FAXWORKS\.'
+if stream(fpdir'\FMD.SYS',     'c', 'query exists') <> '' then call execute '@copy 'fpdir'\FMD.SYS     'cddir'\OS2IMAGE\FI\BONUSPAK\FAXWORKS\.'
+if stream(fpdir'\FXOCR.EXE',   'c', 'query exists') <> '' then call execute '@copy 'fpdir'\FXOCR.EXE   'cddir'\OS2IMAGE\FI\BONUSPAK\FAXWORKS\.'
+if stream(fpdir'\FXRCV.EXE',   'c', 'query exists') <> '' then call execute '@copy 'fpdir'\FXRCV.EXE   'cddir'\OS2IMAGE\FI\BONUSPAK\FAXWORKS\.'
+if stream(fpdir'\FXRX.ADR',    'c', 'query exists') <> '' then call execute '@copy 'fpdir'\FXRX.ADR    'cddir'\OS2IMAGE\FI\BONUSPAK\FAXWORKS\.'

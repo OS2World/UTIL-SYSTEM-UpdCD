@@ -1,0 +1,37 @@
+/* Postprocessing steps for incorporating java 118 toolkit files */
+
+/* copy extras */
+call execute '@copy 'fpdir'\ALLNAMES.HTML          'cddir'\'javadir'\package\UTK001' /* docs\api */
+call execute '@copy 'fpdir'\BELL.GIF               'cddir'\'javadir'\package\UTK002' /* sma */
+call execute '@copy 'fpdir'\BLUE-BALL-SMALL.GIF    'cddir'\'javadir'\package\UTK003' /* docs\api\images */
+call execute '@copy 'fpdir'\BLUE-BALL.GIF          'cddir'\'javadir'\package\UTK004' /* docs\api\images */
+call execute '@copy 'fpdir'\BLUE_DIA.GIF           'cddir'\'javadir'\package\UTK005' /* sma */
+call execute '@copy 'fpdir'\CLASS-INDEX.GIF        'cddir'\'javadir'\package\UTK006' /* docs\api\images */
+call execute '@copy 'fpdir'\CONSTRUCTOR-INDEX.GIF  'cddir'\'javadir'\package\UTK007' /* docs\api\images */
+call execute '@copy 'fpdir'\CONSTRUCTORS.GIF       'cddir'\'javadir'\package\UTK008' /* docs\api\images */
+call execute '@copy 'fpdir'\CYAN-BALL-SMALL.GIF    'cddir'\'javadir'\package\UTK009' /* docs\api\images */
+call execute '@copy 'fpdir'\CYAN-BALL.GIF          'cddir'\'javadir'\package\UTK010' /* docs\api\images */
+call execute '@copy 'fpdir'\ERROR-INDEX.GIF        'cddir'\'javadir'\package\UTK011' /* docs\api\images */
+call execute '@copy 'fpdir'\EXCEPTION-INDEX.GIF    'cddir'\'javadir'\package\UTK012' /* docs\api\images */
+call execute '@copy 'fpdir'\GREEN-BALL-SMALL.GIF   'cddir'\'javadir'\package\UTK013' /* docs\api\images */
+call execute '@copy 'fpdir'\GREEN-BALL.GIF         'cddir'\'javadir'\package\UTK014' /* docs\api\images */
+call execute '@copy 'fpdir'\GUIDE.HTM              'cddir'\'javadir'\package\UTK015' /* sma */
+call execute '@copy 'fpdir'\INDEX.HTML             'cddir'\'javadir'\package\UTK016' /* . */
+call execute '@copy 'fpdir'\INTERFACE-INDEX.GIF    'cddir'\'javadir'\package\UTK017' /* docs\api\images */
+call execute '@copy 'fpdir'\MAGENTA-BALL-SMALL.GIF 'cddir'\'javadir'\package\UTK018' /* docs\api\images */
+call execute '@copy 'fpdir'\MAGENTA-BALL.GIF       'cddir'\'javadir'\package\UTK019' /* docs\api\images */
+call execute '@copy 'fpdir'\MA_MASTHEAD.GIF        'cddir'\'javadir'\package\UTK020' /* sma */
+call execute '@copy 'fpdir'\METHOD-INDEX.GIF       'cddir'\'javadir'\package\UTK021' /* docs\api\images */
+call execute '@copy 'fpdir'\METHODS.GIF            'cddir'\'javadir'\package\UTK022' /* docs\api\images */
+call execute '@copy 'fpdir'\OPENBOOKICON.GIF       'cddir'\'javadir'\package\UTK023' /* docs\api\images */
+call execute '@copy 'fpdir'\PACKAGE-INDEX.GIF      'cddir'\'javadir'\package\UTK024' /* docs\api\images */
+call execute '@copy 'fpdir'\PACKAGES.HTML          'cddir'\'javadir'\package\UTK025' /* docs\api */
+call execute '@copy 'fpdir'\RED-BALL-SMALL.GIF     'cddir'\'javadir'\package\UTK026' /* docs\api\images */
+call execute '@copy 'fpdir'\RED-BALL.GIF           'cddir'\'javadir'\package\UTK027' /* docs\api\images */
+call execute '@copy 'fpdir'\RMIC.EXE               'cddir'\'javadir'\package\UTK028' /* bin */
+call execute '@copy 'fpdir'\TEAL_BLOCK.GIF         'cddir'\'javadir'\package\UTK029' /* sma */
+call execute '@copy 'fpdir'\TREE.HTML              'cddir'\'javadir'\package\UTK030' /* docs\api */
+call execute '@copy 'fpdir'\VARIABLE-INDEX.GIF     'cddir'\'javadir'\package\UTK031' /* docs\api\images */
+call execute '@copy 'fpdir'\VARIABLES.GIF          'cddir'\'javadir'\package\UTK032' /* docs\api\images */
+call execute '@copy 'fpdir'\YELLOW-BALL-SMALL.GIF  'cddir'\'javadir'\package\UTK033' /* docs\api\images */
+call execute '@copy 'fpdir'\YELLOW-BALL.GIF        'cddir'\'javadir'\package\UTK034' /* docs\api\images */

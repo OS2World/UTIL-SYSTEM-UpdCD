@@ -1,0 +1,823 @@
+/*********************************************************************/
+/* updcd rexx library - record.cmd functions                         */
+/* created: 02.21.2002                                               */
+/* Special thank to Fred Leggett, Jeffrey Smick and Ken Bates.       */
+/* 03.07.2002: improved handling drive a: as "virtual" floppy        */
+/* 05.04.2002: record.cmd will stop in batch mode if option 2 fails  */
+/* 08.27.2002: corrected syntax error in function blank_cd           */
+/* 09.24.2002: changed mkisofs parameters to correct lower case      */
+/*	       directories not visible in DOS.                           */
+/*	       Added UpdCD version as Preparer ID.                       */
+/* 09.25.2002: added Volume label from burn folder EA's              */
+/* 10.11.2002: added joliet to mkisofs options                       */
+/* 12.10.2002: fixed boot image file not found error                 */
+/* 03.18.2003: added nls language support                            */
+/* 05.20.2003: removed redundant return message                      */
+/* 07.06.2003: image creation should not fail without boot images    */
+/* 08.22.2003: translated Y/N using messages                         */
+/* 09.21.2003: added support for no-emulation boot                   */
+/* 11.09.2003: added eCS 1.1 support                                 */
+/* 12.06.2003: delete boot catalog from burn before making raw file  */
+/* 04.02.2004: fixed crash when using too long filename for burn log */
+/* 11.06.2004: added logfile check and DVD support                   */
+/* 12.12.2004: added nojoliet option                                 */
+/* 01.17.2005: DVD burning should support more than 2GB data         */
+/* 02.12.2005: added support for extra options for mkisofs           */
+/* 03.05.2005: get number of errors and warnings from os2.ini        */
+/* 04.24.2005: updated predifined mkisofs options                    */
+/* 05.02.2005: some more mkisofs option tweaking                     */
+/* 05.07.2005: emul bootimg files are placed in UPDCD for WP3/4+WSeB */
+/* 08.15.2005: bootimgs files are in bootimgs for RSJ too            */
+/* 10.22.2005: RSJ command used with CDrecord                        */
+/* 11.01.2005: added verify and MD5 creation option to menu          */
+/* 11.02.2005: batch option (7) did not work                         */
+/* 12.03.2005: removed typo                                          */
+/* 02.19.2006: RSJ command used with CDrecord, removed eject option  */
+/*             to allow CD check in batch mode, splitted DVD temp    */
+/*             files were not cleaned up                             */
+/* 04.08.2006: added /!S option to isocomp to enable batch mode op.  */
+/*********************************************************************/
+
+/* load language file */
+call load_language 'ENG NOSAVE'
+call load_language 'DEFAULT'
+
+/* check rexx */
+call check_rexx
+
+/* get command line parameters */
+n.errors   = SysIni(, 'UPDCD', 'ERR')
+n.warnings = SysIni(, 'UPDCD', 'WRN')
+if n.errors   = '' then n.errors   = '?'
+if n.warnings = '' then n.warnings = '?'
+
+/* set variable defaults */
+attached	= 0	/* attached status flag for cd burner		*/
+CD		= ''    /* letter to attach cd burner to (default Z:)   */
+automated	= 0	/* users batch job flag 			*/
+In_Batch_Mode	= 'NO'
+response	= 'NONE'
+
+/* load rexxutil */
+call load_rexxutil
+
+/* read paramaters from updcd.cfg */
+call read_config_file 'updcd.cfg'
+
+/* check log */
+call check_log burnlog
+
+/* always overrule emulation flag if we have ecs 1.1 */
+if emulate = 1 & stream(source'\ecs\ecs_inst.flg', 'c', 'query exists') <> '' then emulate = 0
+
+/* Find out if user has RSJ cdwriter system installed	*/
+rsjdir = find_rsjdir()
+
+/* check burning program */
+cdpath = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+if cdpath = '' then do
+	bprog = SysIni(, 'UPDCD', 'BPROG')
+	if bprog = 'ERROR:' then do
+		bprog = 'CDR'
+		call SysIni , 'UPDCD', 'BPROG', bprog
+	end
+end
+else bprog = 'CDR'
+
+/* ensure we are in updcd directory. */
+call chdir rootdir
+
+/* remember we were started */
+'@echo record.cmd busy > record.bsy'
+
+/* clear log */
+'@echo Starting Record.CMD on 'date() time()'... > 'burnlog
+log = burnlog
+
+/* reset more variables */
+boot	= ''
+key		= ''
+flag1	= ' '
+flag2	= ' '
+flag3	= ' '
+flag4	= ' '
+flag5	= ' '
+flag6	= ' '
+flag7	= ' '
+'@mode 80,25 >nul'
+'@ansi on >NUL'
+say '1B'x || '[36;44m'
+say '1B'x || '[1m'
+'@cls'
+
+/* check if we have ecs */
+if stream(burn'\ecs\os2csm.exe', 'c', 'query exists') <> '' then os2_version = 'ECS'
+
+/* start menu */
+text.1 = msg.0249
+text.1 = overlay(msg.0249, '  :                                                                         :', trunc((82-length(text.1))/2))
+text.2 = msg.0250' 'n.errors' 'msg.0251' 'n.warnings' 'msg.0252
+text.2 = overlay(msg.0250' 'n.errors' 'msg.0251' 'n.warnings' 'msg.0252, '  :                                                                         :', trunc((82-length(text.2))/2))
+if length(log) > 24 then llog = '.'substr(log, length(log)-22, 24)
+else llog = log
+text.3 = msg.0253' 'llog
+text.3 = overlay(text.3, '  :                                                                         :', trunc((82-length(text.3))/2))
+
+do while (key \= 0)
+
+  '@cls'
+  say msg.0254
+  say text.1
+  say msg.0254
+  say text.2
+  say text.3
+  say msg.0254
+  say msg.0255
+  say msg.0256
+  say msg.0255
+  say msg.0257
+  say msg.0255
+  say msg.0258||flag1||msg.0259
+  if os2_version <> 'ECS' & emulate <> 0 then say msg.0258||flag2||msg.0260
+  if bprog = 'CDR' then say msg.0258||flag3||msg.0261
+  say msg.0258||flag4||msg.0262
+  say msg.0258||flag5||msg.0263
+  say msg.0258||flag6||msg.0590
+  say msg.0255
+  say msg.0258||flag7||msg.0264
+  say msg.0255
+  say msg.0254
+  say
+
+  if (automated = 0) then do
+		key = ''
+		if os2_version = 'ECS' then
+			do while ((key < 0) | (key = 2) | (key > 7))
+				key = SysGetKey('NOECHO')
+			end
+		else
+			do while ((key < 0) | (key > 7))
+				key = SysGetKey('NOECHO')
+			end
+		say
+	end
+
+	do while length(response) > 0
+
+		if (automated == 1) then do
+			parse var response job response
+			if ((datatype(job) <> 'NUM') | (job < 1) | (job > 7)) then do
+				say msg.0265' 'job
+				call Hit_Key 'C'
+				iterate
+			end
+			else key = job
+		end
+
+    select
+      when (key == 1) then call view_log
+      when (key == 2) then call make_bootimage	In_Batch_Mode
+      when (key == 3) then call make_cdimage	In_Batch_Mode
+      when (key == 4) then call blank_cd	In_Batch_Mode
+      when (key == 5) then call burn_cd		In_Batch_Mode
+      when (key == 6) then call verify_cd	In_Batch_Mode
+      when (key == 7) then call get_response
+    otherwise nop;
+    end
+
+    if (automated == 0) then response = '' /* Exit the batch response loop */
+
+  end
+
+  automated = 0
+  In_Batch_Mode = 'NO'
+  response = 'NONE'
+
+end
+
+/* we are ready */
+say msg.0266' 'rootdir
+say
+say msg.0267
+say
+call chdir rootdir /* ensure we are in updcd directory. */
+'@del record.bsy >nul 2>>&1'
+
+exit
+
+/* Common error text to print to screen */
+PrintError: procedure expose fail msg.
+
+	parse ARG rc
+
+	say msg.0268
+	say msg.0269' 'rc
+	say msg.0270
+	call Hit_Key 'M'
+	say
+	fail = 1
+
+return
+
+/* procedure view log */
+view_log: procedure expose burnlog viewer msg.
+
+	if (stream(burnlog, 'C', 'query exists') = '') then do
+		say ' 'burnlog' 'msg.0271
+		say
+		say msg.0272
+		say msg.0273' 'burnlog
+		say
+		call Hit_Key 'M'
+	end
+	else do
+		cdpath = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+		if cdpath = '' then '@start "UpdCD-View BurnLog" /K /F "'viewer burnlog'"'
+		else do
+			'@'viewer burnlog
+			'@pause'
+		end
+	end
+
+return
+
+/* procedure build boot image */
+make_bootimage:
+
+	if os2_version = 'ECS' | emulate = 0 then return
+
+	parse arg Batch_Mode
+
+	/* create boot image dir */
+	'@mkdir 'source'\BOOTIMGS >nul 2>>&1'
+
+	call chdir source /* ensure we are in the source directory */
+	say msg.0274
+	if (stream('BOOTIMGS\DISK_*.IMG', 'C', 'query exists') \= '') then do
+		if (Batch_Mode = "NO") then do
+			say msg.0275
+			if (GetKeyYN(k) = translate(msg.0479)) then do
+				flag2 = '*'
+				return
+			end
+		end
+		call SysFileDelete('BOOTIMGS\DISK_0_1.IMG')
+		call SysFileDelete('BOOTIMGS\DISK_2.IMG')
+	end
+
+	'@echo Starting to make bootimage files ready for burning >> 'burnlog
+	rcode = ''
+	if translate(svdc_drive) = 'A:' then do
+		say ' 'msg.0247' A:'
+		'@pause >nul'
+	end
+	say msg.0276
+	call size_floppy svdc_drive '2.88'  /* size the virtual floppy to 2.88MB */
+	if result <> 0 then do
+		say msg.0277
+		call Hit_Key 'M'
+		response = '' /* exit loop */
+		flag6 = ' '
+		return
+	end
+	call chdir source /* ensure we are in the source directory */
+	call chdir 'UpdCD\bootimg\DISK_0_1.IMG'
+	'@SYSINSTX 'svdc_drive' >>'burnlog' 2>>&1'
+	rcode = rcode' 'rc
+	'@XCOPY * 'svdc_drive' /H/O/T/R/V >>'burnlog' 2>>&1'
+	rcode = rcode' 'rc
+	call chdir rootdir /* ensure we are in updcd directory. */
+	say msg.0278
+	'@cd bin'
+	'@cdboot.exe /drive 'substr(svdc_drive, 1, 1)' /timeout 10 >> 'burnlog' 2>>&1'
+	'@cd ..'
+	rcode = rcode' 'rc
+	call chdir source /* ensure we are in the source directory */
+	call chdir 'diskimgs'
+	'@IMAGE.EXE 'svdc_drive' ..\BOOTIMGS\DISK_0_1.IMG >>'burnlog' 2>>&1'
+	rcode = rcode' 'rc
+
+	call chdir source /* ensure we are in the source directory */
+	call chdir 'UpdCD\bootimg\DISK_2.IMG'
+	call SysFileTree '*', 'ini.', 'FSO'
+	if ini.0 > 0 then do
+		if translate(svdc_drive) = 'A:' then do
+			say ' 'msg.0239' A:'
+			'@pause >nul'
+		end
+		say msg.0279
+		call size_floppy svdc_drive '1.44'  /* size the virtual floppy to 1.44MB */
+		if result <> 0 then do
+			say msg.0277
+			call Hit_Key 'M'
+			response = '' /* exit loop */
+			flag6 = ' '
+			return
+		end
+		'@XCOPY * 'svdc_drive' /H/O/T/R/V >>'burnlog' 2>>&1'
+		rcode = rcode' 'rc
+		call chdir source /* ensure we are in the source directory */
+		call chdir 'diskimgs'
+		'@label 'svdc_drive'DISK 2 >>'burnlog' 2>>&1'
+		rcode = rcode' 'rc
+		'@IMAGE.EXE 'svdc_drive' ..\BOOTIMGS\DISK_2.IMG >>'burnlog' 2>>&1'
+		rcode = rcode' 'rc
+	end
+
+	'@echo Ended with return string: 'rcode' >> 'burnlog
+	error = 0
+	do while length(rcode) > 0
+		parse var rcode rcd rcode
+		if rcd <> 0 then error = 1
+	end
+	if error = 0 then do
+		flag2 = '*'
+		say msg.0280
+	end
+	else do
+		say msg.0281' 'burnlog
+		response = '' /* exit loop */
+		flag6 = ' '
+	end
+	if (Batch_Mode = 'NO') | error <> 0 then call Hit_Key 'M'
+
+return
+
+
+/* procedure build CD-ROM image */
+make_cdimage:
+
+	parse arg Batch_Mode
+
+	/* check RSJ */
+	if bprog = 'RSJ' then do
+		flag3 = '*'
+		say msg.0282
+		say
+		if (Batch_Mode = 'NO') then call Hit_Key 'M'
+		return
+	end
+
+	/* check mkisofs */
+	trace -1
+	'@'cdrdir'\mkisofs -version >nul 2>>&1'
+	if (rc <> 0) then do
+		say
+		say msg.0283
+		say msg.0284
+		call Hit_Key 'C'
+		return
+	end
+
+	/* make updated CD imagefile */
+	md5_file = substr(tempraw, 1, lastpos('.',tempraw))'MD5'
+	say msg.0285' 'source' 'tempraw
+	call SysFileTree tempdir, stem, 'D'
+	if (stem.0 < 1) then call SysMkDir tempdir
+	call SysFileTree tempraw'*', stem, 'FO'
+	if stem.0 > 0 then do
+		if (Batch_Mode == 'NO') then do
+			say ' ['tempraw'*] 'msg.0286
+			if (GetKeyYN(k) == translate(msg.0479)) then do
+				flag3 = '*'
+				return
+			end
+		end
+		if stream(md5_file,'c','query exists') <> '' then call SysFileDelete(md5_file)
+		do i=1 to stem.0
+			call SysFileDelete(stem.i)
+		end
+	end
+
+	/* find boot image files */
+	if emulate <> 0 then 
+		boot = '-bBOOTIMGS/DISK_0_1.IMG -cboot.cat'
+	else
+		boot = '-bBOOTIMGS/CDLOADER.BIN -no-emul-boot'
+
+	/* ensure we are in the source directory */
+	call chdir source
+	say
+	say msg.0287
+	say msg.0288
+	if substr(source, 2, 1) = ':' & length(source) = 2 then
+		src = source||'/'
+	else
+		src = source
+
+	/* delete old boot.catalog */
+	if stream(src'\boot.catalog', 'c', 'query exists') <> '' then '@del 'src'\boot.catalog >>'burnlog' 2>>&1'
+
+	/* By Isma - 25/09/2002 - Get .SUBJECT of burn folder */
+	/* and assign the value to CD Volume Label */
+
+	Call SysGetEA source, ".SUBJECT", "mkfs"
+	If length(mkfs) < 11 then mkfs = 'FFFFFFFF'x || "OS2"
+
+	/* OS check */
+	if os2_version = 'ECS' then mkfs = '-V "'x2c(substr(c2x(mkfs),9))'" -f -v -l -L -D -d'
+	else mkfs = '-V "'x2c(substr(c2x(mkfs),9))'" -v -l -r -N -D'
+
+	/* add GUI option */
+	mkfs = ''mkfs' 'extrap2
+
+	/* version check */
+	'@'cdrdir'\mkisofs.exe -version 2>NUL | rxqueue 2>NUL'
+	if queued() > 0 then do
+		mkisofs_version = lineIN("QUEUE:")
+		parse value mkisofs_version with . mkisofs_ver .
+		mkisofs_ver = substr(mkisofs_ver, 1, 3)
+		call lineout burnlog, 'MkIsoFs Version: 'mkisofs_ver
+		call lineout burnlog
+	end
+	else mkisofs_ver = '0.0'
+
+	/* joliet options */
+	if nojoliet <> 1 & mkisofs_ver >= '2.0' then mkfs = ''mkfs' -J -joliet-long'
+	else mkfs = ''mkfs' -J'
+
+	/* DVD splitting */
+	if use_dvd = 1 then mkfs = ''mkfs' -split-output'
+
+	/* add some other options */
+	mkfs = ''mkfs' -allow-multidot -allow-leading-dots -relaxed-filenames'
+	mkfs = ''mkfs' -no-iso-translate -p "UpdCD 'get_updcd_version()'"'
+
+	/* try with upper case boot image name */
+	'@'cdrdir'\mkisofs 'mkfs' -o 'tempraw boot src' >>'burnlog' 2>>&1'
+	if rc <> 0 then do /* retry with lower case image name */
+		'@del 'tempraw' >nul 2>>&1'
+		if emulate <> 0 then 
+			boot = '-bBOOTIMGS/disk_0_1.img -cboot.cat'
+		else
+			boot = '-bBOOTIMGS/cdloader.bin -no-emul-boot'
+		'@'cdrdir'\mkisofs 'mkfs' -o 'tempraw boot src' >>'burnlog' 2>>&1'
+		if rc <> 0 then do
+			'@del 'tempraw' >nul 2>>&1'
+			say
+			say ' 'msg.0477
+			'@echo 'msg.0477' >> 'burnlog
+			'@'cdrdir'\mkisofs 'mkfs' -o 'tempraw src' >>'burnlog' 2>>&1'
+		end
+	end
+	if rc = 0 then do
+		flag3 = '*'
+		'@'rootdir'\bin\isocomp.exe 'tempraw' /CHK:'md5_file' /S >>'burnlog' 2>>&1'
+		if rc = 0 then do
+			'@echo ISO-image was created by UpdCD on 'date()' 'time()' >> 'md5_file
+			call SysCreateShadow md5_file, '<UpdCD_Folder>'
+		end
+	end
+	say
+	say msg.0289' 'rc
+	if use_dvd = 1 then '@del 'tempraw' >nul 2>>&1'
+	if (Batch_Mode == 'NO') then call Hit_Key 'M'
+
+return
+
+/* procedure blank CD-RW */
+blank_cd:
+
+	parse arg Batch_Mode
+
+	if bprog = 'RSJ' then do
+		if (rsjdir == '') then do
+			say msg.0290
+			call Hit_Key 'M'
+			return
+		end
+		if (\attached) then
+			if (\attachDev()) then do
+				fail = 1 /* failure */
+				return
+			end
+	end
+	else do
+		/* check cdrecord */
+		trace -1
+		if use_dvd = 1 then '@'cdrdir'\dvddao -V >nul 2>>&1'
+		else '@'cdrdir'\cdrecord -version >nul 2>>&1'
+		if (rc <> 0) then do
+			say
+			say msg.0291
+			say msg.0292
+			call Hit_Key 'C'
+			return
+		end
+	end
+
+	/* erase CDRW */
+	if (Batch_Mode == 'NO') then do
+		say msg.0293
+		if (GetKeyYN(k) == translate(msg.0479)) then do
+			call Hit_Key 'M'
+			return
+		end
+	end
+
+	say msg.0294
+	if bprog = 'CDR' then do
+			if use_dvd = 1 then '@'cdrdir'\dvddao -d 'device' -s 'speed' --blank fast >>'burnlog' 2>>&1'
+			else '@'cdrdir'\cdrecord dev='device' speed='speed' blank=fast >>'burnlog' 2>>&1'
+	end
+	else do
+			cmd = rsjdir'\cdwfmt '||CD||' /ERASE'
+			'@echo '||cmd||' >> '||burnlog
+			'@'||cmd||' >>'||burnlog||' 2>>&1'
+	end
+
+	if (rc \= 0) then do
+		call PrintError rc
+		return
+	end
+	else do
+		say msg.0289' 'rc
+		if bprog = 'RSJ' & rsjdir \= '' then if (\detach()) then do
+			fail = 1
+			return
+		end
+		flag4 = '*'
+		if (Batch_Mode == 'NO') then call Hit_Key 'M'
+	end
+
+return
+
+
+/* procedure burn CD-ROM */
+burn_cd:
+
+	parse arg Batch_Mode
+
+	if (Batch_Mode == 'NO') then do
+		say msg.0295
+		if (GetKeyYN(k) == translate(msg.0479)) then do
+			say
+			say msg.0296
+			say msg.0297
+			if (GetKeyYN(k) == translate(msg.0479)) then return
+		end
+	end
+
+	/* burn CD */
+	if bprog = 'CDR' then do
+		/* check if cdrecord installed */
+		trace -1
+		if use_dvd = 1 then '@'cdrdir'\dvddao -V >nul 2>>&1'
+		else '@'cdrdir'\cdrecord -version >nul 2>>&1'
+		if (rc <> 0) then do
+			say
+			say msg.0291
+			say msg.0292
+			call Hit_Key 'C'
+			return
+		end
+		isize = stream(tempraw, 'C', 'query size')
+		if (isize == '') then do
+			say msg.0298
+			say msg.0299
+			say
+			call Hit_Key 'M'
+			return
+		end
+		else do
+			isizeK = isize / 1024
+			isizeM = isize / 1048576
+			itimeMIN = isize / (153600 * speed) % 60
+			itimeSEC = isize / (153600 * speed) // 60
+
+			say msg.0300' ['tempraw']'
+			say
+			say msg.0301' 'isizeK
+			say msg.0302' 'format(isizeM,,2)
+
+			/* check size */
+			if (isizeM > 650) then do
+				say
+				say msg.0303
+				say msg.0304
+				say msg.0050
+				if (GetKeyYN(k) == translate(msg.0479)) then return
+			end
+
+			say
+		end
+		say msg.0305' 'device||msg.0306||speed '('150*speed' KB/s)'
+		say msg.0307' 'itimeMIN+5':'format(itimeSEC,,2)||msg.0308
+		say msg.0309' 'TIME('C')
+		say
+		say msg.0310
+		if use_dvd = 1 then '@'cdrdir'\dvddao -d 'device' -s 'speed' -v 3 'extrap tempraw'* >>'burnlog' 2>>&1'
+		else '@'cdrdir'\cdrecord dev='device' speed='speed' -v -pad -data 'extrap tempraw' >>'burnlog' 2>>&1'
+
+		if (rc \= 0) then do
+			call PrintError rc
+			return
+		end
+		else flag5 = "*"
+	end
+	else do
+
+		/* check software */
+		if (rsjdir == '') then do
+			say msg.0290
+			call Hit_Key 'M'
+			return
+		end
+
+		/* check size */
+		say msg.0311
+		call chdir source /* ensure we are in the source directory */
+		call SysFileTree '*', 'junk.', 'FS'
+		tsize = 0
+		do i = 1 to junk.0
+			parse var junk.i . . size .
+			tsize=tsize+size
+		end
+		tsize = format(tsize/1048576,,2)
+		say msg.0302' 'tsize
+		if (tsize > 650) then do
+			say
+			say msg.0303
+			say msg.0304
+			say msg.0050
+			if (GetKeyYN(k) == translate(msg.0479)) then return
+		end
+
+		if (\attached) then
+			if (\attachDev()) then do
+				fail = 1
+				return
+			end
+			rc = 0
+			call charout, msg.0312
+		cmd = rsjdir||'\cdcopy '||source||'\*.* '||CD||'\ /s'
+		'@echo '||cmd||' >> '||burnlog
+		'@'||cmd||' >>'||burnlog||' 2>>&1'
+		if (rc == 0) then do
+			if (stream(source'\DISK_0_1.IMG', 'C', 'query exists') \= '') | (stream(source'\BOOTIMGS\DISK_0_1.IMG', 'C', 'query exists') \= '') then do
+				call charout, msg.0321
+				/* now make image file bootable */
+				cmd = rsjdir||'\cdboot.exe '||CD||'\BOOTIMGS\DISK_0_1.IMG'
+				'@echo '||cmd||' >> '||burnlog
+				'@'||cmd||' >>'||burnlog||' 2>>&1'
+				if (rc \= 0) then do
+					say ' 'msg.0086
+					say msg.0313
+					call PrintError rc
+					return
+				end
+				else say ' 'msg.0050
+			end
+			if (detach()) then flag5 = '*'
+		end
+		else do
+			say ' 'msg.0086
+			call PrintError rc
+			fail = 1
+			return
+		end
+	end
+
+	say msg.0289' 'rc
+	if (Batch_Mode == 'NO') then call Hit_Key 'M'
+
+return
+
+
+/* procedure verify CD-RW */
+verify_cd:
+
+	parse arg Batch_Mode
+
+	/* verify CD */
+	say msg.0591
+
+	/* find out drive letter CD */
+	drives = SysDriveMap('C:', 'LOCAL')
+	found = 1
+	do while length(drives) > 0
+		parse var drives drv drives
+		rc = sysdriveinfo(drv)
+		if rc <> '' then do
+			parse var rc . free total label
+			if free = 0 & stream(drv'\readme.ucd','c','query exists') <> '' then do
+				drv.found = drv
+				found = found + 1
+			end
+		end
+	end
+	if found = 1 then do
+		Say msg.0592
+		Say msg.0593
+		rc = '1234'
+	end
+	if found > 2 then Say msg.0594||drv.1
+
+	/* we have at least 1 CD to verify */
+	if found > 1 then do
+		if bprog = 'CDR' then 
+			'@'rootdir'\bin\isocomp.exe 'tempraw' 'drv.1' /!S >> 'burnlog' 2>>&1'
+		else 
+			'@'rootdir'\bin\xcomp.exe 'source'\ 'drv.1' >> 'burnlog' 2>>&1'
+		if rc <> 0 then 
+			Say msg.0595
+	end
+
+	/* check */
+	if (rc \= 0) then do
+		call PrintError rc
+		return
+	end
+	else do
+		say msg.0289' 'rc
+		flag6 = '*'
+		if (Batch_Mode == 'NO') then call Hit_Key 'M'
+	end
+
+return
+
+
+/* get response */
+get_response:
+
+	say msg.0314
+	pull response
+	automated = 1
+	In_Batch_Mode = 'YES'
+	flag7 = '*'
+	if bprog = 'RSJ' & (rsjdir \= '') then
+		if ((pos( 5, response ) > 0) & (\attached)) then
+			if (\attachDev()) then 
+				return
+	fail = 0
+
+return
+
+/* attach CD-ROM */
+detach: procedure expose CD burnlog attached rsjdir msg.
+
+	success = 1
+	cmd = rsjdir'\cdattach '||CD||' -s'
+	call charout, msg.0322
+	'@echo '||cmd||' >> '||burnlog
+	'@'||cmd||' >>'||burnlog||' 2>>&1'
+
+	if (rc \= 0) then do
+		say ' 'msg.0086
+		success = 0
+		call PrintError rc
+	end
+	else do
+		say ' 'msg.0050
+		attached = 0
+	end
+
+return success
+
+/* get CD drive letter */
+attachDev: procedure expose burnlog CD attached rsjdir msg.
+
+	if (CD = '') then do
+		tmp = SysIni('USER', 'CDWFS', 'DefaultDriveLetter')
+		if ((tmp = '') | (tmp = 'ERROR:')) then tmp = 'Z:'
+		else tmp = strip(tmp, 'T', '00'x)
+		call charout, msg.0315' '||tmp||').'
+		pull junk
+		if (junk \= '') then CD = substr(junk, 1, 1 )||':'
+		else CD = tmp
+	end
+
+	cmd = rsjdir'\cdattach.exe '||CD
+
+	do forever
+		rc = 0
+		call charout, msg.0323
+		'@echo '||cmd||' >> '||burnlog
+		'@'||cmd||' >>'||burnlog||' 2>>&1'
+		select
+			when (rc = 0) then do
+				attached = 1
+				leave
+			end
+			when (rc == 21) then do
+				say ' 'msg.0086
+				say msg.0316
+				call charout, msg.0317
+				if (GetKeyYN(k) == translate(msg.0479)) then leave
+			end
+			when (rc == 85) then do
+				say ' 'msg.0086
+				call charout, msg.0318
+				if (GetKeyYN(k) == translate(msg.0479)) then attached = 1
+				leave
+			end
+			otherwise do
+				say msg.0319
+				say msg.0320
+				call Hit_Key 'C'
+				leave
+			end
+		end  /* Select */
+	end /* Do forever */
+
+return attached

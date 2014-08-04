@@ -1,0 +1,66 @@
+/******************************************/
+/* updcd rexx library - startup functions */
+/* created: 12.17.2001                    */
+/******************************************/
+
+/*****************************/
+/* main function for autorun */
+/*****************************/
+main:
+
+	parse arg parameter_string
+
+	/* create temp.cmd */
+	parse var parameter_string cfgfile rootdir temp_cmd libs
+	if cfgfile <> '.' then call check_if_config_exists cfgfile rootdir
+	call load_updcd_libs rootdir temp_cmd libs
+
+exit
+
+/*******************************/
+/* check if config file exists */
+/*******************************/
+check_if_config_exists: procedure
+
+	parse arg cfgfile rootdir
+
+	if stream(cfgfile, 'c', 'query exists') = '' then do
+		say 'Unexpected error: missing 'cfgfile
+		say 'Please change to 'rootdir' and run install.cmd to create one!'
+		exit 9
+	end
+
+return
+
+/*******************************/
+/* load updcd library modules  */
+/* lib location: rootdir'\lib' */
+/*******************************/
+load_updcd_libs: procedure
+
+	parse arg rootdir tmp libs
+
+	j = 1
+	do while length(libs) > 0
+		parse var libs lib libs
+		lib = rootdir'\lib\'lib
+		/* say 'Loading library file 'lib'...' */
+		do while lines(lib)
+			line.j = linein(lib)
+			j = j+1
+		end
+		call lineout lib
+	end
+	line.0 = j-1
+
+	/* create rexx procedure */
+	if stream(tmp, 'c', 'query exists') <> '' then '@del 'tmp
+	call lineout tmp, '/* This file is created by UpdCD. You may safely  */'
+	call lineout tmp, '/* delete it if UpdCD is not running.             */'
+	call lineout tmp, ''
+	do i=1 to line.0
+		call lineout tmp, line.i
+	end
+	call lineout tmp
+
+return

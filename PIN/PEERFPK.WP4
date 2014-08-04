@@ -1,0 +1,15 @@
+/* Postprocessing steps for incorporating PEER fixpaks */
+/* Tested with fixpak IP08414                          */
+
+/* zip extras */
+/*           target zip                             path            fixpak files to add    */
+call add2zip 'CID\IMG\IBMPEER\IBM100R1\lsworker.zip IBMLAN\NETLIB   NETRA32.DLL'
+call add2zip 'CID\IMG\IBMPEER\IBM100R1\reqrinst.zip IBMLAN\INSTALL  LANINST.PGM'
+call add2zip 'CID\IMG\IBMPEER\IBM100R1\reqrfils.zip IBMLAN\NETPROG  LOOPDRV.OS2 DDGEN.EXE NWDDEHLP.CMD'
+call add2zip 'CID\IMG\IBMPEER\IBM100R2\UPMFILE1.ZIP MUGLIB          UPMTFMT.EXE'
+call add2zip 'CID\IMG\IBMPEER\IBM100R2\UPMEX.ZIP    MUGLIB\DLL      NETAPINC.DLL'
+call add2zip 'CID\IMG\IBMPEER\IBM100R5\aguiicon.zip IBMLAN\NETPROG  SOSFLDR.ICO MCCFLD2.ICO MCCFLDR.BMP MCCFLDR.ICO MCLSOBJ.BMP MCLSOBJ.ICO MCLSTMP.BMP MCLSTMP.ICO RIPLOBB2.ICO'
+call add2zip 'CID\IMG\IBMPEER\IBM100R5\aguiicon.zip IBMLAN\NETPROG  RIPLOBJB.ICO RIPLTMB2.BMP RIPLTMB2.ICO RIPLTMPB.ICO SOSFLDR.BMP PBWODAPP.ICO PBWODTMP.ICO RIPLOBB2.BMP'
+
+/* rename some files */
+call execute '@copy 'cddir'\CID\IMG\IBMPEER\IBM100R1\peerinst.lst    'cddir'\CID\IMG\IBMPEER\IBM100R1\laninst.lst'

@@ -1,0 +1,495 @@
+Friss°tsd OS/2-es telep°tì CD-t jav°t¢csomagokkal! 1.8-as verzi¢
+----------------------------------------------------------------
+
+
+1. Bevezetì
+
+Unod m†r, hogy minden egyes rendszerkomponens telep°tÇse ut†n £jra kell
+telep°tened a jav°t¢csomagokat is? Unod m†r, hogy nem tudod az OS/2-t 
+telep°teni nagy merevlemezekre? Unod m†r, hogy mindig lemezekrìl kell 
+bootolnod, ha telep°teni szeretnÇl? SzeretnÇd, ha a jav°t¢csomagokat be 
+tudn†d integr†lni a Warp 3/4, WSeB MCP Çs ACP telep°tì CD-jÇbe? Ha igen, 
+akkor olvass tov†bb!
+
+
+2. Telep°tÇs
+
+Az UpdCD telep°tÇse nagyon egyszerñ. Egyszerñen m†sold be a zip f†jlban 
+tal†lhat¢ f†jlokat egy tetszìleges kînyvt†rba (mondjuk updcd) Çs v†lts†l ide, 
+amikor futtatni akarod a programot, egyÇbkÇnt nem fog mñkîdni! A f†jlokat nem
+szabad egy (h†l¢zati) meghajt¢ gyîkerÇbe m†solni, mindenkÇppen egy alkînyvt†rba
+tegyÅk ìket. Az 1.2-es verzi¢ ¢ta rendelkezÇsre †ll egy grafikus (PM) felÅlet 
+is, amely seg°tsÇgÇvel konfigur†lni lehet az UpdCD-t Çs ebbìl futtathatod a 
+szkripteket is. Futtasd az INSTALL.CMD programot, amely kÇsz°teni fog egy UpdCD
+gyñjtìt Çs egy default configur†ci¢s f†jlt. A PMUPDCD.EXE vagy egy tetszìleges 
+szîvegszerkesztì seg°tsÇgÇvel †ll°tsd be az UPDCD.CFG konfigur†ci¢s f†jlban 
+tal†lhat¢ paramÇtereket. Amennyiben bootolhat¢ CD-t szeretnÇl kÇsz°teni, akkor 
+telep°tened kell a Super Virtual Disk (SVDISK) vagy VFDISK 2.0 programot is.
+A CD °r†s†hoz a CDRecord/2-t aj†nlom. Az UpdCD programok egy rÇsze az
+ATTRIB.EXE programot haszn†lja. Ellenìr°zd, hogy telep°tve van-e a gÇpeden!
+
+
+3. ElìkÇszÅletek
+
+Mielìtt friss°teni tudn†d a CD-t, le kell tîltened Çs elì kell kÇsz°tened a
+jav°t¢csomagokat Çs egyÇb friss°tÇseket. A kîvetkezì komponenseket teszteltem
+az UpdCD-vel:
+
+Warp 4:
+- Kîtelezì komponensek:
+  Alap Fixpak 12/13/14/15, Device Driver Fixpak 1/2, Feature Installer 1.25, 
+  Netscape 4.61, Java 1.1.7/1.1.8 run-time
+- Opcion†lis komponensek:
+  CP fpk 1, MPTS fpk 8424/8425/8620/8621, PEER fpk 8402/8406/8412/8413/8414, 
+  TCP/IP fixpak 0980/2001, JAVA 1.1.8 run-time fix, printer fixek
+  (laserjet*.exe, omni*.exe, pscript*.exe, plotters*.exe), MPTS update 
+  8423/8610, TCP/IP update 4.1/4.2/4.3, Java update 1.1.8/1.3 (run-time, 
+  toolkit, samples, etc.), Netware Requester 2.12, a friss°tett IBM-es
+  telep°tìlemezek Çs PMFax Lite 3.2. 
+
+A JAVA run-time fix kivÇtelÇvel m†s JAVA fixeket jelenleg nem t†mogat az 
+UpdCD. A printer fixeket ugyanabba a kînyvt†rba kell bem†solni. 
+
+Warp 3 (k°sÇrleti t†mogat†s):
+- Kîtelezì komponensek:
+  Alap Fixpak 38/43, Device Driver Fixpak 2 
+- Opcion†lis komponensek:
+  MPTS fixpak 8424/8425/8620/8621, TCP/IP fixpak 0959+0980, MPTS 
+  update 8423/8610
+
+A Warp Server SMP v†ltozat†t nem t†mogatja az UpdCD. Val¢sz°nñleg a rÇgebbi 
+fixek (pl. 29) integr†l†sa sem mñkîdik.
+
+WSeB:
+- Kîtelezì komponensek:
+  Alap Fixpak 1/2, Device Driver Fixpak 2, Netscape 4.61
+- Opcion†lis komponensek:
+  MPTS fixpak 8621, MPTS update 8700, TCP/IP update 4.3, Warp 4 Feature 
+  Installer termÇkek (Voice Type, Bonus Pack alkalmaz†sok, stb.), LAN
+  Server fixpak IP08603, JAVA update (1.1.8/1.3), JAVA run-time fix, printer 
+	fixek (laserjet*.exe, omni*.exe, pscript*.exe, plotters*.exe)
+
+MCP1/ACP1:
+- Kîtelezì komponensek:
+  CP fixpak 1, Device Driver fixpak 2
+- Opcion†lis komponensek:
+  Warp 4 Feature Installer termÇkek (Voice Type, Bonus Pack alkalmaz†sok, 
+  stb.), valamint az îsszes nem IBM-es termÇk (add-ons)
+
+Hozz lÇtre minden egyes jav°t¢csomag sz†m†ra egy kînyvt†rat az updcd\fixes 
+alatt. Legyen pÇld†ul updcd\fixes\fp15 a fixpak 15 kînyvt†ra. M†sold be ebbe 
+a kînyvt†rba a fixpaket. Amennyiben az RSU verzi¢t (.zip kiterjesztÇs) 
+tîltîtted le, £gy unzip/pkunzip-pel, egyÇbkÇnt pedig (.dsk kiterjesztÇs) a 
+http://hobbes.nmsu.edu-n tal†lhat¢ dskxtr12.zip programmal nyerheted vissza a 
+fixpak f†jljait. A kibont†s ut†n nem v†ltoztasd meg a fixpakek kînyvt†r-
+strukt£r†j†t!
+
+Ugyancsak kÅlîn alkînyvt†rakat kell kÇsz°teni az updcd\updates kînyvt†rban az 
+integr†lni k°v†nt friss°tett termÇkek sz†m†ra is. Az £j Java 1.1.8 motort 
+pÇld†ul m†soljuk az updcd\updates\java alkînyvt†rba. Amennyiben lehetsÇges, 
+bontsuk ki az esetlegesen tîmîr°tett form†ban (Java, Netscape, FI) letîltîtt 
+termÇket. Mindegyik JAVA komponenst ugyanabba a kînyvt†rba kell tenni. A 
+friss°tett IBM lemezeket kÅlîn alkînyvt†rakba kell bem†solni az updates 
+kînyvt†r alatt (pÇld†ul updates\disk\disk1 Çs updates\disk\disk2). A friss°tett
+komponenseket ki kell bontani, amennyiben azok tîmîr°tett form†ban kerÅlnek
+kibocs†t†sra.
+
+Az al†bbiakban bemutatunk egy lehetsÇges kînyvt†rstrukt£r†t Warp 4-hez:
+
+e:\updcd\fixes
+[...]
+e:\updcd\fixes\XRYM015
+e:\updcd\fixes\XRYM015\FIX
+e:\updcd\fixes\XRYM015\FIX\OS2.1
+[...]
+e:\updcd\fixes\XR0DD02
+e:\updcd\fixes\XR0DD02\FIX
+e:\updcd\fixes\XR0DD02\FIX\BDD.1
+[...]
+e:\updcd\fixes\IPY8402
+e:\updcd\fixes\IPY8402\FIX
+e:\updcd\fixes\IPY8402\FIX\REQ.1
+[...]
+e:\updcd\fixes\UN_0980
+e:\updcd\fixes\UN_0980\FIX
+e:\updcd\fixes\UN_0980\FIX\TCP.1
+[...]
+e:\updcd\fixes\WR08621
+e:\updcd\fixes\WR08621\FIX
+e:\updcd\fixes\WR08621\FIX\MPT.1
+[...]
+e:\updcd\fixes\NW212
+e:\updcd\fixes\NW212\ENGLISH
+e:\updcd\fixes\NW212\LOGIN
+[...]
+e:\updcd\fixes\printer
+[...]
+
+e:\updcd\updates
+[...]
+e:\updcd\updates\WR08610
+e:\updcd\updates\WR08610\IBMCOM
+e:\updcd\updates\WR08610\MPTN
+[...]
+e:\updcd\updates\FI125
+[...]
+e:\updcd\updates\NS461
+[...]
+e:\updcd\updates\JAVA
+e:\updcd\updates\JAVA\EN
+e:\updcd\updates\JAVA\DE
+e:\updcd\updates\JAVA\PACKAGE
+[...]
+e:\updcd\updates\disk\disk1
+e:\updcd\updates\disk\disk2
+[...]
+e:\updcd\updates\pmfax
+
+Egy j¢val rÇszletesebb kînyvt†rstrukt£r†t lehet tal†lni az UpdCD honlapon 
+tipikus Warp 4-es friss°tÇsekhez.
+
+Az 1.1-es verzi¢ ¢ta lehetìsÇg van az OpenGL 1.1 beintegr†l†s†ra is. Ehhez le kell
+tîlteni a oglgold.zip f†jlt az IBM-tìl, amelyet azt†n ki kell bontani egy ideiglenes
+kînyvt†rban. Ezek ut†n be kell m†solni a  WAVE.EXE, RASTER.DLL, OPENGL.DLL, 
+LIBTK.DLL, GLUT.DLL Çs GLPIPE.DLL f†jlokat a Feature Installer kînyvt†rt†ba (pl.
+updcd\updates\fi). Ugyanez ÇrvÇnyes a freetype.dll-re is. Ha bem†soljuk a 
+Feature Installer kînyvt†r†ba, akkor a program erre fogja lecserÇlni az
+eredeti truetype.dll-t.
+
+Az 1.2-es verzi¢ ¢ta tîmîr°thetìek a boot lemezeken tal†lhat¢ f†jlok az lxlite
+program seg°tsÇgÇvel. Ennek eredmÇnyekÇppen tîbb szabad hely marad a 
+lemezeken, °gy mindenki kînnyedÇn felteheti a sz†m†ra szÅksÇges drivereket
+vagy programokat. A dolog negat°v oldala, hogy a tîmîr°tett f†jlok nem minden
+rendszeren mñkîdnek megb°zhat¢an. A tîmîr°tÇst az updcd.cfg konfigur†ci¢s
+f†jl compress v†ltoz¢j†nak 1-re †ll°t†s†val lehet aktiviz†lni. Az lxlite 
+program az lxlite.cfg f†jlon keresztÅl konfigur†lhat¢. Tîbb szabad helyet lehet 
+nyerni, ha hozz†adjuk a *.add kifejezÇst a konfigur†ci¢s f†jl [pdd] 
+szekci¢j†hoz. Sajnos ez a be†ll°t†s egyes gÇpeken trapet okozhat. 
+
+Az 1.5-îs verzi¢ ¢ta a legtîbb disk 1-en tal†lhat¢ SCSI drivert a program
+kicserÇli a Daniela Engert fÇle †l driverre. Ily m¢don kb. 300K helyet 
+szabad°thatunk fel a lemezen, s ez †ltal b†rki kînnyedÇn felm†solhatja
+bootol†s elìtt az †ltala haszn†lni k°v†nt SCSI drivert. Ez a CD boot image 
+f†jlokat (burn\updcd\bootimg\DISK_0_1.IMG) is Çrinti. Az UPDCD\NEWINST 
+kînyvt†rba bem†solt SCSI drivereket automatikusan hozz†adja az UpdCD a 
+bootlemezhez Çs a CD image kînyvt†r†hoz. Figyelni kell azonban arra, hogy ne 
+m†soljunk be t£l sok drivert a NEWINST kînyvt†rba, kÅlînben elfogyhat az 1. 
+lemezen vagy a boot image kînyvt†r†ban a rendelkezÇsre †ll¢ hely. A Device 
+Driver fixpakben tal†lhat¢ AIC78U2.ADD drivert automatikusan integr†lja az 
+UpdCD, ezÇrt nem kell a NEWINST kînyvt†rba m†solni.
+
+Az 1.6-os verzi¢ ¢ta a Warp 4-es Feature Installer termÇkeket (pl. Voice
+Type, Bonus PAck, stb.) is lehet integr†lni a WSeb MCP1 Çs ACP1 termÇkekkel. 
+LÇtre kell hozni egy FI nevñ alkînyvt†rat az UpdCD kînyvt†r†ban (pl.
+updcd\fi) Çs be kell ide m†solni a Warp 4 CD OS2IMAGE\FI kînyvt†r†b¢l azon
+termÇkek kînyt†rait, amelyeket integr†lni k°v†nunk. A Bonus Pack alkalmaz†sok
+Çs a Voice Type pl. az OS2IMAGE\FI\BONUSPAK Çs OS2IMAGE\FI\VT kînyvt†rakban
+tal†lhat¢ak. Ha teh†t pl. ezeket a termÇkeket akarjuk hozz†adni az MCP1-hez,
+akkor a kîvetkezì kînyvt†rstrukt£r†t kell lÇtrehozni:
+
+[...]
+e:\updcd\fi\bonuspak
+e:\updcd\fi\vt
+[...]
+
+Ezen k°vÅl be kell mÇg m†solni az updcd\fi kînyvt†rba a PACKAGE.CTL Çs 
+FIBASE.RSP f†jlokat is. A FIBASE.RSP-t a Warp 4 CD OS2IMAGE\DISK_11\BUNDLE 
+f†jl†ban lehet megtal†lni. A kibont†shoz az UNPACK BUNDLE . /N:FIBASE.RSP 
+parancsot kell kiadni.
+
+A FI alkalmaz†sokat az UpdCD be fogja integr†lni az £j CD-be Çs a WSeB vagy
+MCP1 telep°tÇse ut†n a m¢dos°t¢ telep°tì gyñjtìjÇben tal†lhat¢ Install Object 
+program futtat†s†val lehet ìket telep°teni.
+
+Az 1.72-es veriz¢ ¢ta a kernelfriss°tÇsek integr†l†sa is lehetsÇges. Ehhez
+lÇtre kell hozni egy addons nevñ kînyvt†rat az alap OS/2-es fixpak kînyvt†ra 
+alatt Çs be kell ide m†solni a kernel zip-ben tal†lhat¢ f†jlokat. Azok a 
+f†jlok, amelyeket ide beraksz, fîlÅlb°r†lj†k az alap, vagy a driver fixpakben
+lÇvì f†jlokat. Az addons kînyvt†r ne tartalmazzon tov†bbi alkînyvt†rakat Çs 
+a f†jlok se legyenek tîmîr°tve:
+
+[...]
+e:\updcd\fixes
+[...]
+e:\updcd\fixes\XRYM015
+e:\updcd\fixes\XRYM015\addons\os2krnl
+e:\updcd\fixes\XRYM015\addons\OS2LDR
+[...]
+e:\updcd\fixes\XRYM015\FIX
+e:\updcd\fixes\XRYM015\FIX\OS2.1
+[...]
+
+Lehets†ges az SMP kernelfriss°tÇsek integr†l†sa is WSeB Çs ACP esetÇben. Ehhez
+lÇtre kell hozni egy smp alkînyvt†rat az addons kînyvt†rban Çs ide kell 
+bem†solni az SMP zipben tal†lhat¢ f†jlokat:
+
+[...]
+e:\updcd\fixes\XRYM015\addons\smp\os2krnl
+e:\updcd\fixes\XRYM015\addons\smp\OS2LDR
+[...]
+
+Az 1.8-as verzi¢ ¢ta lehetìsÇg van MPTS Çs TCP/IP jav°t†sok (IC*.EXE) 
+integr†l†s†ra is. LÇtre kell hozni egy addons kînyvt†rat az MPTS vagy TCP/IP
+fixpak kînyvt†r†ban Çs ide kell bem†solni a jav°t†s f†jljait (ki kell bontani
+az EXE-t):
+
+[...]
+e:\updcd\fixes\WR08621\addons\NSUPDATE.EXE
+[...]
+e:\updcd\fixes\UN_2001\addons\TCPCOEX.EXE
+[...]
+
+Mielìtt belefogn†nk a friss°tÇsbe, be kell tenni az eredeti CD-t a meghajt¢ba
+Çs be kell helyezni egy Åres 3.5 incses floppy lemezt az A: meghajt¢ba. Ha a
+gÇpÅnkre telep°tve van 1.44MB-os virtu†lis floppy (VDISK, SVDISK), akkor azt 
+is haszn†lhatjuk. Jav°tsuk ki az updcd.cfg kîvetkezì sor†t a virtu†lis floppy
+meghajt¢j†nak megfelelìen:
+
+flpdrv = translate('k:') /* <----- change it match your virtual floppy */
+
+A virtu†lis floppy haszn†latakor nincs szÅksÇg a hagyom†nyos floppy-ra Çs
+a friss°tÇs sor†n kb. 20 percet lehet nyerni. Ne felejts el betenni egy 
+virtu†lis lemezt a virtu†lis meghajt¢ba, mielìtt elind°tod a friss°tÇst! A 
+SVDISK Çs VFDISK 1.0 letîlthetìek a hobbes.nmsu.edu-r¢l.
+
+Az 1.4-es verzi¢ ¢ta az UpdCD tartalmaz egy friss°tett Warp 4-es program 
+adatb†zist is. Az adatb†zis a NEWINST\DATABASE.TXT f†jlban tal†lhat¢ Çs
+igÇny esetÇn szerkeszthetì a futtat†s elìtt. Kîszînet illeti Massimo-t a
+f†jlÇrt!
+
+
+4. Nem IBM-es termÇkek integr†l†sa
+
+Az 1.0-s verzi¢ ¢ta lehetìsÇg van nem IBM-es termÇkek beintegr†l†s†ra is,
+amelyek v†laszthat¢ak lesznek a Warp 4, WSeB, MCP1 vagy ACP1 install†l†sa 
+sor†n. Mindegyik termÇket be kell m†solni egy, az UpdCD ADDONS kînyvt†r†ban 
+lÇtrehozott alkînyvt†rba. Az addons kînyvt†rban tal†lhat¢ read.me f†jl 
+tartalmazza a termÇkek teljes list†j†t. Olvasd el az egyes alkînyvt†rakban 
+tal†lhat¢ telep°tìprogramok (ADDONINS.CMD) fejlÇcÇt ha meg akarod tudni, hogy 
+mely f†jlokat kell bem†solni ahhoz, hogy aktiviz†lhat¢ legyen az adott termÇk 
+telep°tÇse. Ha valamilyen m†s termÇkhez install programot kÇsz°tesz, akkor 
+kÅldj nekem egy pÇld†nyt belìle! Lehet, hogy be fogom tenni az UpdCD kîvetkezì
+verzi¢j†ba. 
+
+Kîszînet Thorolf Godawa-nak a hasznos telep°tìprogramokÇrt!
+Kîszînet Jeffrey Smicknek az Object Desktop telep°tìprogramj†Çrt!
+
+Amennyiben telep°tjÅk az LVM-et, akkor a VFAT, EXT2 Çs NTFS f†jlrendszer
+t†mogat†sa meg fog szñnni, ugyanis a VFAT.IFS driver megakad†lyozza a rendszer
+elindul†s†t.
+
+
+5. Friss°tett CD-ROM kÇsz°tÇse
+
+5.1 Warp 4
+
+Helyezz be egy (virtu†lis) floppy lemezt a meghajt¢ba Çs egyszerñen futtasd 
+a Go4It.Cmd programot az UpdCD kînyvt†rb¢l a CD meghajt¢ betñjelÇvel (pÇld†ul 
+Go4It.Cmd h:). A program automatikusan detekt†lni fogja a helyesen elìkÇsz°tett 
+jav°t†sokat Çs friss°tÇseket. A CD nyelvÇt szintÇn detekt†lni fogja a program 
+(a magyar CD-t angolnak fogja venni). A Go4It program ellenìriz ugyan nÇh†ny 
+dolgot, †m minden esetben a felhaszn†l¢ felelìssÇge marad, hogy a fixpakek Çs 
+jav°t†sok helyes kombin†ci¢ja kerÅljîn beintgr†l†sra. Magyar†n ÅgyeljÅnk arra, 
+hogy a fixpakek dokument†ci¢j†ban le°rt telep°tÇsi feltÇtelek teljesÅljenek, 
+valamint arra is, hogy a megfelelì nyelvñ verzi¢t haszn†ljuk fel. Ha nem vagy 
+biztos a dolgodban, akkor nÇzz el az UpdCD honlapra, ahol tal†lni fogsz nÇh†ny 
+aj†nlott îssze†ll°t†st. 
+
+Az 1.7-es verzi¢ ¢ta UpdCD felismeri a CP fixpak 1-et is. Ezt az îssze†ll°t†st
+nem t†mogatja az IBM, azonban n†lam teljesen j¢l mñkîdîtt. A CP fixpak 1 
+mellett integr†lni kell egy friss Warp 4-es fixpaket (pl. fixpak 15) is, mivel
+a CP fixpak 1 nem tartalmazza az îsszes Warp 4-es fixet (MCP-n alapszik). 
+
+Amennyiben elÇgedett vagy a felaj†nlott komponensekkel, akkor az ENTER 
+megnyom†s†val elkezdheted a friss°tÇs. A teljes folyamat kb. egy ¢r†t vesz 
+igÇnybe az otthoni 500MHZ-es PIII-as gÇpemen. Az friss°tett CD az updcd\BURN
+kînyvt†rban lesz megtal†lhat¢. 
+
+A friss°tÇs sor†n lÇtre fog hozni az UpdCD egy log f†jlt (updcd.log), amely
+tartalmazni fogja az îsszes lÇpÇst, amelyet a program hajtott vÇgre. Mindegyik
+lÇpÇshez tartozni fog egy visszatÇrÇsi ÇrtÇk is, amelynek 0-nak kell lennie. 
+A hib†k (Error:) mellett az UpdCD figyelmeztetÇseket (Warning:) is bele fog
+°rni a logba. A figyelmeztetÇsek nem jelentenek automatikusan hib†t, azonban
+Çrdemes a log f†jlt ellenìrizni, hogy a figyelmeztetÇsek pontos ok†t megÇrtsÅk.
+A friss°tÇs sor†n nem haszn†lt f†jlokat warningkÇnt fogja jelezni a program.
+
+5.2 Warp 3
+
+Ugyanezt az elj†r†st kell kîvetni a Warp 3 friss°tÇse esetÇn is azzal a 
+kÅlînbsÇggel, hogy a Go4It.Cmd helyett a Go4It3.Cmd-t kell futtatni. 
+Amennyiben a grafikus felÅletet haszn†lod, akkor ne felejtsd el a jobb
+felsì sarokban tal†lhat¢ combo box-ot †tv†ltani Warp 3-ra!
+
+5.3 WSeB
+
+Ugyanezt az elj†r†st kell kîvetni a WSeB friss°tÇse esetÇn is azzal a 
+kÅlînbsÇggel, hogy a Go4It.Cmd helyett a Go4It2.Cmd-t kell futtatni.
+Amennyiben a grafikus felÅletet haszn†lod, akkor ne felejtsd el a jobb
+felsì sarokban tal†lhat¢ combo box-ot †tv†ltani WSeB-re!
+
+5.4 MCP1/ACP1
+
+Ugyanezt az elj†r†st kell kîvetni az MCP1/ACP1 friss°tÇse esetÇn is azzal a 
+kÅlînbsÇggel, hogy a Go4It.Cmd helyett a Go4It4.Cmd-t kell futtatni.
+Amennyiben a grafikus felÅletet haszn†lod, akkor ne felejtsd el a jobb
+felsì sarokban tal†lhat¢ combo box-ot †tv†ltani MCP1/ACP1-re!
+
+Az 1.2-es verzi¢ ¢ta rendelkezÇsre †ll a grafikus (PM) program PMUPDCD.EXE 
+(kîszînet Çrte Dimitris 'sehh' Michelinakis-nak) amely seg°tsÇgÇvel 
+konfigur†lhatjuk az UpdCD-t Çs elind°thatjuk a megfelelì szkriptet. 
+
+
+6. Boot CD kÇsz°tÇse
+
+Az UpdCD az îsszes f†jlt elì fogja kÇsz°teni a burn\updcd\bootimg 
+kînyvt†rban, amelyek ahhoz szÅksÇgesek, hogy a CD-t bootolhat¢v† 
+tegyÅk. Elìszîr is szÅksÇgÅnk lesz egy 2.88MB-os (virtu†lis) floppyra.
+Hanem lenne ilyenÅnk, akkor telep°tenÅnk kell az SVDISK-et, vagy a VFDISK
+2.0-t. HelyezzÅnk be egy lemezt a meghajt¢ba Çs v†ltsunk a bootimg\DISK_0_1.IMG 
+kînyvt†rba. Futtassuk a sysinstx parancsot Çs paramÇterkÇnt adjuk meg
+a floppy meghajt¢ betñjÇt. M†soljuk †t az îsszes f†jlt a floppy-ra. 
+V†ltsunk a burn\diskimgs alkînyvt†rba Çs futtassuk az image.exe 
+programot, hogy elkÇsz°tsÅk a CD root kînyvt†r†ban a 2.88MB-os boot
+image-t (pÇlda: image.exe k: ..\DISK_0_1.IMG). HelyezzÅnk be a floppy
+meghajt¢ba egy 1.44MB-os lemezt Çs v†ltsunk a bootimg\DISK_2.IMG 
+kînyvt†rba. M†soljuk †t a kînyvt†rb¢l a f†jlokat a floppy-ra, majd v†ltsunk
+vissza a diskimgs kînyvt†rba. KÇsz°tsÅnk egy 1.44MB-os image f†jlt a CD
+gyîkerÇben (pÇlda: image.exe k: ..\DISK_2.IMG). Az CD °r†sakor haszn†ljuk
+a DISK_0_1.IMG f†jlt image-kÇnt (l†sd a 7. fejezetet). A CD csak akkor lesz
+bootolhat¢, ha legal†bb a Device Driver Fixpak 2-vel dolgozunk. 
+
+Amennyiben CDRecord/2-t vagy RSJ-t haszn†lsz CD °r†sra, akkor Çrdemes 
+kipr¢b†lnod a RECORD.CMD programot. Ezzel a szkripttel ugyanis automatikusan 
+vÇgezhetì el a boot image kÇsz°tÇse Çs a CD meg°r†sa. 
+
+Amennyiben a CD-rìl bootolsz, akkor 10 m†sodpercen belÅl ki kell v†lasztani
+a 2-t, kÅlînben a merevlemezrìl fog tov†bb bootolni a rendszer. Ez a Roman 
+Stangl fÇle CDBoot/2 program beintegr†l†s†nak kîszînhetì. ElismerÇs illeti 
+a szerzìt az 1.2-es verzi¢ gyors kibocs†t†sa miatt.
+
+
+7. Az OS/2-es telep°tì CD °r†sa
+
+Az UpdCD csomagban tal†lhat¢ a record.cmd REXX program, amely a CD °r†s†t 
+vÇgzi az mkisofs+cdrecord vagy RSJ programok seg°tsÇgÇvelt. A Go4It 
+automatikusan megh°vja a record.cmd-t, amikor befelyezìdik a friss°tÇs. 
+Amennyiben m†s CD-°r¢ csomagot haszn†lsz, akkor Ågyelj arra, hogy a program 
+ne hajtson vÇgre ISO9660 f†jlnÇv-transzform†ci¢t, kÅlînben a CD haszn†lhatatlan
+lesz! Ha nem a CRecordot haszn†lod, †m bootolhat¢ CD-t akarsz kÇsz°teni, akkor 
+a boot kÇpf†jlokat (l†sd 6. fejezet) mindenkÇppen el kell kÇsz°teni. Ezt a 
+record.cmd 2-es opci¢j†val is el lehet vÇgezni. A CD °r†sa kîzben ne felejtsd 
+el megadni a kÇpf†jl nevÇt (DISK_0_1.IMG). A kÇpf†jl a burn kînyvt†r gyîkerÇben
+lesz megtal†lhat¢, amely tulajdonkÇpen a friss°tett CD gyîkÇrkînyvt†ra. A 
+RECORD.CMD feltÇtelezi, hogy az SVDISK vagy a VFDISK 2.0 telep°tve van Çs az 
+SVDC vagy VFCTRL programok megtal†lhat¢ak a keresÇsi £tvonalban, vagy be lettek
+m†solva az UpdCD kînyvt†r†ba. Gyìzìdj meg r¢la, hogy az Åres CD kapac°t†sa 
+elegendì a burn kînyvt†rban tal†lhat¢ anyag fel°r†s†ra.
+
+
+8. A telep°tìlemezek friss°tÇse
+
+A CD meg°r†sa ut†n futtassuk a CDINST programot a CD-rìl. Ne haszn†ld az 
+eredeti telep°tìlemezeket, mert nem fog mñkÅdni!
+
+
+9. Korl†tok, ismert hib†k
+
+A program (az elsì h†rom kivÇtelÇvel) nem friss°ti a telep°tìlemezeket. 
+
+Nekem nem mñkîdîtt a merevlemezrìl tîrtÇnì telep°tÇs. M†s felhaszn†l¢k
+ugyanakkor sikeresen vettÇk ezt az akad†lyt. Ird meg, ha sikerrel j†rsz!
+
+Az UpdCD-vel friss°tett telep°tìlemezek csak a friss°tett telep°tìf†jlokkal
+haszn†lhat¢k. Le kellett ugyanis tîrîlnîm nÇh†ny, a telep°tìprogram Çs a PS/2 
+gÇpek †ltal haszn†lt f†jlt, hogy felfÇrjenek a Device Driver Fixpak £j
+meghajt¢programjai.
+
+Ugy tñnik, hogy a 8424/25-îs MPTS fixpakek telep°tÇse elrontja a CID
+telep°tÇst. Go4It Çppen ezÇrt visszarakja az IBMCOM\DLL\LAPSCID.DLL 
+f†jl fixpak elìtti verzi¢j†t, hogy a telep°tÇs sikeres legyen. 
+
+Nem mñkîdik a telep°tÇs 2GB-n†l nagyobb part°ci¢ra. Egyes felhaszn†l¢k
+szerint az IBM1S506.ADD driver lecserÇlÇse a DANI IDE driverre megoldja a
+problÇm†t. 
+
+Ha a CD-rìl bootolunk Çs telep°tÅnk egy olyan rendszeren, amelyen FAT32-es
+part°ci¢ is van, akkor elìfordulhat, hogy hibaÅzenetet kapunk egy part°ci¢val
+kapcsolatban, amelyik nem elÇrhetì. V†lasszuk a hibak¢d visszaad†s†t a 
+programnak, mert °gy a telep°tÇs gond nÇlkÅl tov†bb fog menni.
+
+Ha a CD-rìl bootolunk Çs telep°tÅnk, Çs a telep°tìprogram arra kÇr, hogy 
+t†vol°tsuk el a lemezt az A: meghajt¢b¢l Çs nyomjuk meg az ENTER-t, akkor
+inkabb a CTRL-ALT-DEL kombin†ci¢val ind°tsuk £jra a rendszert. Ne v†laszd
+a 2-es opci¢t (vagyis ne bootoljunk £jra a CD-rìl), hanem ind°tsuk a rendszert
+arr¢l a part°ci¢r¢l, amelyikre Çppen telep°tjÅk az OS/2-t. 
+
+A friss°tett FaxWorks telep°tÇsekor az FX002.LOP nem m†sol¢dik †t a 
+merevlemezre. M†sold †t kÇzzel az OS2IMAGE\FI\BONUSPAK\FAXWORKS kînyvt†rb¢l.
+A hib†t ki fogom jav°tani az UpdCD valamelyik £jabb verzi¢j†ban.
+
+A friss°tett Warp 3 telep°tÇse ut†n kÇzzel kell a CONFIG.SYS-hez hozz†adni a
+SET ULSPATH=X:\LANGUAGE (X=bootdrive) sort.
+
+Mielìtt meg°rn†d a friss°tett Warp 3 CD-t ellenìr°zd, hogy minden kînyvt†r
+†tm†sol¢dott-e az eredeti CD-rìl. Elìfordulhat ugyanis, hogy a nem friss°tett
+kînyvt†rak nem kerÅlnek †tm†sol†sra. M†sold †t a hi†nyz¢ kînyvt†rakat mielìtt
+meg°rn†d a CD-t!
+
+Az XFree86 3.3.6 trappel, vagy lefagyasztja a gÇpet, ha az Amouse 1.01 is 
+telep°tve van.
+
+Mivel nincs a birtokomban MCP1, ezÇrt az eCS 2. CD-jÇvel teszteltem, ami 
+gyakorlatilag az MCP1 felel meg.
+
+Legal†bb a WarpIn 0.9.9-et haszn†ld, kÅlînben az ODIN Çs XWP addon komponensek 
+kiv†laszt†sa esetÇn le fog fagyni a telep°tì. A WarpIn Çs XWorkPlace 0.9.14-et
+vagy magasabbat jelenleg nem t†mogatja az UpdCD mivel ezek a programok nem 
+telep°thetìek felhaszn†l¢i beavatkoz†s nÇlkÅl.
+
+
+10. EgyÇb inform†ci¢k
+
+NÇzegesd az updcd.cfg f†jlt, mivel sok esetben tuningolhatsz az UpdCD 
+paramÇterein! Figyeld az UpdCD honlapj†t Çs a h°rcsoportot a leg£jabb 
+h°rekÇrt! Mielìtt levelet kÅldesz, olvasd el az UpdCD FAQ-t, a honlapot 
+Çs a h°rcsoport leveleit! Ne kÅldj kîzvetlenÅl emailt, hanem az UpdCD
+h°rcsoportba °rj: 
+
+http://groups.yahoo.com/group/updcd
+
+Amennyiben nem tal†ln†l meg mindent komponenst, akkor l†togass el a
+kîvetkezì oldalakra:
+
+http://groups.yahoo.com/group/updcd/links
+http://www.warpupdates.mynetcologne.de/english/site_contents.html
+
+Ha nem tudod vagy nem akarod letîlteni a szÅksÇges jav°t†sokat, akkor 
+n†lam rendelhetsz a Warp 4 Update Kitbìl, amely tartalmazza az îsszes 
+publikus fixet Çs automatikusan telep°ti Çs konfigur†lja az UpdCD-t a
+gÇpeden. Jelenleg angol, nÇmet, braz°l Çs magyar nyelvñ verzi¢k rendel-
+hetìek. Az UpdCD honlapj†n tov†bbi rÇszleteket olvashatsz. Jelezd, ha 
+szÅksÇged lenne Update Kit-re WSeB-hez vagy Warp 3-hoz. 
+
+
+11. MentegetìzÇs, szerzìi jog
+
+Ez a program ingyenesen haszn†lhat¢ abban a form†ban, ahogy azt rendelkezÇsre
+bocs†tottam. Nem vagyok felelìs semmilyen k†rÇrt, amelyet ez a csomag okoz.
+Csak nÇh†ny alkalommal teszteltem a friss°tÇsi folyamatot Çs ezek mindegyike
+mñkîdîtt n†lam. RemÇlem, hogy N†lad is mñkîdni fog. Ha mÇgsem °gy lenne, 
+akkor °rj az UpdCD h°rcsoportba: http://groups.yahoo.com/group/updcd/messages.
+
+Ez a csomag szerzìi joggal vÇdett ingyenes alkalmaz†s. Ez azt jelenti, hogy
+tÇr°tÇs nÇlkÅl haszn†lhatod, ak†r termelÇsi kîrnyezetben is. A csomagot,
+vagy annak m¢dos°tott v†ltozatait, illetve az azzal kÇsz°tett CD-ket nem
+szabad †rulni!
+
+Az integr†lhat¢ komponensek egy rÇsze fizetìs vagy shareware program. Mielìtt
+felhaszn†lod ìket, gyìzìdj meg r¢la, hogy van-e jogod haszn†lni ìket.
+
+
+K†d†r Zsolt
+2001.12.10.
+email: kadzsol@xenia.sote.hu
+Honlap: http://xenia.sote.hu/~kadzsol/rexx/sajat/updcd.htm
+TÅkîr : http://www.quasarbbs.net/updcd/

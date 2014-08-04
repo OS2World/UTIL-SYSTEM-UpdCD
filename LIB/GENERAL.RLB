@@ -1,0 +1,2802 @@
+/****************************************************************************/
+/* updcd rexx library - general functions                                   */
+/* 03.03.2002: fixed problem with handling drive a: in function size_floppy */
+/* 03.07.2002: added function copy_if_exist                                 */
+/* 03.26.2002: added support for netscape update                            */
+/* 04.23.2002: aligned with ecs fixpak 2                                    */
+/* 04.30.2002: added function to update netscape ini files                  */
+/* 05.01.2002: improved bootdrive detection function                        */
+/* 05.05.2002: unpacking dsk files failed if loaddskf was not in the path   */
+/* 05.15.2002: added procedure to check product dependencies                */
+/* 05.18.2002: fixed problem with printer list generation                   */
+/* 05.28.2002: added functions add2zip and zipexe from updcd.rlb            */
+/* 06.01.2002: fixed problem with mpts fixpak dependence test               */
+/*             updated add_updated_cid_procedure to support warp 3          */
+/* 06.07.2002: fixed problem with German Warp 3 base fixpak detection       */
+/* 06.15.2002: fixed problem with German Warp 3 language detection          */
+/* 06.16.2002: enabled tunecfg.cmd for Warp 3                               */
+/* 06.18.2002: added tuneini                                                */
+/* 06.20.2002: update printer list creation to work with the latest fixpak  */
+/* 06.21.2002: updated version number to 2.1                                */
+/* 07.02.2002: updated version number to 2.2                                */
+/*             enabled netscape, fi and java update detection for warp 3    */
+/* 07.06.2002: enabled netscape, fi and java update integration for warp 3  */
+/* 07.08.2002: enabled java fixpak integration for warp 3                   */
+/* 07.11.2002: enabled netware fixpak integration for warp 3                */
+/* 08.23.2002: added function build_java_alias                              */
+/* 09.09.2002: updated version number to 2.23                               */
+/* 09.16.2002: added Korean language detection signature                    */
+/* 09.18.2002: added Spanish fixpak detection strings                       */
+/* 09.25.2002: added function to place the Volume CD string in burn EA's    */
+/* 09.27.2002: added removal of attribs of DSK files                        */
+/* 10.09.2002: aligned with latest printer fixes                            */
+/* 10.17.2002: added JAVA+SWING update detection functions for CP           */
+/* 11.11.2002: added support for mpts and tcp/ip fixpaks for tcp/ip 4.3     */
+/* 11.13.2002: added dependency check for tcp/ip 4.3 fixes                  */
+/* 11.24.2002: changed ecs fixpak\update detection and log functions        */
+/* 12.02.2002: corrected size 2.88MB floppy in function size_floppy         */
+/* 12.08.2002: update printer list creation to work with the latest fixpak  */
+/* 12.11.2002: update printer list creation again                           */
+/* 12.17.2002: version number change 2.26 -> 2.30                           */
+/* 12.23.2002: version number change 2.30 -> 2.31                           */
+/* 01.14.2003: improved tcp/ip fixpak detection                             */
+/* 02.09.2003: added find_bundled_file function                             */
+/* 02.27.2003: added function load_language                                 */
+/* 03.14.2003: version number change 2.32 -> 2.33                           */
+/* 03.29.2003: added national language support                              */
+/* 03.30.2003: added function to return fixpak version number               */
+/* 04.13.2003: removed expert mode                                          */
+/* 04.16.2003: fixed bug in load_language caused install.cmd to crash       */
+/* 05.04.2003: removed usage temp.ini file from function get_fixpak_version */
+/* 05.17.2003: function find_bundled_file did not return a value            */
+/* 05.20.2003: create directories in upper case                             */
+/* 06.14.2003: update printer list creation to work with the latest fixpak  */
+/* 06.16.2003: version number change 2.34 -> 2.35                           */
+/* 06.22.2003: added function replace_string_in_file                        */
+/*             added function log_config_file                               */
+/* 06.27.2003: fixed bug in function replace_string_in_file                 */
+/* 06.29.2003: updcd version number was not stored/updated in os2.ini       */
+/* 07.06.2003: adapted to latest ecs 1.0 updates                            */
+/* 08.22.2003: translated Y/N using messages                                */
+/* 09.06.2003: added support for tcp/ip fixpak un2101                       */
+/* 09.21.2003: added support for no-emulation boot                          */
+/* 10.11.2003: fixed tcp/ip 4.3 problem with cmd files (jvc2)               */
+/* 10.24.2003: added tunefls                                                */
+/* 11.01.2003: removed aux tool detection (ecs)                             */
+/* 11.04.2003: logging cdrecord device did not work                         */
+/* 11.10.2003: disabled addon product integration for ecs 1.1               */
+/* 11.23.2003: added mkrsp and lcudrv copy for CP                           */
+/* 11.29.2003: do not add lcuinst.wp3 to CD of Warp 4 or higher             */
+/* 12.07.2003: prdesc.lst was not updated for eCS 1.1                       */
+/* 12.13.2003: generic postrict printer did not install on eCS 1.1          */
+/* 01.03.2004: some messages were not added to NLS                          */
+/* 01.08.2004: added function regenerate_cdinst                             */
+/* 01.13.2004: swing run-time location logging was incorrect                */
+/* 01.20.2004: added support for java 1.1.8 fixpaks for eCS 1.1 and CP      */
+/* 02.01.2004: updated build_java_alias                                     */
+/* 02.14.2004: enabled 3rd party addons support for ecs 1.1                 */
+/* 04.10.2004: enabled tuning support for ecs 1.1                           */
+/* 04.11.2004: tunecfg.cfg were incorrectly handled (dubbel entries)        */
+/* 05.16.2004: added localization to npconfig.exe replacement               */
+/* 05.23.2004: IBMNULL driver was not added to printer list                 */
+/* 08.19.2004: added new configuration options                              */
+/* 09.18.2004: fi update detection was not enabled for wseb                 */
+/* 10.08.2004: fixed function regenerate_cdinst                             */
+/* 11.06.2004: added logfile check                                          */
+/* 12.12.2004: added logging of new config options + checks for peer/ls     */
+/* 01.17.2005: added nosniff/nodasd options                                 */
+/* 02.12.2005: added generation of full printer list                        */
+/* 02.19.2005: added nonetscape/nojava options                              */
+/* 02.20.2005: added noshield option                                        */
+/* 03.07.2005: store number of errors and warnings in os2.ini               */
+/* 03.27.2005: JAVA_HIGH_MEMORY=1 should't be added to cfg.sys when nojava=1*/
+/* 06.22.2005: tcpinst.rsp should always be copied to ibminst\tables        */
+/* 07.02.2005: added installation of VPN+NFS                                */ 
+/* 07.19.2005: relocated updcd.log was not copied to burn                   */
+/* 11.27.2005: added otherwise nop to add_updated_cid_procedure             */
+/* 11.28.2005: made copy npconfig.exe to npcfg.exe conditional              */
+/* 02.19.2006: added usb boot CD support                                    */
+/* 03.01.2006: addon installation icon did not work on ecs 1.2              */
+/* 03.25.2006: callprog.cmd should not be created on non Warp 3 systems     */
+/* 04.18.2006: 2.56 -> 2.57                                                 */
+/* 09.16.2006: added installation of DHCP_DDNS                              */ 
+/* 12.05.2006: added function replace_string_in_binary_file                 */
+/* 23.01.2007: 2.59 -> 2.60                                                 */
+/****************************************************************************/
+
+/**************************************************/
+/* delete directory structure including all files */
+/* skip ea data.sf and root directory (e.g. c:)   */
+/**************************************************/
+DelDir: procedure expose n. log iddir flpdrv msg.
+
+	parse upper arg Directory
+	DirSpec = Directory'\*'
+
+	/* delete subdirectories */
+	rc = SysFileTree(DirSpec, Subdirs, 'DO', '*****', '-*---')
+	do i = 1 to Subdirs.0
+   		call DelDir Subdirs.i
+	end
+
+	/* delete files */
+	rc = SysFileTree(DirSpec, Files, 'FO', '*****', '-*---')
+	do i = 1 to Files.0
+		if pos('EA DATA. SF', Files.i) = 0 then do
+			'@del "'Files.i'"'
+			if rc <> 0 then call lineout log, 'Error: @del 'Files.i' rc='rc
+		end
+ end
+
+	/* delete directory */
+	cdir1 = translate(chdir())
+	cdir2 = translate(chdir(Directory))
+	call chdir '\'
+	cdir1 = chdir(cdir1)
+	if pos(Directory, cdir2) > 0 & cdir2 <> cdir1 & substr(Directory, 2) <> ':' then do
+		'@rmdir "'Directory'"'
+		if rc <> 0 then call lineout log, 'Error: @rmdir 'Directory' rc='rc
+	end
+
+return
+
+/********************************************************************/
+/* execute command, display it and write result to log              */ 
+/* do not execute if argument of copy/pack/del/xcopy does not exist */
+/********************************************************************/
+execute: procedure expose log n. iddir updated. flpdrv  msg.
+
+	/* parse command */
+	parse arg comm 
+	rcode = 0
+	if pos('"', comm) > 0 then do
+		parse upper var comm comm1 comm2
+		comm2 = strip(comm2, 'B', '"')
+		comm3 = ''
+		comm4 = ''
+	end
+	else 
+		parse upper var comm comm1 comm2 comm3 comm4 rest
+
+	/* display it */
+	if comm1 = '@..\BIN\ZIP.EXE' then do	
+		say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(comm3), 1, 50))), 1, 50)
+		say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(comm4), 1, 50))), 1, 50)
+		say '1B'x || '[11;26HZIP         '
+	end
+	else if comm1 = '@MKDIR' | comm1 = '@RMDIR' | comm1 = '@CD' then do	
+		nop;
+	end
+	else if comm1 = '@BIN\UNZIP' then do	
+		say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(rest), 1, 50))), 1, 50)
+		say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(comm3), 1, 50))), 1, 50)
+		say '1B'x || '[11;26HUNZIP         '
+	end
+	else do 
+		say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(comm3), 1, 50))), 1, 50)
+		say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(comm2), 1, 50))), 1, 50)
+		if pos('\', comm1) > 0 then action = substr(comm1, lastpos('\', comm1)+1, 50)
+		else action = substr(comm1, lastpos('\', comm1)+2, 50)
+		say '1B'x || '[11;26H'action
+	end
+	say '1B'x || '[12;26H0       '
+
+	/* do not copy or pack if file does not exist */
+	call SysFileTree comm2, 'tmp.', 'FSO'
+	tmp = substr(log, 1, lastpos('\', log))||'$error$.txt' 
+	if (comm1 <> '@COPY' & comm1 <> '@BIN\PACK2' & comm1 <> '@DEL' & comm1 <> '@XCOPY') | (stream(comm2, 'c', 'query exists') <> '') | (tmp.0 > 0) then do
+		comm' >'tmp' 2>>&1'
+		if rc <> 0 then rcode = rc
+	end
+	else do /* log warning */
+		if comm1 <> '@DEL' then do
+			call lineout log, 'Warning: 'comm2' does not exist!'
+			n.warnings = n.warnings + 1
+			call report_status
+		end
+		return
+	end
+	comm = comm ||' rc='rcode
+
+	/* report result */
+	say '1B'x || '[12;26H'rcode' '
+	if rcode <> 0 then do
+		call lineout log, 'Error: 'comm
+		do while lines(tmp)
+			l=linein(tmp)
+			call lineout log, l
+		end
+		call lineout tmp
+		call lineout log
+		n.errors = n.errors + 1
+	end
+	else do
+		call lineout log, 'Info: 'comm
+		call lineout log
+	end
+
+	/* add file to updated file list for updcd.cmd */
+	filename = substr(comm2, lastpos('\', comm2)+1)
+	filename = translate(filename, '_', '.')
+	updated.filename = 1
+
+	call report_status
+
+	if stream(tmp, 'c', 'query exists') <> '' then '@del 'tmp' >nul 2>>&1'
+
+return rcode
+
+/***************************************************/
+/* execute postprocessing command, display and log */
+/* supports the use of wildcards                   */
+/***************************************************/
+execute2: procedure expose log n. updated. msg.
+
+	parse arg comm
+	rcode = 0
+
+	parse upper var comm comm1 comm2 comm3 comm4 rest
+	/* do not copy or pack if file does not exist */
+	tmp = substr(log, 1, lastpos('\', log))||'$error$.txt' 
+	call SysFileTree comm2, 'tmp.', 'FSO'
+	if (comm1 <> '@COPY' & comm1 <> '@BIN\PACK2' & comm1 <> '@DEL' & comm1 <> '@XCOPY') | (stream(comm2, 'c', 'query exists') <> '') | (tmp.0 > 0) then do
+		comm' > 'tmp' 2>>&1'
+		if rc <> 0 then rcode = rc
+	end
+	else do /* log warning */
+		call lineout log, 'Warning: Fixpak file 'comm2' does not exist!'
+		n.warnings = n.warnings + 1
+		call report_status
+		return
+	end
+	comm = comm ||' rc='rcode
+
+	if comm1 = '@..\BIN\ZIP.EXE' then do	
+		say '1B'x || '[8;26H'substr(comm3, 1, 50)
+		say '1B'x || '[9;26H'substr(comm4, 1, 50)
+		say '1B'x || '[11;26HZIP         '
+	end
+	else if comm1 = '@MKDIR' | comm1 = '@RMDIR' | comm1 = '@CD' then do	
+		nop;
+	end
+	else if comm1 = '@BIN\UNZIP' then do	
+		say '1B'x || '[8;26H'substr(rest, 1, 50)
+		say '1B'x || '[9;26H'substr(comm3, 1, 50)
+		say '1B'x || '[11;26HUNZIP         '
+	end
+	else do
+		say '1B'x || '[8;26H'substr(comm3, 1, 50)
+		say '1B'x || '[9;26H'substr(comm2, 1, 50)
+		say '1B'x || '[11;26H'substr(comm1, 2, 50)
+	end
+	say '1B'x || '[12;26H'rcode' '
+
+	if rcode <> 0 then do
+		call lineout log, 'Error: 'comm
+		do while lines(tmp)
+			l=linein(tmp)
+			call lineout log, l
+		end
+		call lineout tmp
+		call lineout log
+		n.errors = n.errors + 1
+		call report_status
+	end
+	else do
+		call lineout log, 'Info: 'comm
+		call lineout log
+	end
+
+	do i=1 to tmp.0
+		filename = translate(substr(tmp.i, lastpos('\', tmp.i)+1))
+		filename = translate(filename, '_', '.')
+		updated.filename = 1
+	end
+
+	call report_status
+
+	if stream(tmp, 'c', 'query exists') <> '' then '@del 'tmp' >nul 2>>&1'
+
+return 
+
+/*************************************************/
+/* display elapsed time, error and warning count */
+/*************************************************/
+report_status: procedure expose n. msg.
+
+	say '1B'x || '[14;2H'msg.0149' 'trunc(time('E')/60 + n.elapsed, 2)
+	say '1B'x || '[15;2H'msg.0150' 'n.errors
+	say '1B'x || '[16;2H'msg.0151' 'n.warnings
+	say '1B'x || '[19;2H'
+
+return
+
+/***************************************************/
+/* copy files from sdir to tdir except ea data. sf */
+/***************************************************/
+CopyDir: procedure expose log n. msg.
+
+	parse arg sdir tdir 
+
+	'@echo Info: Copying 'sdir' to 'tdir' >> 'log
+	rcode = 0
+	call SysFileTree sdir'\*', ini., 'B', , '**---'
+
+	do i=1 to ini.0
+ 	parse upper var ini.i . . . attribs object
+ 	object = space(object)
+ 	if substr(attribs, 2, 1) <> 'D' then ini.i = object
+ 	else do
+ 		newdir = translate(tdir||substr(object, length(sdir)+1))
+ 		'@mkdir "'newdir'" >nul 2>>&1'
+	 	call copydir object newdir
+	 	iterate
+	 end
+
+ 	if pos('EA DATA. SF', translate(ini.i)) = 0 then do
+ 		'@copy "'ini.i'" "'tdir'\." >nul 2>>&1'
+ 		rcode = rc
+ 		if rcode <> 0 then do
+ 			rc = lineout(log, 'Error: @copy 'ini.i tdir'\. (rc='rcode')')
+ 			rc = lineout(log)
+ 			if datatype(n.errors) = 'NUM' then n.errors = n.errors + 1
+ 		end
+ 		else do
+ 			rc = lineout(log, 'Info: @copy 'ini.i tdir'\. (rc='rcode')')
+ 			rc = lineout(log)
+ 		end
+ 	end
+ end
+	if datatype(n.errors) = 'NUM' then call report_status
+
+return rcode
+
+/***********************************************************/
+/* read the updcd cfg file and get absolute directory path */
+/***********************************************************/
+Read_Config_File: 
+
+	parse arg cfgfile
+
+	/* check */
+	if stream(cfgfile, 'c', 'query exists') = '' then do
+		say msg.0152' 'cfgfile
+		say msg.0153
+		'@pause'
+		exit 9
+	end
+
+	/* read file */
+	do while lines(cfgfile)
+		l = linein(cfgfile)
+		interpret l
+	end
+	call lineout cfgfile 
+
+	/* need to know abolute path */
+	burn    = get_abs_path(burn)
+	w4cd    = get_abs_path(w4cd)
+	fixes   = get_abs_path(fixes)
+	updates = get_abs_path(updates)
+	addons  = get_abs_path(addons)
+	rootdir = get_abs_path(rootdir)
+	tempdir = get_abs_path(tempdir)
+	source  = get_abs_path(source)
+	cdrdir  = get_abs_path(cdrdir)
+
+	/* need to know abolute path for files */
+	if filespec('drive', log) = '' then 
+		log	= cdir||'\'||filespec('name', log)
+	if filespec('drive', tempraw) = '' then 
+		tempraw	= cdir||'\'||filespec('name', tempraw)
+	if filespec('drive', burnlog) = '' then 
+		burnlog	= cdir||'\'||filespec('name', burnlog)
+
+return
+
+/***********************************************************/
+/* get absolute dir path, if dir does not exist, create it */
+/***********************************************************/
+get_abs_path: procedure
+
+	parse arg target_dir
+
+	'@mkdir 'translate(target_dir)' >nul 2>>&1'
+	cdir = chdir()
+	pdir = target_dir
+	target_dir = chdir(target_dir)
+	if target_dir = cdir then target_dir = pdir
+	cdir = chdir(cdir)
+
+return target_dir
+
+/*************************************************************/
+/* chdir: drive and path aware directory() replacement       */
+/*        returns the current dir without trailing backslash */
+/*************************************************************/
+chdir: procedure
+
+	parse upper arg dr                /* get target dir        */
+
+	if length(dr) > 1 then dr = strip(dr, 'T', '\')
+	cdir = directory()                /* get current dir       */
+	if substr(dr, 2, 1) = ':' then do /* absolute path         */
+		drive = substr(dr, 1, 2)
+		rc = directory(drive)           /* change to drive       */
+		if substr(rc, 1, 2) <> drive then 
+			return strip(directory(cdir), 'T', '\')
+		rc = directory('\')             /* change to root        */
+		rc = directory(substr(dr, 3))   /* change to path        */
+		if strip(rc, 'T', '\') <> dr then 
+			return strip(directory(cdir), 'T', '\')
+	end
+	else do
+		return strip(directory(dr), 'T', '\')  /* relative path  */
+	end
+
+return strip(directory(), 'T', '\') /* return current dir    */
+
+/**************************************************************************/
+/* build new printer list based on lists provided in printer driver fixes */
+/**************************************************************************/
+create_printer_list: procedure expose log n. fpk.pdd.dir msg.
+
+	parse upper arg opt
+
+	/* define files */
+	plst         = 'fix\PRDESC.LST'
+	plst2        = 'fix\PRDESC.LS2'
+	pscript_lst  = fpk.pdd.dir'\pscript.lst'
+	plotters_lst = fpk.pdd.dir'\plotters.lst'
+	omni_lst     = fpk.pdd.dir'\omni.lst'
+	laserjet_lst = fpk.pdd.dir'\laserjet.lst'
+
+	/* a string which is probably not used in the lst files :-) */
+	prp. = '6QWRTY9+-<'
+
+	/* define search strings */
+	if stream(pscript_lst,  'c', 'query exists') <> '' then prp.1 = 'PSCRIPT.DRV'
+	if stream(plotters_lst, 'c', 'query exists') <> '' then prp.2 = 'PLOTTERS.DRV'
+	if stream(omni_lst,     'c', 'query exists') <> '' then prp.3 = 'OMNI.DRV'
+	if stream(laserjet_lst, 'c', 'query exists') <> '' then prp.4 = 'LASERJET.DRV'
+
+	/* get lines out of the old file which are still needed */
+	rest = 'REST.LST'
+	'@del 'rest' >nul 2>>&1'
+	do while lines(plst)
+		l=linein(plst)
+		if pos(prp.1, l) = 0 & pos(prp.2, l) = 0 & pos(prp.3, l) = 0 & pos(prp.4, l) = 0 then call lineout rest, l
+	end
+	call lineout rest
+	call lineout plst
+
+	/* get and add new lines */
+	temp = 'TEMP.LST'
+	'@del 'temp' >nul 2>>&1'
+	call execute '@copy 'rest temp
+	'@del 'rest' >nul 2>>&1'
+	if stream(pscript_lst,  'c', 'query exists') <> '' then '@copy 'temp'+'pscript_lst  temp' >nul'
+	if stream(plotters_lst, 'c', 'query exists') <> '' then '@copy 'temp'+'plotters_lst temp' >nul'
+	if stream(omni_lst,     'c', 'query exists') <> '' then '@copy 'temp'+'omni_lst     temp' >nul'
+	if stream(laserjet_lst, 'c', 'query exists') <> '' then '@copy 'temp'+'laserjet_lst temp' >nul'
+
+	/* sort it */	
+	call bubblesort
+
+	/* remove drv to save space, install.exe crashes if file bigger than 64k */
+	out = 'OUT.LST'
+	i = 1
+	do while lines(out)
+		l.i = linein(out)
+		m.i = translate(l.i)
+		i = i+1
+	end
+	call lineout out
+	'@del 'out
+	l.0 = i-1
+	do i = 1 to l.0
+		/* the pscript list might contain a bug */ 
+		p = translate(substr(m.i, 2, 19))
+		if p = 'GENERIC PS PRINTER:' then l.i = 'Generic PS Printer: Generic PostScript Printer (PSCRIPT.DRV)'
+		p = translate(substr(m.i, 2, 27))
+		if p = 'GENERIC POSTSCRIPT PRINTER:' then l.i = 'Generic PostScript Printer: Generic PostScript Printer (PSCRIPT.DRV)'
+		if opt <> 'ECS11' then do
+			j.i = l.i
+			p = translate(m.i)
+			if pos('IBM NULL PRINTER', p) = 0 then do
+				parse value l.i with w1 ':' w2
+				l.i = 'Printer: 'space(w2)
+			end
+			else
+				l.i = 'Printer: IBM NULL Printer Driver (IBMNULL.DRV)'
+			call lineout plst2, j.i
+		end
+		call lineout out, l.i
+	end
+	call lineout out
+	if opt <> 'ECS11' then call lineout plst2
+
+	/* update printer list */
+	call execute '@copy 'out' 'plst
+	'@del 'out
+
+return
+
+/*********************************************************/
+/* sort procedure used to sort printers in new list file */
+/*********************************************************/
+BubbleSort: PROCEDURE
+
+	/* sort new file */
+	temp = 'TEMP.LST'
+	i=1
+	do while lines(temp)
+		stem.i=linein(temp)
+		i=i+1
+	end
+	stem.0=i-1
+	call lineout temp
+	'@del 'temp' >nul 2>>&1'
+
+	do i = stem.0 to 1 by -1 until flip_flop = 1
+		flip_flop = 1
+		do j = 2 to i
+		  m = j - 1
+			if stem.m >> stem.j then do
+				xchg   = stem.m
+				stem.m = stem.j
+				stem.j = xchg
+				flip_flop = 0
+			end
+		end
+	end
+
+	out = 'OUT.LST'
+	'@del 'out' >nul 2>>&1'
+	do i=1 to stem.0
+		 call lineout out, stem.i
+	end
+	call lineout out
+
+return
+
+/***********/
+/* burn CD */
+/***********/
+burn_cd: procedure expose n. msg.
+
+	cdrprg = 'record.cmd'
+	if stream(cdrprg, 'c', 'query exists') <> '' then do
+		call display_action msg.0199' 'cdrprg
+		say '1B'x || '[19;2H'
+		'@call 'cdrprg
+	end
+	else say msg.0154' 'cdrprg
+
+return
+
+/***********************/
+/* clean up and report */
+/***********************/
+clean_up: procedure expose n. log msg.
+
+	call delete_if_exist 'result.out go4it.bsy fibase.loc bin\zip.exe'
+
+	/* copydir drv substr(tmp.i, 1, lastpos('\', tmp.i)-1) fatal errors */
+	call SysIni , 'UPDCD', 'WRN', n.warnings
+	call SysIni , 'UPDCD', 'ERR', n.errors
+	if n.errors > 0 then 	
+		say '1B'x || '[19;2H'msg.0155' 'log'!'
+	else do
+		say '1B'x || '[19;2H'msg.0156
+		/* burn CD-ROM */
+		call burn_cd
+	end
+
+return
+
+/************************/
+/* add UPDCD info to CD */
+/************************/
+add_updcd: 
+
+	call execute '@mkdir 'burn'\UPDCD\BIN'
+	call execute '@copy bin\* 'burn'\updcd\bin\.'
+	call execute '@mkdir 'burn'\UPDCD\NEWINST'
+	call execute '@copy newinst\* 'burn'\updcd\newinst\.'
+	call execute '@mkdir 'burn'\UPDCD\DOC'
+	call execute '@copy doc\*.htm 'burn'\updcd\doc\.'
+	call execute '@copy doc\*.jpg 'burn'\updcd\doc\.'
+	call execute '@copy doc\*.gif 'burn'\updcd\doc\.'
+	call execute '@mkdir 'burn'\UPDCD\ADDONS'
+	if iaddons = 1 then do
+		if translate(os2_version) <> 'ECS' then call execute '@xcopy 'addons'\* 'burn'\updcd\addons\. /S/O/T/R/E/H'
+	end
+	else '@echo No addons were added during the build procedure. > 'burn'\updcd\addons\read.me'
+	'@copy go4it.cmd 		'burn'\updcd\. >nul'
+	'@copy updcd.cfg 		'burn'\updcd\. >nul'
+	'@copy record.cmd 	'burn'\updcd\. >nul'
+	'@copy PMUPDCD.EXE 	'burn'\updcd\. >nul'
+	'@copy install.cmd 	'burn'\updcd\. >nul'
+	'@copy README.ENG 	'burn'\updcd\. >nul'
+	'@copy updcd.htm 		'burn'\updcd\. >nul'
+	/* '@copy readme.hun 	'burn'\updcd\. >nul' */
+	call lineout log, 'Info: Total number of errors  : 'n.errors
+	call lineout log, 'Info: Total number of warnings: 'n.warnings
+	call lineout log, 'Info: Elapsed time: 'trunc(time('E')/60 + n.elapsed, 2)
+	call lineout log
+	'@copy 'log' 'burn'\updcd\. >nul'
+
+return
+
+/************************/
+/* Add fixed getcfg.exe */
+/************************/
+add_getcfg:
+
+	call execute '@copy 'burn'\os2image\disk_3\getcfg.exe 'burn'\os2image\disk_3\getcfg2.exe'
+	call execute '@copy newinst\getcfg.exe 'burn'\os2image\disk_3\.'
+
+return
+
+/*****************************************/
+/* delete files from dir without logging */
+/* if option = 'S' then del dr too       */
+/*****************************************/
+cleanup_dir: 
+
+	parse upper arg dr option
+
+	call SysFileTree dr'\*', 'ini.', 'FSO',,'**---'
+	do i = 1 to ini.0
+		'@del "'ini.i'"'
+	end
+	if option = 'S' then call deldir dr
+
+return
+
+/**************************/
+/* delete files from burn */
+/**************************/
+cleanup_burn:
+	
+	call SysFileTree burn'\*', 'ini.', 'BSO',,'**---'
+	if ini.0 = 0 then return
+	plugin = 'pin\cleanup.pin'
+	do while lines(plugin)
+		l = linein(plugin)
+		interpret l
+	end
+	call lineout plugin
+
+return
+
+/********************************/
+/* initialize updcd environment */
+/********************************/
+initialize_updcd_environment:
+
+	/* check cddrive value */
+	if substr(cddrive, 2) = ':' then w4cd = translate(cddrive)
+
+	/* make sure they exist */
+	'@mkdir 'burn' >nul 2>>&1'
+	'@mkdir 'fixes' >nul 2>>&1'
+	'@mkdir 'updates' >nul 2>>&1'
+	'@mkdir 'addons' >nul 2>>&1'
+	'@mkdir fix >nul 2>>&1'
+
+	/* updcd version */
+	ver = get_updcd_version()
+
+	/* load rexxutil */
+	call load_rexxutil
+
+	/* check updcd log */
+	call check_log log
+
+	/* remember we were started */
+	'@echo go4it busy > go4it.bsy'
+
+	/* clean up things */
+	'@mode 80,25 >nul'
+	'@ansi on >NUL'
+	say '1B'x || '[36;44m'
+	say '1B'x || '[1m'
+	'@cls'
+	call syscurstate off
+	say
+	say ' 'msg.0158
+	say
+	say ' 'msg.0159
+	call cleanup_dir fix
+	call cleanup_dir tmp' S'
+
+return
+
+/**************************************/
+/* find addons and Warp 4 FI products */
+/**************************************/
+find_addons_and_fi:
+
+	parse upper arg os2_version
+
+	say
+	if stream(addons'\read.me', 'c', 'query exists') <> '' then do
+			call sysfiletree addons'\*', 'ini.', 'DO'
+			rc = lineout(, ' 'ini.0-2' 'msg.0432' 'ADDONS)
+	end
+	if stream('fi\fibase.rsp', 'c', 'query exists') <> '' then do
+			call sysfiletree 'fi\*', 'ini.', 'DO'
+			if os2_version <> 'WARP4' & os2_version <> 'WARP3' then
+		 	rc = lineout(, ' 'ini.0' 'msg.0433' 'chdir()||'\FI')
+	end
+
+return
+
+/*******************************/
+/* determining language to use */
+/*******************************/
+determine_language: 
+
+	parse upper arg os2_version
+
+	select 
+		when os2_version = 'WARP4' then do
+			ini = w4cd'\os2image\disk_2\syslevel.os2'
+			string = '5639A6100'
+		end
+		when os2_version = 'WSEB' then do
+			ini = w4cd'\os2image\disk_2\syslevel.os2'
+			string = 'Warp Server'
+		end
+		when os2_version = 'CP' | os2_version = 'ECS' then do
+			select
+				when os2_version = 'CP'  then ini = w4cd'\os2image\disk_2\syslevel.os2'
+				when os2_version = 'ECS' then ini = w4cd'\os2\install\syslevel.os2'
+			end
+			string = 'Convenience Package'
+		end
+		when os2_version = 'WARP3' then do
+			ini = w4cd'\os2image\disk_1\syslevel.os2'
+			string = '5622'
+		end
+		otherwise nop;
+	end
+
+	if stream(ini, 'c', 'query exists') <> '' then do
+		do while lines(ini)
+			l=linein(ini)
+			if pos(string, l) > 0 then do
+				lang = substr(l, pos('XR', l), 3)
+				if os2_version = 'WARP3' then vers = substr(l, pos('XR', l)+3, 4)
+			end
+			else if os2_version = 'WARP3' then do
+				vers = '3002'
+				rc = lineout(log, 'Info: Selecting default version number for Warp 3')
+			end
+		end
+		rc = lineout(ini)
+	end
+	else do
+		Say
+		Say ' 'msg.0160
+		rc = lineout(log, 'Error: No CD-ROM found! Exiting...')
+		'@del go4it.bsy >nul 2>>&1'
+		exit 9
+	end
+
+	select
+		when lang = 'XR0' then lang = 'EN (English)'
+		when lang = 'XRU' then lang = 'EN (English)'
+		when lang = 'XRG' then lang = 'DE (German)'
+		when lang = 'XRN' then lang = 'NO (Norwegian)'
+		when lang = 'XRV' then lang = 'TW (Thai)'
+		when lang = 'XRF' then lang = 'FR (French)'
+		when lang = 'XRI' then lang = 'IT (Italian)'
+		when lang = 'XRJ' then lang = 'JP (Japanese)'
+		when lang = 'XRK' then lang = 'KO (Korean)'
+		when lang = 'XRQ' then lang = 'KO (Korean)'
+		when lang = 'XRB' then lang = 'BR (Brazilian)'
+		when lang = 'XRC' then lang = 'CN (Chinese)'
+		when lang = 'XRS' then lang = 'ES (Spanish)'
+		when lang = 'XRD' then lang = 'DK (Danish)'
+		when lang = 'XRL' then lang = 'FI (Finnish)'
+		when lang = 'XRH' then lang = 'NL (Dutch)'
+		when lang = 'XRY' then lang = 'HU (Hungarian)'
+		when lang = 'XRR' then lang = 'RU (Russian)'
+		when lang = 'XRA' then lang = 'AR (Arabic)'
+		otherwise lang = msg.0162
+	end
+	rc = lineout(, ' 'msg.0163' 'lang)
+
+	say ' 'msg.0161
+	'@pause >nul'
+
+return
+
+/***********************************************/
+/* switch off deldir if set to speed up things */
+/***********************************************/
+switch_off_deldir:
+
+	ddir = value("DELDIR", , "OS2ENVIRONMENT")
+	if length(ddir) > 0 then do
+		rc = lineout(log, 'Info: Switching off deldir...')
+		ddir = value("DELDIR", "", "OS2ENVIRONMENT")
+	end
+
+return
+
+/***********************************************************/
+/* set up environment, call cmd file and return the result */
+/***********************************************************/
+run_it: procedure expose n. msg.
+
+	parse arg cmd_file parameter_string
+
+	'@del result.out >nul 2>>&1'
+	'@call 'cmd_file parameter_string
+	res = linein('result.out')
+	rc = lineout('result.out')
+	parse var res n.errors n.warnings 
+
+return
+
+/**************************/
+/* display startup screen */
+/**************************/
+display_startup_screen: procedure expose n. log ver os2_version msg.
+
+	parse arg target source rest
+	parse value rest with message"*"current 
+
+	'@cls'
+	say '1B'x || '[2;2H'message', 'msg.0164' 'ver
+	say '1B'x || '[4;2H'msg.0165' 'substr(target, 1, 50)
+	say '1B'x || '[5;2H'msg.0166' 'substr(source, 1, 50)
+	say '1B'x || '[7;2H'msg.0167' 'substr(current, 1, 50)
+	say '1B'x || '[8;2H'msg.0168' 'substr('Searching...', 1, 50)
+	say '1B'x || '[9;2H'msg.0169' 'substr('Searching...', 1, 50)
+	say '1B'x || '[11;2H'msg.0170' 'substr('Searching...', 1, 50)
+	say '1B'x || '[12;2H'msg.0171' 0'
+	say '1B'x || '[14;2H'msg.0149' 'trunc(time('E')/60 + n.elapsed, 2)
+	say '1B'x || '[15;2H'msg.0150' 'n.errors
+	say '1B'x || '[16;2H'msg.0151' 'n.warnings
+	say '1B'x || '[17;2H'msg.0175' 'log
+	say '1B'x || '[19;2H'
+	call syscurstate off
+
+return
+
+/***************************/
+/* log detected components */
+/***************************/
+log_detected_components:
+
+	parse upper arg os2_version
+
+	'@del 'log' >nul 2>>&1'
+	rc = lineout(log, 'Info: Logging current config...')
+	call log_config_file log
+	rc = lineout(log, 'Info: Searching for fixes and updates...')
+	if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' then 
+		if fpk.os2.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.os2.typ' OS/2 'fpk.os2.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' | os2_version = 'ECS' then 
+		if fpk.dd.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.dd.typ' Driver 'fpk.dd.dir)
+	if os2_version = 'WARP4' | os2_version = 'CP'  | os2_version = 'ECS' then 
+		if fpk.cp1.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.cp1.typ' CP_1 'fpk.cp1.dir)
+	if os2_version = 'WARP4' | os2_version = 'WSEB' | os2_version = 'WARP3' | os2_version = 'CP' then 
+		if fpk.per.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.per.typ' PEER/LS 'fpk.per.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then 
+		if fpk.mpt.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.mpt.typ' MPTS 'fpk.mpt.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then 
+		if fpk.tcp.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.tcp.typ' TCP/IP 'fpk.tcp.dir)
+	if os2_version = 'WARP3' then 
+		if fpk.tc2.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.tc2.typ' TCP/IP 'fpk.tc2.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' then 
+		if fpk.nwr.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.nwr.typ' Netware 'fpk.nwr.dir)
+	if os2_version = 'WARP4' | os2_version = 'WSEB' | os2_version = 'WARP3' | os2_version = 'CP' then 
+		if fpk.pdd.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.pdd.typ' Printer 'fpk.pdd.dir)
+	if os2_version = 'WARP4' | os2_version = 'WSEB' | os2_version = 'WARP3' | os2_version = 'CP' then 
+		if fpk.jav.dir <> '' then rc = lineout(log, 'Info: Found fixpak 'fpk.jav.typ' JAVA    'fpk.jav.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then 
+		if upd.mpt.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.mpt.typ' MPTS 'upd.mpt.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then 
+		if upd.tcp.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.tcp.typ' TCP/IP 'upd.tcp.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then 
+		if upd.jav.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.jav.typ' JAVA118 'upd.jav.dir)
+	if os2_version = 'CP' then 
+		if upd.ja1.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.ja1.typ' SWING 'upd.ja1.dir)
+	if os2_version = 'CP' then 
+		if upd.ja2.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.ja2.typ' JAVA13X 'upd.ja2.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' then 
+		if upd.fii.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.fii.typ' FI 'upd.fii.dir)
+	if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then 
+		if upd.nsc.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.nsc.typ' Netscape 'upd.nsc.dir)
+	if os2_version = 'WARP4' then 
+		if upd.fd1.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.fd1.typ' DISK1 'upd.fd1.dir)
+	if os2_version = 'WARP4' then 
+		if upd.fd2.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.fd2.typ' DISK2 'upd.fd2.dir)
+	if os2_version = 'WARP4' then 
+		if upd.fax.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.fax.typ' PMFAX 'upd.fax.dir)
+	if os2_version = 'ECS' then 
+		if upd.dlg.dir <> '' then rc = lineout(log, 'Info: Found update 'upd.dlg.typ' ECSUDLG 'upd.dlg.dir)
+	rc = lineout(log, 'Info: Detected language: 'lang)
+	rc = lineout(log)
+
+return
+
+/******************************/
+/* check/set default language */
+/******************************/
+set_default_language:
+
+	parse var lang w1 w2
+	lang = space(w1)
+	if lang = 'HU' | lang = 'RU' | lang = 'AR' | lang = 'Unknown' then lang = 'EN'
+
+return
+
+/***********************************/
+/* display action and elapsed time */
+/***********************************/
+display_action: procedure expose n. msg.
+
+		parse arg message
+		say '1B'x || '[7;26H'substr(message, 1, 50)
+		say '1B'x || '[14;26H'trunc(time('E')/60 + n.elapsed, 2)	
+
+return
+
+/**************************************************/
+/* find fixpaks located in the subdirectory fixes */
+/**************************************************/
+find_fixpaks: procedure expose fpk. msg.
+
+	parse upper arg startdir os2_version mode
+
+	fpk. = ''
+	say /* display header */
+	call lineout , msg.0177
+	call lineout , msg.0178
+
+	/* find product files */
+	call SysFileTree startdir'\srv_prod.*', 'ini.', 'FSO'
+
+	/* examine product files */
+	fpk. = ''
+	do i = 1 to ini.0
+		templine = charin(ini.i,1,stream(ini.i, 'c', 'query size'))
+		call lineout ini.i
+		do while lines(ini.i)
+			l=linein(ini.i)
+			/* base warp 3/4 fixpak */
+			if os2_version = 'WARP4' | os2_version = 'WARP3' then
+				if (pos('IBM OS/2 Base Operating System', l) > 0 | pos('IBM OS/2 Basisbetriebssystem', l) > 0 | pos('IBM OS/2 Sistema Operativo Base', l) > 0) & fpk.os2.fnd <> 1 then do
+					if mode <> 'WUK' then fpk.os2.fnd = 1
+					fpk.os2.typ = substr(l, pos('XR', l), 7)
+					fpk.os2.num = substr(fpk.os2.typ, 5)
+					fpk.os2.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					fpk.os2.dir = substr(fpk.os2.dir, 1, lastpos('\FIX\', fpk.os2.dir)-1)
+					call lineout , " "fpk.os2.typ"    OS/2      "fpk.os2.dir
+					fpk.os2.typ = 'XR'substr(fpk.os2.typ, 4)
+					if mode <> 'WUK' then leave
+				end
+			/* base wseb fixpak */
+			if os2_version = 'WSEB' then
+				if pos('Warp Server for e-business Base Operating System', l) > 0 & fpk.os2.fnd <> 1 then do
+					if mode <> 'WUK' then fpk.os2.fnd = 1
+					fpk.os2.typ = substr(l, pos('XR', l), 7)
+					fpk.os2.num = substr(fpk.os2.typ, 5)
+					fpk.os2.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					fpk.os2.dir = substr(fpk.os2.dir, 1, lastpos('\FIX\', fpk.os2.dir)-1)
+					call lineout , " "fpk.os2.typ"    OS/2      "fpk.os2.dir
+					fpk.os2.typ = 'XR'substr(fpk.os2.typ, 4)
+					if mode <> 'WUK' then leave
+				end
+			/* base cp fixpak */
+			if os2_version = 'WARP4' | os2_version = 'CP' then
+				if pos('Convenience Package', l) > 0 & fpk.cp1.fnd <> 1 then do
+					if mode <> 'WUK' then fpk.cp1.fnd = 1
+					fpk.cp1.typ = substr(l, pos('XR', l), 7)
+					fpk.cp1.num = substr(fpk.cp1.typ, 5)
+					fpk.cp1.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					fpk.cp1.dir = substr(fpk.cp1.dir, 1, lastpos('\FIX\', fpk.cp1.dir)-1)
+					call lineout , " "fpk.cp1.typ"    CP_1      "fpk.cp1.dir
+					fpk.cp1.typ = 'XR'substr(fpk.cp1.typ, 4)
+					if mode <> 'WUK' then leave
+				end
+			/* device driver fixpak */
+			if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then
+				if pos('IBM OS/2 Base Device Drivers', l) > 0 & fpk.dd.fnd <> 1 then do
+					if mode <> 'WUK' then fpk.dd.fnd = 1
+					fpk.dd.typ = substr(l, pos('XR', l), 7)
+					fpk.dd.num = substr(fpk.dd.typ, 5)
+					fpk.dd.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					fpk.dd.dir = substr(fpk.dd.dir, 1, lastpos('\FIX\', fpk.dd.dir)-1)
+					call lineout , " "fpk.dd.typ  "   Driver    "fpk.dd.dir
+					fpk.dd.typ = 'XR'substr(fpk.dd.typ, 4)
+					if mode <> 'WUK' then leave
+				end
+			/* peer/ls fixpak */
+			if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then
+				if (pos('IBM OS/2 LAN Requester', l) > 0 | pos('Richiedente OS/2 del la LAN IBM', l) > 0 | pos('Peticionario OS/2 de la LAN IBM', l) > 0) & fpk.per.fnd <> 1 then do
+					if mode <> 'WUK' then fpk.per.fnd = 1
+					fpk.per.typ = substr(l, pos('IP', l), 7)
+					fpk.per.num = substr(fpk.per.typ, 4)
+					fpk.per.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					fpk.per.dir = substr(fpk.per.dir, 1, lastpos('\FIX\', fpk.per.dir)-1)
+					call lineout , " "fpk.per.typ"    PEER/LS   "fpk.per.dir
+					fpk.per.typ = 'IP'substr(fpk.per.typ, 4)
+					if mode <> 'WUK' then leave
+				end
+			/* mpts fixpak */
+			if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then
+				if (pos('IBM OS/2 TCP/IP Stack', l) > 0 | pos('IBM OS/2 Socket/Multi-Protocol Transport Services', l) > 0) & fpk.mpt.fnd <> 1 then do
+					if mode <> 'WUK' then fpk.mpt.fnd = 1
+					fpk.mpt.typ = substr(l, pos('WR', l), 7)
+					fpk.mpt.num = substr(fpk.mpt.typ, 4)
+					fpk.mpt.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					fpk.mpt.dir = substr(fpk.mpt.dir, 1, lastpos('\FIX\', fpk.mpt.dir)-1)
+					call lineout , " "fpk.mpt.typ"    MPTS      "fpk.mpt.dir
+					fpk.mpt.typ = 'WR'substr(fpk.mpt.typ, 4)
+					if mode <> 'WUK' then leave
+				end
+			/* tcp/ip fixpak */
+			if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then
+				if pos('IBM TCP/IP', l) > 0 & fpk.tcp.fnd <> 1 & get_fixpak_version('UN 'templine) > 0979 then do
+					if mode <> 'WUK' then fpk.tcp.fnd = 1
+					fpk.tcp.typ = substr(l, pos('UN', l), 7)
+					fpk.tcp.num = substr(fpk.tcp.typ, 4)
+					fpk.tcp.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					fpk.tcp.dir = substr(fpk.tcp.dir, 1, lastpos('\FIX\', fpk.tcp.dir)-1)
+					call lineout , " "fpk.tcp.typ"    TCP/IP    "fpk.tcp.dir
+					fpk.tcp.typ = 'UN'substr(fpk.tcp.typ, 4)
+					if mode <> 'WUK' then leave
+				end
+			/* old tcp/ip fixpak */
+			if os2_version = 'WARP3' then
+				if pos('IBM TCP/IP Version 3.', l) > 0 & fpk.tc2.fnd <> 1 & get_fixpak_version('UN 'templine) < 0980 then do
+					if mode <> 'WUK' then fpk.tc2.fnd = 1
+					fpk.tc2.typ = substr(l, pos('UN', l), 7)
+					fpk.tc2.num = substr(fpk.tc2.typ, 4)
+					fpk.tc2.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					fpk.tc2.dir = substr(fpk.tc2.dir, 1, lastpos('\FIX\', fpk.tc2.dir)-1)
+					call lineout , " "fpk.tc2.typ"    TCP/IP    "fpk.tc2.dir
+					fpk.tc2.typ = 'UN'substr(fpk.tc2.typ, 4)
+					if mode <> 'WUK' then leave
+				end
+		end
+		call lineout ini.i
+	end
+
+	/* find java fixpak */
+	if os2_version = 'WARP4' | os2_version = 'WSEB' | os2_version = 'WARP3' | os2_version = 'CP' then do
+		call SysFileTree startdir'\syslevel.jav', 'ini.', 'FSO'
+		do i = 1 to ini.0
+			do while lines(ini.i)
+				l=linein(ini.i)
+				if pos('Java Runtime', l) > 0 & fpk.jav.fnd <> 1 then do
+					if mode <> 'WUK' then fpk.jav.fnd = 1
+					fpk.jav.typ = substr(l, pos('XR', l), 7)
+					fpk.jav.num = substr(fpk.jav.typ, 4)
+					fpk.jav.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+						fpk.jav.dir = translate(substr(fpk.jav.dir, 1, lastpos('\', fpk.jav.dir)-1))
+					call lineout , " "fpk.jav.typ"    JAVA      "fpk.jav.dir
+					if mode <> 'WUK' then leave
+				end
+			end
+			call lineout ini.i
+		end
+	end
+
+	/* find netware fixpak (has no syslevel) */
+	if (os2_version = 'WARP4' | os2_version = 'WARP3') & fpk.nwr.fnd <> 1 then do
+		call SysFileTree startdir'\nwunpack.exe', 'ini.', 'FSO'
+		do i = 1 to ini.0
+			if mode <> 'WUK' then fpk.nwr.fnd = 1
+			fpk.nwr.typ = '2.12'
+			fpk.nwr.num = '212'
+			fpk.nwr.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+			call lineout , " "fpk.nwr.typ"       NWREQ     "fpk.nwr.dir
+			fpk.nwr.typ = '2.12'
+			if mode <> 'WUK' then leave
+		end
+	end
+
+	/* find printer driver fixpak (has no syslevel) */
+	if (os2_version = 'WARP4' | os2_version = 'WSEB' | os2_version = 'WARP3' | os2_version = 'CP') & fpk.pdd.fnd <> 1 then do
+		call SysFileTree startdir'\laserjet.drv', 'ini.', 'FSO'
+		if ini.0 = 0 then call SysFileTree startdir'\omni.drv', ini., 'FSO'
+		if ini.0 = 0 then call SysFileTree startdir'\plotters.drv', ini., 'FSO'
+		if ini.0 = 0 then call SysFileTree startdir'\pscript.drv', ini., 'FSO'
+		do i = 1 to ini.0
+			if mode <> 'WUK' then fpk.pdd.fnd = 1
+			fpk.pdd.typ = 'Printer'
+			fpk.pdd.num = 0
+			fpk.pdd.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+			call lineout , " "fpk.pdd.typ"    Driver    "fpk.pdd.dir
+			if mode <> 'WUK' then leave
+		end
+	end
+
+	/* find ecs fixpaks */
+	if os2_version = 'ECS' then do
+
+		call SysFileTree startdir'\xr?c*.zip', 'ini.', 'FSO'
+		if ini.0 > 0 then do
+			ini.1 = translate(ini.1)
+			if mode <> 'WUK' then fpk.cp1.fnd = 1
+			fpk.cp1.typ = substr(ini.1, pos('XR', ini.1), 7)
+			fpk.cp1.num = substr(fpk.cp1.typ, 5)
+			fpk.cp1.dir = translate(substr(ini.1, 1, lastpos('\', ini.1)-1))
+			rc = lineout(, " "fpk.cp1.typ"    CP        "fpk.cp1.dir)
+			fpk.cp1.typ = 'XR'substr(fpk.cp1.typ, 4)
+		end
+
+		call SysFileTree startdir'\xr?d*.zip', 'ini.', 'FSO'
+		if ini.0 > 0 then do
+			ini.1 = translate(ini.1)
+			if mode <> 'WUK' then fpk.dd.fnd = 1
+			fpk.dd.typ = substr(ini.1, pos('XR', ini.1), 7)
+			fpk.dd.num = substr(fpk.dd.typ, 5)
+			fpk.dd.dir = translate(substr(ini.1, 1, lastpos('\', ini.1)-1))
+			rc = lineout(, " "fpk.dd.typ"    Driver    "fpk.dd.dir)
+			fpk.dd.typ = 'XR'substr(fpk.dd.typ, 4)
+		end
+
+	end
+
+return
+
+/****************************************************/
+/* find updates located in the subdirectory updates */
+/****************************************************/
+find_updates: procedure expose upd. msg.
+
+	parse upper arg startdir os2_version mode
+
+	upd. = ''
+	say /* display header */
+	call lineout , msg.0179
+	call lineout , msg.0178
+
+	/* find product files */
+	call SysFileTree startdir'\syslevel.*', 'ini.', 'FSO'
+
+	/* examine product files */
+	do i = 1 to ini.0
+		do while lines(ini.i)
+			l=linein(ini.i)
+			/* mpts update */
+			if os2_version = 'WARP4' | os2_version = 'WSEB' | os2_version = 'WARP3' | os2_version = 'CP' then
+				if (pos('IBM OS/2 TCP/IP Stack', l) > 0 | pos('IBM OS/2 Socket/Multi-Protocol Transport Services', l) > 0) & upd.mpt.fnd <> 1 then do
+					if mode <> 'WUK' then upd.mpt.fnd = 1
+					upd.mpt.typ = substr(l, pos('WR', l), 7)
+					upd.mpt.num = substr(upd.mpt.typ, 4)
+					upd.mpt.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					upd.mpt.dir = substr(upd.mpt.dir, 1, lastpos('\MPTN', upd.mpt.dir)-1)
+					call lineout , " "upd.mpt.typ"    MPTS      "upd.mpt.dir
+					if mode <> 'WUK' then leave
+				end
+			/* tcp/ip update */
+			if os2_version = 'WARP4' | os2_version = 'WSEB' | os2_version = 'WARP3' | os2_version = 'CP' then
+				if pos('IBM TCP/IP', l) > 0 & upd.tcp.fnd <> 1 then do
+					if mode <> 'WUK' then upd.tcp.fnd = 1
+					upd.tcp.typ = substr(l, pos('UN', l), 7)
+					upd.tcp.num = substr(upd.tcp.typ, 4)
+					upd.tcp.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					upd.tcp.dir = substr(upd.tcp.dir, 1, lastpos('\INSTALL', upd.tcp.dir)-1)
+					call lineout , " "upd.tcp.typ"    TCP/IP    "upd.tcp.dir
+					if mode <> 'WUK' then leave
+				end
+			/* java update */
+			if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' then
+				if (pos('Java Runtime', l) > 0 | pos('JDK Runtime', l) > 0) & upd.jav.fnd <> 1 then do
+					if mode <> 'WUK' then upd.jav.fnd = 1
+					upd.jav.typ = substr(l, pos('XR', l), 7)
+					upd.jav.num = substr(upd.jav.typ, 4)
+					upd.jav.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					call lineout , " "upd.jav.typ"    JAVA      "upd.jav.dir
+					if mode <> 'WUK' then leave
+				end
+			if os2_version = 'CP' then do
+					if pos('Java Runtime', l) > 0 & upd.jav.fnd <> 1 then do
+						if mode <> 'WUK' then upd.jav.fnd = 1
+						upd.jav.typ = substr(l, pos('XR', l), 7)
+						upd.jav.num = substr(upd.jav.typ, 4)
+						upd.jav.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+						call lineout , " "upd.jav.typ"    JAVA118   "upd.jav.dir
+						if mode <> 'WUK' then leave
+					end
+					if pos('Swing Runtime', l) > 0 & upd.ja1.fnd <> 1 then do
+						if mode <> 'WUK' then upd.ja1.fnd = 1
+						upd.ja1.typ = substr(l, pos('SW', l), 7)
+						upd.ja1.num = substr(upd.ja1.typ, 4)
+						upd.ja1.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+						call lineout , " "upd.ja1.typ"    SWINGRT   "upd.ja1.dir
+						if mode <> 'WUK' then leave
+					end
+					if pos('JDK Runtime', l) > 0 & upd.ja2.fnd <> 1 then do
+						if mode <> 'WUK' then upd.ja2.fnd = 1
+						upd.ja2.typ = substr(l, pos('XR', l), 7)
+						upd.ja2.num = substr(upd.ja2.typ, 4)
+						upd.ja2.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+						call lineout , " "upd.ja2.typ"    JAVA13X   "upd.ja2.dir
+						if mode <> 'WUK' then leave
+					end
+				end
+			/* fi update */
+			if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' then
+				if pos('IBM OS/2 Feature Install', l) > 0 & upd.fii.fnd <> 1 then do
+					if mode <> 'WUK' then upd.fii.fnd = 1
+					upd.fii.typ = substr(l, pos('XR', l), 7)
+					upd.fii.num = substr(upd.fii.typ, 4)
+					upd.fii.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					call lineout , " "upd.fii.typ"    FI        "upd.fii.dir
+					if mode <> 'WUK' then leave
+				end
+			/* ns update */
+			if os2_version = 'WARP4' | os2_version = 'WARP3' | os2_version = 'WSEB' | os2_version = 'CP' then
+				if pos('Netscape Communicator 4.61', l) > 0 & upd.nsc.fnd <> 1 then do
+					if mode <> 'WUK' then upd.nsc.fnd = 1
+					upd.nsc.typ = substr(l, pos('XR', l), 7)
+					upd.nsc.num = substr(upd.nsc.typ, 4)
+					upd.nsc.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+					call lineout , " "upd.nsc.typ"    Netscape  "upd.nsc.dir
+					if mode <> 'WUK' then leave
+				end
+		end
+		call lineout ini.i
+	end
+
+	/* find floppy update (has no syslevel) */
+	if os2_version = 'WARP4' then do
+		call SysFileTree startdir'\config.sys', ini., 'FSO'
+		do i = 1 to ini.0
+				if mode <> 'WUK' then upd.fd1.fnd = 1
+				upd.fd1.typ = 'DISK1'
+				upd.fd1.num = 0
+				upd.fd1.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+				call lineout , " "upd.fd1.typ"      BDISK     "upd.fd1.dir
+				if mode <> 'WUK' then leave
+		end
+		call SysFileTree startdir'\sysinst2.exe', ini., 'FSO'
+		do i = 1 to ini.0
+				if mode <> 'WUK' then upd.fd2.fnd = 1
+				upd.fd2.typ = 'DISK2'
+				upd.fd2.num = 0
+				upd.fd2.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+				call lineout , " "upd.fd2.typ"      BDISK     "upd.fd2.dir
+				if mode <> 'WUK' then leave
+		end
+	end
+
+	/* find pmfax lite update (has no syslevel) */
+	if os2_version = 'WARP4' then do
+		call SysFileTree startdir'\FxPrint.drv', ini., 'FSO'
+		do i = 1 to ini.0
+				if mode <> 'WUK' then upd.fax.fnd = 1
+				upd.fax.typ = 'PMFAX'
+				upd.fax.num = 0
+				upd.fax.dir = translate(substr(ini.i, 1, lastpos('\', ini.i)-1))
+				call lineout , " "upd.fax.typ"      BPACK     "upd.fax.dir
+				if mode <> 'WUK' then leave
+		end
+	end
+
+	/* find DE update (has no syslevel) */
+	if os2_version = 'ECS' then do
+		call SysFileTree startdir'\dialog*.zip', ini., 'FSO'
+		if ini.0 > 0 then do
+			if mode <> 'WUK' then upd.dlg.fnd = 1
+			upd.dlg.typ = 'DLGUPDT'
+			upd.dlg.num = substr(upd.dlg.typ, 4)
+			upd.dlg.dir = translate(substr(ini.1, 1, lastpos('\', ini.1)-1))
+			call lineout , " "upd.dlg.typ"    DLGU      "upd.dlg.dir
+		end
+	end
+
+return
+
+/*******************************/
+/* check obligatory components */
+/*******************************/
+check_components: procedure expose log fpk. upd. msg.
+
+	parse arg product_string
+
+	do while length(product_string) > 0
+		parse var product_string product product_string
+		if value(product) = '' then do
+			Say
+			Say ' 'msg.0180
+			Say ' 'msg.0181
+			call lineout log, 'Error: The obligatory components should be present! Exiting...'
+			'@del go4it.bsy >nul 2>>&1'
+			exit 9
+		end
+	end
+
+return
+
+/******************************/
+/* copy updated CID procedure */
+/******************************/
+add_updated_cid_procedure: procedure expose burn log n. msg. iaddons lang nosniff nodasd noshield nojava
+
+	parse upper arg ext
+	
+	/* find inst_dir and remove attribs */
+	call SysFileTree burn'\ibminst\*', 'ini.',  'FSO',,'**---'
+	if ini.0 > 0 then inst_dir = 'ibminst'
+	call SysFileTree burn'\grpware\*', 'ini.',  'FSO',,'**---'
+	if ini.0 > 0 then inst_dir = 'grpware'
+	call SysFileTree burn'\warpsrv\*', 'ini.',  'FSO',,'**---'
+	if ini.0 > 0 then inst_dir = 'warpsrv'
+
+	if iaddons = 1 then do
+		call execute '@copy newinst\addon.fil         'burn'\'inst_dir'\tables'
+		call execute '@copy newinst\addons.cfg        'burn'\'inst_dir'\tables'
+	end
+
+	/* for ecs 1.1 and ecs 1.2 */
+	f = burn'\ecs\install\finish.cmd'
+	if stream(f, 'c', 'query exists') <> '' then do
+		i=1
+		do while lines(f)
+			l.i=linein(f)
+			i=i+1
+		end
+		l.0=i-1
+		call lineout f
+		'@del 'f
+		fstring = 'return 0'
+		do i=1 to l.0
+			if pos('FINISHPHASE3:', translate(l.i)) > 0 then fstring = 'RETURN'
+			if pos(fstring, l.i) > 0 then do
+				fstring = ''
+				call lineout f, "/* zsolt begin */"
+				call lineout f, "source=subword(tmp, 5, 1)"
+				call lineout f, "if source='' then source=substr(cidimage,1,2)"
+				call lineout f, "if misclog='MISCLOG' then misclog=log1"
+				call lineout f, "'@mkdir 'instdrv'\ibminst >> 'misclog' 2>>&1'"
+				call lineout f, "'@echo do not delete > 'instdrv'\ibminst\noprog.flg'"
+				call lineout f, "'@xcopy 'source'\ibminst 'instdrv'\ibminst\. /s >> 'misclog' 2>>&1'"
+
+				/* addons */
+				if iaddons = 1 then do
+					call lineout f, "'@mkdir 'instdrv'\ibminst\rsp >> 'misclog' 2>>&1'"
+					call lineout f, "'@mkdir 'instdrv'\ibminst\rsp\local >> 'misclog' 2>>&1'"
+					call lineout f, "'@mkdir 'instdrv'\ibminst\logs >> 'misclog' 2>>&1'"
+					call lineout f, "'@mkdir 'instdrv'\ibminst\logs\addon >> 'misclog' 2>>&1'"
+					call lineout f, "'@copy  'source'\ibminst\tables\ADDON.FIL 'instdrv'\ibminst\rsp\local\ADDON.CMD >> 'misclog' 2>>&1'"
+					call lineout f, "'@copy  'source'\ibminst\StTimeV.Cmd 'instdrv'\OS2\. >> 'misclog' 2>>&1'"
+					call lineout f, "rc=SysCreateObject('WPProgram', 'Selective Install^for AddOn Products', '<WP_INSTREMFOLDER>', 'EXENAME='instdrv'\ibminst\npconfig.exe;PARAMETERS=/REINSTALL;', 'F')"
+					call lineout f, "rc=SysCreateObject('WPProgram', 'Selective UnInstall^for AddOn Products', '<WP_INSTREMFOLDER>', 'EXENAME='instdrv'\ibminst\npconfig.exe;PARAMETERS=/UNINSTALL;', 'F')"
+				end
+
+				/* tcp/ip install */
+				call lineout f, "rc = SysCreateObject('WPFolder',  'Install additional^TCP/IP components','<WP_INSTREMFOLDER>', 'OBJECTID=<UPDCD_TCPINST>','R')"
+				call lineout f, "rc = SysCreateObject('WPProgram', 'Install VPN','<UPDCD_TCPINST>','EXENAME='instdrv'\ibminst\tcpinst.cmd;PARAMETERS=VPN;', 'R')"
+				call lineout f, "rc = SysCreateObject('WPProgram', 'Install NFS','<UPDCD_TCPINST>','EXENAME='instdrv'\ibminst\tcpinst.cmd;PARAMETERS=NFS;', 'R')"
+				call lineout f, "rc = SysCreateObject('WPProgram', 'Install DHCP_DDNS','<UPDCD_TCPINST>','EXENAME='instdrv'\ibminst\tcpinst.cmd;PARAMETERS=DHCP_DDNS;', 'R')"
+				call lineout f, "rc = SysCreateObject('WPProgram', '(Re)Create TCP/IP objects','<UPDCD_TCPINST>','EXENAME=ifolder.exe;PARAMETERS=/R', 'R')"
+				call lineout f, "'@del 'instdrv'\ibminst\tcpinst.cmd >nul 2>>&1'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '/* install additional TCP/IP components */'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'parse upper arg comp'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'if comp <> "NFS" & comp <> "VPN" & comp <> "DHCP_DDNS" then exit'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'selection.=0;if comp = "NFS" then selection.nfs=1;if comp = "VPN" then selection.vpn=1;if comp = "DHCP_DDNS" then selection.dhcp_ddns=1'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'say '"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'say ""This program will install ""comp"" on your system.""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'say '"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'say ""Please insert your OS/2 installation CD-ROM in drive 'CD_Drive' and press ENTER.""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'say ""If 'source' does not match the drive letter of your CD-R type it in and press ENTER.""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'CD_Drive=""'CD_Drive'"";response = """";pull response;if response <> """" then source=response'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@echo TCPIP.InstallDrive='netwdrv'             > 'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@echo TCPIP_BASE.Selection=0                      >> 'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@echo DHCP_DDNS_Server.Selection=""selection.dhcp_ddns"" >> 'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@echo UINSTAL.Selection=0                         >> 'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@echo VPN.Selection=""selection.vpn""               >> 'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@echo IFOLDER.Selection=1                         >> 'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@echo NFS.Selection=""selection.nfs""               >> 'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'cp = ""cid\server\tcpapps\install""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@clifi /a:c /r:""source""\""cp""\tcpinst.rsp /l1:'instdrv'\os2\install\tcperr.log /l2:'instdrv'\os2\install\tcphst.log /s:""source""\""cp"" /b:'instdrv' /r2:'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@del 'instdrv'\ibminst\tcpip.rsp""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@copy 'netwdrv'\tcpip\samples\bin\ODSKDDNS.TCP 'netwdrv'\tcpip\bin\DSKDDNS.TCP""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@copy 'netwdrv'\tcpip\samples\bin\ODSKDHCP.TCP 'netwdrv'\tcpip\bin\DSKDHCP.TCP""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'say '"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', 'say ""Installation has been completed. Please reboot your system.""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd', '""@pause""'"
+				call lineout f, "call lineout instdrv'\ibminst\tcpinst.cmd'"
+
+   			/* system tuning */
+				call lineout f, "'@echo do not remove this file > 'instdrv'\ibminst\tunecfg.flg'"
+				call lineout f, "'call 'instdrv'\ibminst\tunecfg.cmd 'instdrv' ibminst tunecfg.cfg >> 'misclog' 2>>&1'"
+				call lineout f, "'call 'instdrv'\ibminst\tuneini.cmd 'instdrv' ibminst tuneini.cfg >> 'misclog' 2>>&1'"
+				call lineout f, "'call 'instdrv'\ibminst\tunefls.cmd 'instdrv' ibminst tunefls.cfg >> 'misclog' 2>>&1'"
+
+   			/* user tuning */
+				call lineout f, "if stream(instdrv'\ibminst\tunecfg.cfu', 'c', 'query exists') <> '' then 'call 'instdrv'\ibminst\tunecfg.cmd 'instdrv' ibminst tunecfg.cfu >> 'misclog' 2>>&1'"
+				call lineout f, "if stream(instdrv'\ibminst\tuneini.cfu', 'c', 'query exists') <> '' then 'call 'instdrv'\ibminst\tuneini.cmd 'instdrv' ibminst tuneini.cfu >> 'misclog' 2>>&1'"
+				call lineout f, "if stream(instdrv'\ibminst\tunefls.cfu', 'c', 'query exists') <> '' then 'call 'instdrv'\ibminst\tunefls.cmd 'instdrv' ibminst tunefls.cfu >> 'misclog' 2>>&1'"
+				call lineout f, "/* zsolt end */"
+
+			end
+			call lineout f, l.i
+		end
+		call lineout f
+		call execute '@mkdir tmp'
+		call execute '@bin\unzip.exe 'burn'\cid\server\ecspkg\install.zip -d tmp'
+		call execute '@del 'burn'\cid\server\ecspkg\install.zip'
+		call execute '@copy 'burn'\ecs\install\finish.cmd tmp\install\.'
+		'@cd tmp'
+		call execute '@..\bin\zip.exe -r -m -9 'burn'\cid\server\ecspkg\install.zip *'
+		'@cd ..'
+		call deldir tmp
+	end
+
+	if ext <> 'WP3' then do
+		if ext = 'MCP' | ext = 'ACP' then exn = 'CP'
+		else exn = ext
+		call execute '@copy newinst\lcudrvr.'exn'     'burn'\'inst_dir'\tables\lcudrvr.fil'
+		/* set install shield option */
+		i=1
+		do while lines(burn'\'inst_dir'\tables\lcudrvr.fil')
+			l.i = linein(burn'\'inst_dir'\tables\lcudrvr.fil')
+			parse var l.i w1 w2 .
+			if w1 = 'start_shield' & w2 = '=' then do
+				if noshield = 1 then l.i = 'start_shield = 0'
+				else l.i = 'start_shield = 1'
+			end
+			i=i+1
+		end
+		l.0 = i-1
+		call lineout burn'\'inst_dir'\tables\lcudrvr.fil'
+		'@del 'burn'\'inst_dir'\tables\lcudrvr.fil >nul 2>>&1'
+		do i=1 to l.0
+			call lineout burn'\'inst_dir'\tables\lcudrvr.fil', l.i
+		end
+		call lineout burn'\'inst_dir'\tables\lcudrvr.fil'
+	end
+	else
+		call execute '@copy newinst\lcuinst.wp3       'burn'\'inst_dir'\tables'
+
+	/* switch off shield */
+	if noshield = 1 then do
+		in = burn'\'inst_dir'\callprog.cmd'
+		if stream(in, 'c', 'query exists') <> '' then do
+			i=1
+			do while lines(in)
+				l.i=linein(in)
+				if pos('fil.1', l.i) > 0 then l.i='/* zsolt begin */ fil.1 = "" /* zsolt end */'
+				if pos('fil.2', l.i) > 0 then l.i='/* zsolt begin */ fil.2 = "" /* zsolt end */'
+				i=i+1
+			end
+			call lineout in
+			l.0=i-1
+			'@del 'in' >nul 2>>&1'
+			do i=1 to l.0
+				call lineout in, l.i
+			end
+			call lineout in
+		end
+	end
+
+	/* add some files */
+	call execute '@copy newinst\StTimeV.Cmd         'burn'\'inst_dir
+	call execute '@copy bin\unzip.exe               'burn'\'inst_dir
+
+	if ext <> 'WP3' then do
+		if ext = 'MCP' | ext = 'ACP' then exn = 'CP'
+		else exn = ext
+		call execute '@copy newinst\mkrsp.'exn'       'burn'\'inst_dir'\mkrsp.cmd'
+	end
+
+	if stream(burn'\'inst_dir'\tables\tcpinst.rsp', 'c', 'query exists') = '' then do
+		if stream(burn'\cid\server\tcpapps\install\tcpinst.rsp', 'c', 'query exists') <> '' then
+			call execute '@copy 'burn'\cid\server\tcpapps\install\tcpinst.rsp 'burn'\'inst_dir'\tables\tcpinst.rsp'
+		if stream(burn'\cid\img\tcpapps\install\tcpinst.rsp', 'c', 'query exists') <> '' then
+			call execute '@copy 'burn'\cid\img\tcpapps\install\tcpinst.rsp 'burn'\'inst_dir'\tables\tcpinst.rsp'
+	end
+
+	/* determine language file */
+	parse var lang msgf_ext .
+	call sysfiletree 'nls\message.'msgf_ext'?', 'tmp.', 'FO'
+	if tmp.0 <> 1 then msgf = 'nls\message.eng'
+	else msgf = tmp.1
+
+	select
+		when inst_dir = 'ibminst' then do
+			if stream(burn'\'inst_dir'\npconfig.exe','C','Query Exists') <> '' then call execute '@copy 'burn'\'inst_dir'\npconfig.exe 'burn'\'inst_dir'\npcfg2.exe'
+			call execute '@copy newinst\npconfig.exe           'burn'\'inst_dir
+			call execute '@copy 'msgf'                         'burn'\'inst_dir'\npconfig.msg'
+		end
+		when inst_dir = 'grpware' then do
+			call execute '@copy 'burn'\'inst_dir'\lanstart.exe 'burn'\'inst_dir'\npcfg2.exe'
+			call execute '@copy newinst\npconfig.exe           'burn'\'inst_dir'\lanstart.exe'
+			call execute '@copy 'msgf'                         'burn'\'inst_dir'\npconfig.msg'
+		end
+		when inst_dir = 'warpsrv' then do
+			call execute '@copy 'burn'\'inst_dir'\wsconfig.exe 'burn'\'inst_dir'\npcfg2.exe'
+			call execute '@copy newinst\npconfig.exe           'burn'\'inst_dir'\wsconfig.exe'
+			call execute '@copy 'msgf'                         'burn'\'inst_dir'\npconfig.msg'
+		end
+		otherwise nop;
+	end
+
+	call execute '@copy bin\vrobj.dll               'burn'\'inst_dir
+	call execute '@copy newinst\tunecfg.cmd         'burn'\'inst_dir
+	call execute '@copy newinst\tuneini.cmd         'burn'\'inst_dir
+	call execute '@copy newinst\tunefls.cmd         'burn'\'inst_dir
+	call execute '@copy newinst\tunefls.cfg         'burn'\'inst_dir
+
+	select
+		when nosniff = 1 & nodasd = 0 then npoptions = ' -NOSNIFF'
+		when nosniff = 0 & nodasd = 1 then npoptions = ' -NODASD'
+		when nosniff = 0 & nodasd = 0 then npoptions = '+'
+		when nosniff = 1 & nodasd = 1 then npoptions = ' -NOSNIFF -NODASD'
+		otherwise npoptions = '+'
+	end
+	'@echo'npoptions'              >  'burn'\'inst_dir'\npconfig.'ext
+	'@echo Do not remove this file >> 'burn'\'inst_dir'\npconfig.'ext
+
+	if inst_dir = 'ibminst' then do
+		call execute '@copy newinst\tunecfg.cfg       'burn'\'inst_dir
+		call execute '@copy newinst\tuneini.cfg       'burn'\'inst_dir
+	end
+	else do
+		call execute '@copy newinst\tunecfg.wp3       'burn'\'inst_dir'\tunecfg.cfg'
+		call execute '@copy newinst\tuneini.wp3       'burn'\'inst_dir'\tuneini.cfg'
+	end
+	if stream('newinst\tunecfg.cfu', 'c', 'query exists') <> '' then
+		call execute '@copy newinst\tunecfg.cfu         'burn'\'inst_dir
+	if stream('newinst\tuneini.cfu', 'c', 'query exists') <> '' then
+		call execute '@copy newinst\tuneini.cfu         'burn'\'inst_dir
+	if stream('newinst\tunefls.cfu', 'c', 'query exists') <> '' then
+		call execute '@copy newinst\tunefls.cfu         'burn'\'inst_dir
+
+	/* enable SET JAVA_HIGH_MEMORY=1 in tunecfg.cfg for TCP/IP 4.1 or higher */
+	if nojava = 0 & stream(burn'\cid\img\tcpapps\install.exe', 'c', 'query exists') = '' & stream(burn'\cid\server\tcpapps\install.exe', 'c', 'query exists') = '' then do
+		i = 1
+		f = burn'\'inst_dir'\tunecfg.cfg'
+		do while lines(f)
+			l.i = linein(f)
+			if pos(';  SET JAVA_HIGH_MEMORY=1', translate(l.i)) > 0 then l.i = '   SET JAVA_HIGH_MEMORY=1'
+			i = i+1
+		end
+		call lineout f
+		l.0 = i-1
+		'@del 'f' >nul 2>>&1'
+		do i = 1 to l.0
+			call lineout f, l.i
+		end
+		call lineout f
+	end
+
+return
+
+/******************************************/
+/* delete files passed in string if exist */
+/******************************************/
+delete_if_exist: procedure expose n. log msg.
+
+	parse arg file_list
+
+	do while length(file_list) > 0 
+		parse var file_list file file_list
+		if stream(file, 'c', 'query exists') <> '' then call execute '@del 'file
+	end
+
+return
+
+/****************************************/
+/* copy files passed in string if exist */
+/****************************************/
+copy_if_exist: procedure expose n. log msg.
+
+	parse arg dest_dir file_list
+
+	do while length(file_list) > 0 
+		parse var file_list file file_list
+		if stream(file, 'c', 'query exists') <> '' then call execute '@copy 'file dest_dir
+	end
+
+return
+
+/***************/
+/* start updcd */
+/***************/
+start_up: 
+
+	/* signal */
+	SIGNAL ON FAILURE name handle_failure 
+	SIGNAL ON HALT    name handle_halt
+	SIGNAL ON SYNTAX  name handle_syntax 
+
+	/* load language file */
+	call load_language 'ENG NOSAVE'
+	call load_language 'DEFAULT'
+
+	/* check rexx */
+	call check_rexx
+
+	/* load configuration file */
+	call read_config_file 'updcd.cfg'
+
+	/* initialize */
+	call initialize_updcd_environment
+
+	/* unpack *.dsk files */
+	call unpack_dsk_images fixes flpdrv
+	call unpack_dsk_images updates flpdrv
+
+	/* reset */
+	n.errors = 0
+	n.warnings = 0
+	n.elapsed = 0
+
+	/* clear screen */
+	'@cls'
+	say
+	say ' 'msg.0176
+
+	/* find fixpaks */
+	os2_version = translate(os2_version)
+	call find_fixpaks fixes os2_version
+
+	/* find updates */
+	call find_updates updates os2_version
+
+	/* find addons and Warp 4 FI products */
+	if os2_version <> 'ECS' then call find_addons_and_fi os2_version
+	else say
+
+	/* determining language to use */
+	call determine_language os2_version
+
+	/* switch off deldir if set */
+	call switch_off_deldir
+
+	/* log detected components */
+	call log_detected_components os2_version
+
+	/* set default language */
+	call set_default_language
+
+	/* copy zip */
+	if translate(os2_version) = 'ECS' then '@copy bin\zip.2 bin\zip.exe >nul'
+	else '@copy bin\zip.1 bin\zip.exe >nul'
+
+return
+
+/***********************/
+/* handle syntax error */
+/***********************/
+handle_syntax:
+
+	say
+	say ' 'msg.0182' 'sigl
+	say ' 'msg.0183' 'sourceline(sigl)
+	call exit_cleanly
+
+return
+
+/***************/
+/* handle halt */
+/***************/
+handle_halt:
+
+	say
+	say ' 'msg.0184' 'sigl
+	say ' 'msg.0183' 'sourceline(sigl)
+	call exit_cleanly
+
+return
+
+/******************/
+/* handle failure */
+/******************/
+handle_failure:
+
+	say
+	say ' 'msg.0185' 'sigl
+	say ' 'msg.0183' 'sourceline(sigl)
+	call exit_cleanly
+
+return
+
+/************/
+/* clean up */
+/************/
+exit_cleanly:
+
+	say ' 'msg.0186
+	'@pause >nul'
+	'@del 'rootdir'\go4it.bsy >nul 2>>&1'
+	exit 8
+
+return
+
+/******************************************/
+/* expand or contract virtual disk drive. */
+/******************************************/
+size_floppy: procedure expose n. log burnlog msg.
+
+	parse arg drive floppy_size
+	drive = translate(drive)
+
+	/* specials treatment for drive a: */
+	if drive = 'A:' then do
+		/* check */
+		free = SysDriveInfo(drive)
+		parse var free . . free .
+		if floppy_size = '1.44' then floppy_size = 1457664
+		if floppy_size = '2.88' then floppy_size = 2931712
+		if free = floppy_size then return 0
+		else return 1
+	end
+
+	currentdir = chdir() /* save the current directory. */
+	call chdir rootdir /* ensure we are in updcd directory. */
+
+	/* select log */
+	if datatype(n.errors) = 'NUM' then burnlog = log
+
+	/* get vdisk type */
+	vdisk = vdisk_type()
+
+	/* inser floppy */
+	rcode = 0
+	'@echo Info: Trying to insert a 'floppy_size'MB virtual disk in drive 'drive' >> 'burnlog
+	if vdisk = 'VFDISK' then do
+		if floppy_size = '2.88' then vfctrl_size = 4
+		else vfctrl_size = 1
+		trace -3
+		'@vfctrl 'drive                ' 0 >> 'burnlog' 2>>&1'
+		'@vfctrl 'drive' 'vfctrl_size'     >> 'burnlog' 2>>&1'
+	end
+	else do
+		trace -7
+		'@SVDC /ef '             drive' 		 >> 'burnlog' 2>>&1'
+		'@SVDC /r:'floppy_size' 'drive' 		 >> 'burnlog' 2>>&1'
+		'@SVDC /i:'floppy_size' 'drive' 		 >> 'burnlog' 2>>&1'
+		'@SVDC /l:'trunc(floppy_size*1000)' 'drive' 		 >> 'burnlog' 2>>&1'
+	end
+
+	/* log result */
+	if rc <> 0 then do
+		if datatype(n.errors) = 'NUM' then do
+			n.errors = n.errors + 1
+			if datatype(n.elapsed) = 'NUM' then call report_status
+			rcode = 1
+		end
+		else do
+			say ' 'msg.0187' 'floppy_size'MB 'drive
+			exit 9
+		end
+	end
+	else do
+		parse value SysDriveInfo(drive) with . free .
+		'@echo Info: Detected 'free' bytes free space on drive 'drive' >> 'burnlog
+	end
+
+	call chdir currentdir /* return to original directory */
+
+return rcode
+
+/****************************/
+/* return virtual disk type */
+/****************************/
+vdisk_type: procedure expose log msg.
+
+	cdpath = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+	if cdpath <> '' then vdisk = 'VFDISK'
+	else do
+		/* get vdisk from os2.ini */
+		vdisk = SysIni(, 'UPDCD', 'VDISK')
+		if (vdisk = 'ERROR:') then do
+			vdisk = 'SVDISK' /* let us make SVDISK the default */
+			call SysIni , 'UPDCD', 'VDISK', vdisk
+			call lineout log, 'Info: Default virtual disk has been set.'
+		end
+	end
+
+return vdisk
+
+/***************************************/
+/* add *.add drivers placed in newinst */
+/***************************************/
+add_adds: procedure expose rootdir flpdrv n. log  msg.
+
+	parse arg cfgfile
+
+	call SysFileTree rootdir'\newinst\*.add', 'drivers.', 'FO'
+
+	do i = 1 to drivers.0
+		call execute '@copy 'drivers.i flpdrv'\.'
+		drivers.i = translate(substr(drivers.i, lastpos('\', drivers.i)+1))
+		gevonden = 0
+		do while lines(cfgfile)
+			l = translate(linein(cfgfile))
+			string = 'BASEDEV='drivers.i
+			if pos(string, l) > 0 & substr(l, 1, 3) <> 'REM' then gevonden = 1
+		end
+		call lineout cfgfile
+		if gevonden = 0 then '@echo BASEDEV='drivers.i' >> 'cfgfile
+	end
+
+return
+
+/**********************/
+/* check rexx version */
+/**********************/
+check_rexx:
+
+	Parse Version . Level .
+	If Level > 4.00 Then do
+		say
+		say ' 'msg.0188
+		say ' 'msg.0189
+		exit 8
+	end
+
+return
+
+/*****************/
+/* load rexxutil */
+/*****************/
+load_rexxutil:
+
+	if RxFuncQuery('SysLoadFuncs') then do
+		call RxFuncAdd 'SysLoadFuncs', 'RexxUtil', 'SysLoadFuncs'
+		call SysLoadFuncs
+	end
+
+return
+
+/*********************/
+/* get updcd version */
+/*********************/
+get_updcd_version: procedure
+
+	version = 2.60
+
+return version
+
+/*********************/
+/* set updcd version */
+/*********************/
+set_updcd_version: procedure
+
+	parse arg version
+
+	cdpath = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+	call value 'UPDCD_VERSION', version, 'OS2ENVIRONMENT'
+	if cdpath = '' then call SysIni , 'UPDCD', 'VERS', trunc(version*100)
+
+return
+
+/***********************************/
+/* A simple Y/N keypress procedure */
+/***********************************/
+GetKeyYN: procedure expose msg.
+
+	do while ((key1 <> translate(msg.0478)) & (key1 <> translate(msg.0479)))
+		key1 = SysGetKey('NOECHO')
+		parse upper var key1 key1
+	end
+	say
+
+return key1
+
+/***********/
+/* hit key */
+/***********/
+Hit_Key: procedure expose msg.
+
+	parse arg option
+
+	if (option = 'C') then prompt = 'continue.'
+	else prompt = 'return to the menu.'
+
+	say '  'msg.0190' 'prompt
+	call SysGetKey 'NOECHO'
+
+return
+
+/**********************************************************/
+/* Find out if user has RSJ cdwriter system installed 		*/
+/* do this by checking the class list for CDWRITER class 	*/
+/**********************************************************/
+find_rsjdir: procedure expose msg.
+
+	rsjdir = ''
+	cdpath = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+	if cdpath = '' then do
+		call SysQueryClassList 'junk.'
+		i = 1
+		do i=1 to junk.0
+		  tmp = translate(word(junk.i, 1))
+		  if (tmp = 'CDWRITER') then do /* We found the rsj CDWRITER class */
+				tmp = word(junk.i, 2)
+				rsjdir = substr(tmp, 1, lastpos('\', tmp )-1)
+	   		leave
+			end
+		end
+	end
+
+return rsjdir
+
+/*************/
+/* find file */
+/*************/
+find_file: procedure expose msg.
+
+	parse upper arg file_to_find option
+	if option <> 'Q' then call lineout , ' Locating 'file_to_find||'. '
+	find. = ''
+
+	/* find in path */
+	if option <> 'Q' then call lineout , ' Searching PATH...'
+	find.1 = SysSearchPath('PATH', file_to_find)
+
+	parse value SysCurPos() with row col
+	if find.1 = '' then do
+		/* find on drives */
+		drives = SysDriveMap('C:', 'LOCAL')
+		if option <> 'Q' then call charout , ' Searching drive'
+		insertSpot = col + 17 /* that's the length of 'Searching drive' + 1 */
+		do while length(drives) > 0
+			parse var drives drv drives
+			if option <> 'Q' then do
+		 	call SysCurPos row, insertSpot
+				call charout , drv
+			end
+			rc = sysdriveinfo(drv)
+			if rc <> '' then do
+				call sysfiletree drv'\'file_to_find, 'find.', 'FSO'
+				if find.0 > 0 then leave
+			end
+		end
+	end
+
+	if find.1 = '' then do
+		if option <> 'Q' then do
+			say ' 'msg.0083
+			say ' 'msg.0191' 'file_to_find
+		end
+	End 
+	Else Do
+		find.1 = substr(find.1, 1, lastpos('\', find.1)-1)
+		if option <> 'Q' then do
+			call SysCurPos row, col
+			call charout , left('', 18 )  /* erase the text first */
+			call SysCurPos row, col
+			call charout , ' 'msg.0085
+			say find.1
+		end
+	End
+
+return find.1
+
+/**********************/
+/* unpack image files */
+/**********************/
+unpack_dsk_images: procedure expose log n. tmp. w4cd msg.
+
+	parse arg dir drv
+
+	/* get dsk list */
+	call SysFileTree dir'\*.dsk', 'tmp.', 'FSO'
+	if tmp.0 > 0 then do
+		say
+		say ' 'tmp.0' 'msg.0192' 'dir
+		say ' 'msg.0193
+		if (GetKeyYN(k) = translate(msg.0478)) then call unpack_dsk drv
+	end
+
+	/* get *.?dk list */
+	call SysFileTree dir'\*.?dk', 'tmp.', 'FSO'
+	if tmp.0 > 0 then do
+		license = 0
+		do i = 1 to tmp.0
+			if translate(filespec('name', tmp.i)) = 'LICENSE.JDK' then license = i
+		end
+		if license > 0 then tmp.n = tmp.0 - 1
+		else tmp.n = tmp.0
+		if tmp.n > 0 then do
+			say
+			say ' 'tmp.n' 'msg.0194' 'dir
+			say ' 'msg.0193
+			if (GetKeyYN(k) = translate(msg.0478)) then call unpack_dsk drv license
+		end
+	end
+
+return
+
+/********************/
+/* unpack dsk files */
+/********************/
+unpack_dsk: procedure expose log n. tmp. w4cd msg.
+
+	parse arg drv skip
+
+	if datatype(skip) <> 'NUM' then skip = 0
+
+	/* Remove read-only attribute */
+	file_pattern = substr(tmp.1, 1, lastpos('\', tmp.1))'*'
+	'@attrib -r -s -h -a 'file_pattern' >nul 2>>&1'
+	call SysFileTree file_pattern, 'dummy.', 'FO', ,'**---'
+
+	do i = 1 to tmp.0
+		if i = skip then iterate
+		say ' 'msg.0195' 'tmp.i
+		'@'w4cd'\diskimgs\loaddskf 'tmp.i drv' /Y /Q /S /F >nul 2>>'log
+		if rc <> 0 then do
+			say ' 'msg.0196' 'drv'.'
+			say ' 'msg.0197
+			exit 9
+		end
+		call copydir drv substr(tmp.i, 1, lastpos('\', tmp.i)-1)
+		if result = 0 then do
+			'@attrib -r -s -h -a 'tmp.i' >nul 2>>&1'
+			'@del 'tmp.i
+		end
+	end
+
+return 
+
+/********************/
+/* return bootdrive */
+/********************/
+BootDrive: procedure
+
+	/* first try rlanutil */
+	Call RxFuncDrop 'GetBootDrive'
+	Call RxFuncAdd 'GetBootDrive', 'RLANUTIL', 'GetBootDrive'
+	signal on syntax name BootDrive2
+	bdrv = GetBootDrive()
+	signal off syntax
+
+return bdrv
+
+BootDrive2:
+
+	/* try path method */
+	alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+	record = value('PATH',,'OS2ENVIRONMENT')
+	record = translate(record)
+	os2_pos = pos(':\OS2;',record)
+	if (os2_pos=0) then bootdrive='A'
+	else do
+            bootdrive_pos = os2_pos - 1
+            bootdrive = substr(record,bootdrive_pos,1)
+	end
+	if  (verify(bootdrive,alphabet) <> 0) then return 'A:' /* presume A */
+
+return bootdrive||':'
+
+/******************************/
+/* check installed components */
+/******************************/
+check_installed_components: procedure expose found. flag. msg.
+
+	parse arg config
+	
+	say 
+	say ' 'msg.0006
+
+	/* load config.sys */
+	i=1
+	found.svdisk=0
+	found.vfdisk=0
+	found.aspirt=0
+	found.os2asp=0
+	found.daniid=0
+	found.danifl=0
+	found.fat32f=0
+	found.reserv=0
+	do while lines(config)
+		l.i=linein(config)
+		if pos('SVDISK.SYS',    translate(l.i)) > 0 & word(translate(l.i), 1) <> 'REM' then found.svdisk=1
+		if pos('VFDISK.SYS',    translate(l.i)) > 0 & word(translate(l.i), 1) <> 'REM' then found.vfdisk=1
+		if pos('ASPIROUT.SYS',  translate(l.i)) > 0 & word(translate(l.i), 1) <> 'REM' then found.aspirt=1
+		if pos('OS2ASPI.DMD',   translate(l.i)) > 0 & word(translate(l.i), 1) <> 'REM' then found.os2asp=1
+		if pos('DANIS506.ADD',  translate(l.i)) > 0 & word(translate(l.i), 1) <> 'REM' then found.daniid=1
+		if pos('DANIATAPI.FLT', translate(l.i)) > 0 & word(translate(l.i), 1) <> 'REM' then found.danifl=1
+		if pos('DANIATAP.FLT',  translate(l.i)) > 0 & word(translate(l.i), 1) <> 'REM' then found.danifl=1
+		if pos('FAT32.IFS',     translate(l.i)) > 0 & word(translate(l.i), 1) <> 'REM' then found.fat32f=1
+		if pos('RESERVEDRIVELETTER=', translate(l.i)) > 0 then found.reserv=1
+		i=i+1
+	end
+	call lineout config
+	l.0=i-1
+
+	/* check updcd */
+	cdpath = value('CDROM_PATH', , 'OS2ENVIRONMENT')
+	if cdpath = '' then	instdir = SysIni(, 'UPDCD', 'PATH')
+	else instdir = directory()
+	log     = instdir'\'log
+	if stream(instdir'\updcd.cfg', 'c', 'query exists') = '' then flag.1 = '> '
+
+	/* check vdisk */
+	if found.svdisk = 0 & found.vfdisk = 0 then flag.2 = '> '
+
+	/* check aspi */
+	if found.aspirt = 0 then flag.3 = '> '
+
+	/* check emx */
+	trace off
+	'@call emxrev >nul 2>>&1'
+	trace on
+	if rc <> 0 then do
+		flag.4 = '> '
+		found.emxrt = 0
+	end
+	else found.emxrt = 1
+
+	/* check dani */
+	if found.daniid = 0 | found.danifl = 0 then flag.5 = '> '
+
+	/* check RSJ */
+	if find_rsjdir() <> '' then found.rsj = 1
+	else found.rsj = 0
+
+	/* check cdrecord */
+	found.cdrec2 = 0
+	if found.rsj = 0 then do
+		cdrecdir = find_file('mkisofs.exe Q')
+		if cdrecdir <> '' then
+			if stream(cdrecdir'\cdrecord.exe', 'c', 'query exists') <> '' then found.cdrec2 = 1
+			else do
+				cdrecdir = find_file('cdrecord.exe Q')
+				if cdrecdir <> '' & stream(cdrecdir'\mkisofs.exe', 'c', 'query exists') <> '' then found.cdrec2 = 1
+			end 
+	end
+	if found.cdrec2 = 0 & found.rsj = 0 then flag.6 = '> '
+
+return
+
+/****************************************************/
+/* replace string a with string b in product file f */
+/****************************************************/
+hack_prodfile: procedure expose log msg.
+
+	parse arg f a b
+
+	data = charin(f, 1, chars(f))
+ 	call stream f, 'C', 'Close'
+
+	p = pos(a, data)
+	do while p > 0
+		data = overlay(b, data, p)
+		p = pos(a, data)
+	end
+
+	'@del 'f
+	call charout f, data, 1
+	call stream f, 'C', 'Close'
+	call lineout log, 'Info: Changed product file 'f '('a b').'
+	call lineout log
+
+return
+
+/**********************/
+/* Read SysLevel file */
+/**********************/
+ReadSysLevel: procedure expose slfh. st.  msg.
+call Trace OFF
+parse arg fs
+
+   res = 0
+   if stream(fs,"C","Query Exists") <> "" then do
+      data = charin(fs,1,chars(fs))
+			call stream fs,"C","Close"
+
+      slfh.usSignature   = c2x(reverse(substr(data,1,2)))     /* special # for id of syslevel file */
+      slfh.achSignature  = substr(data,3,8)                   /* string to id slf file, must be 'SYSLEVEL' */
+
+			/* check if it is a real syslevel file */
+			if slfh.achSignature <> 'SYSLEVEL' then return 2
+
+      slfh.achJulian     = substr(data,11,5)                  /* date of version */
+      slfh.usSlfVersion  = c2x(reverse(substr(data,16,2)))    /* version of syslevel file, must be 1 */
+      slfh.ausReserved   = c2x(substr(data,18,16))            /* reserved */
+      slfh.ulTableOffset = c2d(reverse(substr(data,34,4)))    /* offset of SYSTABLE */
+
+      /* Calculate table start */
+      tblst = slfh.ulTableOffset+1
+
+      st.usSysId       = c2x(reverse(substr(data, tblst+0,2))) /* identifies system /subsytem */
+      st.bSysEdition   = c2x(substr(data, tblst+2,1))          /* edition of system, eg SE=00, EE=01 */
+      st.bSysVersion   = c2x(substr(data, tblst+3,1))          /* version, eg 1.00=10, 1.10=11 */
+      st.bSysModify    = c2x(substr(data, tblst+4,1))          /* modify, eg 1.00=00, 1.01=01 */
+      st.usSysDate     = c2x(reverse(substr(data, tblst+5,2))) /* date of system */
+      st.achCsdLevel   = substr(data, tblst+7,8)               /* subsytem CSD level, eg, XR?0000_ */
+      st.achCsdPrev    = substr(data, tblst+15,8)              /* as above, except for prev system */
+      st.achSysName    = substr(data, tblst+23,80)             /* Title of system / subsytem (ASCIIZ) */
+      st.achCompId     = substr(data, tblst+103,9)             /* component ID of subsytem */
+      st.bRefreshLevel = c2x(substr(data, tblst+112,1))
+      st.achType       = substr(data, tblst+113,9)             /* Null terminated type (8 chars +'\0') */
+      st.usReserved    = substr(data, tblst+122,12)            /* reserved, must be 0 */
+      res = 1
+   end
+return res
+
+/***********************/
+/* Write SysLevel file */
+/***********************/
+WriteSysLevel: procedure expose slfh. st.  msg.
+call Trace OFF
+parse arg fs
+
+   res = 0
+   if stream(fs,"C","Query Exists") <> "" then do
+
+      data = charin(fs,1,chars(fs))
+			call stream fs,"C","Close"
+
+      rc = overlay(reverse(x2c(slfh.usSignature)), data, 1)        /* special # for id of syslevel file */
+      rc = overlay(slfh.achSignature, data, 3)                     /* string to id slf file, must be 'SYSLEVEL' */
+      rc = overlay(slfh.achJulian, data, 11)                       /* date of version */
+      rc = overlay(reverse(x2c(slfh.usSlfVersion)), data, 16)      /* version of syslevel file, must be 1 */
+      rc = overlay(x2c(slfh.ausReserved), data, 18)                /* reserved */
+      rc = overlay(reverse(d2c(slfh.ulTableOffset)), data, 34)     /* offset of SYSTABLE */
+
+      /* Calculate table start */
+      tblst = slfh.ulTableOffset+1
+
+      data = overlay(reverse(x2c(st.usSysId)), data, tblst+0)         /* identifies system /subsytem */
+      data = overlay(x2c(st.bSysEdition), data, tblst+2)              /* edition of system, eg SE=00, EE=01 */
+      data = overlay(x2c(st.bSysVersion), data, tblst+3)              /* version, eg 1.00=10, 1.10=11 */
+      data = overlay(x2c(st.bSysModify), data,  tblst+4)              /* modify, eg 1.00=00, 1.01=01 */
+      data = overlay(reverse(x2c(st.usSysDate)), data, tblst+5)       /* date of system */
+      data = overlay(st.achCsdLevel, data, tblst+7)                   /* subsytem CSD level, eg, XR?0000_ */
+      data = overlay(st.achCsdPrev, data, tblst+15)                   /* as above, except for prev system */
+      data = overlay(st.achSysName, data, tblst+23)                   /* Title of system / subsytem (ASCIIZ) */
+      data = overlay(st.achCompId, data,  tblst+103)                  /* component ID of subsytem */
+      data = overlay(x2c(st.bRefreshLevel), data, tblst+112)
+      data = overlay(st.achType, data, tblst+113)                     /* Null terminated type (8 chars +'\0') */
+      data = overlay(st.usReserved, data, tblst+122)                  /* reserved, must be 0 */
+
+      rc = charout(fs,data,1)
+			if rc = 0 then res = 1
+			call stream fs,"C","Close"
+   end
+return res
+
+/*****************************/
+/* update netscape ini files */
+/*****************************/
+update_netscape_ini: procedure expose n. log msg.
+
+	parse arg nscp_ini netscape_ini bin_ext
+
+	/* definitions */
+	bin_title = 'Binary File'
+	bin_mime  = 'file/bin'
+	bin_0     = '00'x
+	bin_help  = 'browser-handle-internal-savetodisk'bin_0
+	reg_root  = '\HKEY_CLASSES_ROOT\'
+
+	/* update nscp.ini */
+	do i = 1 to Words(bin_ext)
+		ext = Word(bin_ext, i)
+		if i = 1 then ext_list = '.'ext
+		else ext_list = Space(ext_list',.'ext)
+		ext_file = ext'file'	
+		call SysIni nscp_ini, 'Registry', reg_root'.'ext, ext'file'bin_0
+		call SysIni nscp_ini, 'Registry', reg_root||ext_file, bin_title||bin_0
+		call SysIni nscp_ini, 'Registry', reg_root||ext_file'\shell', bin_0
+		call SysIni nscp_ini, 'Registry', reg_root||ext_file'\shell\open', bin_0
+		call SysIni nscp_ini, 'Registry', reg_root||ext_file'\shell\open\command', bin_0
+	end
+
+	/* create/update netscape.ini */
+	call SysIni netscape_ini, 'Suffixes', bin_mime, ext_list||bin_0
+	call SysIni netscape_ini, 'Viewers' , bin_mime, bin_help
+	call SysIni netscape_ini, 'Viewers' , 'TYPE0' , bin_mime||bin_0
+
+return
+
+/*******************************************/
+/* procedure to check product dependencies */
+/*******************************************/
+check_dependecies: procedure expose fpk. upd. log msg.
+
+	parse upper arg os2ver
+
+	select
+		when os2ver = 'WARP3' then do
+
+			/* tcp/ip fixpak */
+			if upd.mpt.num = '' then upd.mpt.num = '8000'
+			if fpk.tc2.num = '' then fpk.tc2.num = '0001'
+			if fpk.tc2.num > '0002' then call check_deps upd.mpt.num '< 8423 'msg.0482' ('fpk.tc2.num') 'msg.0486
+			if fpk.tcp.num = '0980' then call check_deps fpk.tc2.num '< 0958 'msg.0482' ('fpk.tcp.num') 'msg.0490
+
+			/* mpts fixpak */
+			if fpk.mpt.num <> '' then call check_deps fpk.mpt.num '< 'upd.mpt.num' 'msg.0484' ('fpk.mpt.num') 'msg.0487
+
+			/* mpts update */
+			if upd.mpt.num < '8000' then call check_deps upd.mpt.num '< 8400 'msg.0485
+
+			/* ls/peer fixpak */
+			if fpk.per.num <> '' then call check_deps fpk.per.num '> 8600 'msg.0567' ('fpk.per.num') 'msg.0568
+
+		end
+		when os2ver = 'WARP4' then do
+
+			/* tcp/ip 4.0 fixpak */
+			if upd.tcp.num = '' then upd.tcp.num = '0000'
+			if fpk.tcp.num = '0980' then call check_deps upd.tcp.num '>    0 'msg.0482' ('fpk.tcp.num') 'msg.0491
+			/* tcp/ip 4.1 fixpak */
+			if fpk.tcp.num = '2001' then call check_deps upd.tcp.num '< 1000 'msg.0482' ('fpk.tcp.num') 'msg.0488
+			if fpk.tcp.num = '2001' then call check_deps upd.tcp.num '> 2000 'msg.0482' ('fpk.tcp.num') 'msg.0489
+			/* tcp/ip 4.21 fixpak */
+			if fpk.tcp.num = '2101' then call check_deps upd.tcp.num '> 2100 'msg.0482' ('fpk.tcp.num') 'msg.0489
+			/* tcp/ip 4.3 fixpak */
+			if fpk.tcp.num = '2206' then call check_deps upd.tcp.num '< 2200 'msg.0482' ('fpk.tcp.num') 'msg.0488
+			if fpk.tcp.num = '2206' then call check_deps upd.tcp.num '> 2205 'msg.0482' ('fpk.tcp.num') 'msg.0489
+
+			/* tcp/ip update */
+			if upd.mpt.num = '' then upd.mpt.num = '8400'
+			if upd.tcp.num = '0000' then call check_deps upd.mpt.num '< 8400 'msg.0483' ('upd.tcp.num') 'msg.0486
+			if upd.tcp.num = '1000' then call check_deps upd.mpt.num '< 8600 'msg.0483' ('upd.tcp.num') 'msg.0486
+			if upd.tcp.num = '2100' then call check_deps upd.mpt.num '< 8620 'msg.0483' ('upd.tcp.num') 'msg.0486
+			if upd.tcp.num = '2200' then call check_deps upd.mpt.num '< 8700 'msg.0483' ('upd.tcp.num') 'msg.0486
+			if upd.tcp.num = '2205' then call check_deps upd.mpt.num '< 8705 'msg.0483' ('upd.tcp.num') 'msg.0486
+
+			/* mpts fixpak */
+			if fpk.mpt.num <> '' then do
+				call check_deps fpk.mpt.num '< 'upd.mpt.num' 'msg.0484' ('fpk.mpt.num') 'msg.0487
+				if fpk.mpt.num > '8600' then call check_deps upd.mpt.num '< 8600 'msg.0484' ('fpk.mpt.num') 'msg.0486
+				if fpk.mpt.num < '8600' then call check_deps upd.mpt.num '> 8599 'msg.0484' ('fpk.mpt.num') 'msg.0487
+				if fpk.mpt.num > '8700' then call check_deps upd.mpt.num '< 8700 'msg.0484' ('fpk.mpt.num') 'msg.0486
+			end
+
+			/* mpts update */
+			if upd.mpt.num < '8400' then call check_deps upd.mpt.num '< 8400 'msg.0485
+
+			/* ls/peer fixpak */
+			if fpk.per.num <> '' then call check_deps fpk.per.num '< 8400 'msg.0567' ('fpk.per.num') 'msg.0568
+			if fpk.per.num <> '' then call check_deps fpk.per.num '> 8600 'msg.0567' ('fpk.per.num') 'msg.0568
+			
+		end
+		when os2ver = 'WSEB' then do
+
+			/* tcp/ip 4.21 fixpak */
+			if upd.tcp.num = '' then upd.tcp.num = '2100'
+			if fpk.tcp.num = '2101' then call check_deps upd.tcp.num '> 2100 'msg.0482' ('fpk.tcp.num') 'msg.0489
+			/* tcp/ip 4.3 fixpak */
+			if fpk.tcp.num = '2206' then call check_deps upd.tcp.num '< 2200 'msg.0482' ('fpk.tcp.num') 'msg.0488
+			if fpk.tcp.num = '2206' then call check_deps upd.tcp.num '> 2205 'msg.0482' ('fpk.tcp.num') 'msg.0489
+
+			/* tcp/ip update */
+			if upd.mpt.num = '' then upd.mpt.num = '8620'
+			if upd.tcp.num = '2100' then call check_deps upd.mpt.num '< 8620 'msg.0483' ('upd.tcp.num') 'msg.0486
+			if upd.tcp.num = '2200' then call check_deps upd.mpt.num '< 8700 'msg.0483' ('upd.tcp.num') 'msg.0486
+			if upd.tcp.num = '2205' then call check_deps upd.mpt.num '< 8705 'msg.0483' ('upd.tcp.num') 'msg.0486
+
+			/* mpts fixpak */
+			if fpk.mpt.num <> '' then call check_deps fpk.mpt.num '< 'upd.mpt.num' 'msg.0482' ('fpk.mpt.num') 'msg.0487
+			if fpk.mpt.num > '8700' then call check_deps upd.mpt.num '< 8700 'msg.0484' ('fpk.mpt.num') 'msg.0486
+
+			/* mpts update */
+			if upd.mpt.num < '8620' then call check_deps upd.mpt.num '< 8620 'msg.0485
+
+			/* ls/peer fixpak */
+			if fpk.per.num <> '' then call check_deps fpk.per.num '< 8600 'msg.0567' ('fpk.per.num') 'msg.0568
+			
+		end
+		when os2ver = 'CP' then do
+
+			/* tcp/ip 4.3 fixpak */
+			if upd.tcp.num = '' then upd.tcp.num = '2200'
+			if fpk.tcp.num = '2206' then call check_deps upd.tcp.num '< 2200 'msg.0482' ('fpk.tcp.num') 'msg.0488
+			if fpk.tcp.num = '2206' then call check_deps upd.tcp.num '> 2205 'msg.0482' ('fpk.tcp.num') 'msg.0489
+
+			/* tcp/ip update */
+			if upd.mpt.num = '' then upd.mpt.num = '8700'
+			if upd.tcp.num = '2200' then call check_deps upd.mpt.num '< 8700 'msg.0483' ('upd.tcp.num') 'msg.0486
+			if upd.tcp.num = '2205' then call check_deps upd.mpt.num '< 8705 'msg.0483' ('upd.tcp.num') 'msg.0486
+
+			/* mpts fixpak */
+			if fpk.mpt.num <> '' then call check_deps fpk.mpt.num '< 'upd.mpt.num' 'msg.0484' ('fpk.mpt.num') 'msg.0487
+
+			/* mpts update */
+			if upd.mpt.num < '8700' then call check_deps upd.mpt.num '< 8700 'msg.0485
+
+			/* java 118 rt + swing */
+			if upd.jav.fnd = 1 then call check_deps upd.jav.dir' <> 'upd.ja1.dir' * 'msg.0492
+			if upd.ja1.fnd = 1 then call check_deps upd.ja1.dir' <> 'upd.jav.dir' * 'msg.0493
+
+			/* ls/peer fixpak */
+			if fpk.per.num <> '' then call check_deps fpk.per.num '< 8600 'msg.0567' ('fpk.per.num') 'msg.0568
+			
+		end
+		otherwise nop;
+	end
+
+return
+
+/********************************************/
+/* procedure to check product dependencies  */
+/* display message if condition true + exit */
+/********************************************/
+check_deps: procedure expose log msg.
+
+	parse arg p1 relation p2 message
+
+	not_ok = 0	
+	select
+		when relation = '=' then do
+			if p1 = p2 then not_ok = 1
+		end
+		when relation = '>' then do
+			if p1 > p2 then not_ok = 1
+		end
+		when relation = '<' then do
+			if p1 < p2 then not_ok = 1
+		end
+		when relation = '<>' then do
+			if p1 <> p2 then not_ok = 1
+		end
+		otherwise nop;
+	end
+
+	if not_ok = 1 then do
+		say
+		say ' 'message
+		say ' 'msg.0198
+		call lineout log, 'Error: 'message' Exiting...'
+		'@del go4it.bsy >nul 2>>&1'
+		exit 9
+	end
+
+return
+
+/***********************/
+/* add new file to zip */
+/***********************/
+add2zip: procedure expose fpdir cddir log n. updated. msg.
+
+	parse arg zip path files
+
+	call execute '@mkdir tmp'
+	call execute '@bin\unzip -o 'cddir'\'zip' -d tmp'
+	call execute '@cd tmp'
+
+	do while length(files) > 0 
+		parse var files file files
+		if stream(fpdir'\'file, 'c', 'query exists') <> '' then do
+			d1 = path
+			d2 = '.'
+			do while length(d1) > 0
+				parse var d1 w1 '\' d1
+				d2 = d2'\'w1
+				'@mkdir 'd2' >nul 2>>&1'
+			end
+			call execute '@copy 'fpdir'\'file path
+		end
+	end
+	call execute zipexe()' 'cddir'\'zip '* '
+	call execute '@cd .. '
+	call execute '@rmdir tmp '
+
+return
+
+/***********************/
+/* compose zip command */
+/***********************/
+zipexe: procedure
+
+	zipsize = stream('..\bin\zip.exe', 'c', 'query size')
+	if size < 100000 then option = '-mkr' /* old zip */
+	else option = '-mr' /* new zip */
+
+return	'@..\bin\zip.exe 'option
+
+/*******************************************************/
+/* build alias list of java files specified in package */
+/*******************************************************/
+build_java_alias: procedure expose alias. msg.
+
+	parse arg rsp
+
+	alias. = ''
+	if stream(rsp, 'c', 'query exists') <> '' then do
+		do while lines(rsp)
+			l = linein(rsp)
+			tg_file = ''
+			md_file = ''
+			if l = x2c(9)||'File=(' then do
+				do while l <> x2c(9)||')' & lines(rsp) > 0
+					l = linein(rsp)
+					if pos(x2c(9)||x2c(9)||'TargetFileName=',l) > 0 then tg_file = translate(substr(l, pos('=',l)+1))
+					if pos(x2c(9)||x2c(9)||'MediaFileName=', l) > 0 then md_file = translate(substr(l, pos('=',l)+1))
+				end
+				rc = value('alias.'"tg_file", md_file)
+				/* '@echo alias: 'tg_file md_file' >> debug.out' */
+			end
+		end
+		call lineout rsp
+	end
+	else do /* no translation file available */
+		call SysFileTree 'fix\*', 'tmp.', 'FO'
+		do i=1 to tmp.0
+			tg_file = translate(filespec('name',tmp.i))
+			md_file = translate(filespec('name',tmp.i))
+			rc = value('alias.'"tg_file", md_file)
+			/* '@echo alias: 'tg_file md_file' >> debug.out' */
+		end
+	end
+
+return
+
+/*************** By Isma - 25/09/2002 *******************/
+/* Place OS/2 Version in Extended Attributes (.SUBJECT) */
+/* of "burn" folder so we can get it at burning time    */
+/* You can see this EA in Folder properties of the burn */
+/* folder, File, subject field                          */
+/********************************************************/
+
+SetVolumeName:		Parse ARG VolName
+
+   VolName = 'FDFF'x || D2C(length(VolName)) || '00'x || VolName
+   /*         EA type    Length (low byte)    high byte   Value    */
+
+   Call SysPutEA burn, ".SUBJECT", VolName	                 /* Do it ! */
+
+Return
+
+/*********************************/
+/* find ffile in sbundle in sdir */
+/*********************************/
+find_bundled_file: procedure
+
+	parse upper arg sdir sbundle ffile
+
+	call SysFileTree sdir'\'sbundle, 'bfile.', 'FSO'
+	do i=1 to bfile.0
+		'@RXQUEUE /CLEAR >nul'
+		'@bin\unpack 'bfile.i' /SHOW | RXQUEUE'
+	  do while queued() > 0
+		  l = translate(linein('queue:'))
+			if pos(ffile, l) > 0 then do
+				'@RXQUEUE /CLEAR >nul'
+				return bfile.i
+			end
+		end
+	end
+
+return ''
+
+/*********************/
+/* load message file */
+/*********************/
+load_language: procedure expose msg. 
+
+	/* get parameters */
+	parse upper arg language opt
+	if language  = 'DEFAULT' then do
+		call RxFuncAdd 'SysIni', 'RexxUtil', 'SysIni'
+		language = SysIni(, 'UPDCD', 'LANG')
+		if language = 'ERROR:' then language = 'ENG'
+	end
+
+	/* clear */
+	'@cls'
+	say
+	
+	/* check */
+	lfile = strip(directory(), 'T', '\')||'\nls\message.'language
+	if stream(lfile, 'c', 'query exists') = '' then do
+		say ' Fatal error: cannot find language file: 'lfile
+		say ' Did you run this script from the root directory of the CD-ROM?' 
+		say ' Aborting...'
+		exit 7
+	end
+
+	/* load */
+	do while lines(lfile)
+		l = linein(lfile)
+		interpret l
+	end
+	call lineout lfile
+
+	/* set ini */
+	if opt <> 'NOSAVE' then call SysIni , 'UPDCD', 'LANG', language
+
+return
+
+/*********************************/
+/* returns fixpak version number */
+/*********************************/
+get_fixpak_version: procedure 
+
+	parse upper arg token l
+
+	vp=0
+	p=''
+	do while length(l) > 0 & p<>0
+		p = pos(token, l)
+		if p > 0 then do
+			v = substr(l, p+3, 4)
+			if datatype(v) = 'NUM' then
+				if v > vp then vp = v
+			l = substr(l, p+5)
+		end
+	end
+
+return vp
+
+/****************************************/
+/* replaces string s1 with s2 in file f */
+/****************************************/
+replace_string_in_file: procedure
+
+	parse upper arg f s1 s2
+	i = 1
+	do while lines(f)
+		l.i=linein(f)
+		p = pos(s1, translate(l.i))
+		if p > 0 then l.i = substr(l.i, 1, p-1)||s2||substr(l.i, p+length(s1))
+		i=i+1
+	end
+	l.0=i-1
+	call lineout f
+	'@del 'f' >nul 2>>&1'
+
+	do i=1 to l.0
+		call lineout f, l.i
+	end
+	call lineout f
+
+return
+
+/**************************/
+/* save updcd config file */
+/**************************/
+Log_Config_File: 
+
+	parse arg cfgfile
+	call lineout cfgfile, " "
+	call lineout cfgfile, "/* Go4It parameters */"
+	call lineout cfgfile, "burn    = '"burn"' /* location updated CD-ROM */"
+	call lineout cfgfile, "w4cd    = '"w4cd"' /* location original CD-ROM */"
+	call lineout cfgfile, "fixes   = '"fixes"' /* fixes directory */"
+	call lineout cfgfile, "updates = '"updates"' /* updates directory */"
+	call lineout cfgfile, "addons  = '"addons"' /* addons directory */"
+	call lineout cfgfile, "iaddons = "iaddons" /* 1 = integrate add-on products */"
+	call lineout cfgfile, "log     = '"log"'  /* log file */"
+	call lineout cfgfile, " "
+	call lineout cfgfile, "/* updif parameters */"
+	call lineout cfgfile, "flpdrv  = translate('"flpdrv"') /* <----- change it match your virtual floppy */"
+	call lineout cfgfile, "compress = "compress" /* 0 = do not compress files on boot diskette */"
+	call lineout cfgfile, "add.dani.ide = "add.dani.ide" /* 1 = add DANI IDE driver if it is available as addon's */"
+	call lineout cfgfile, "add.dani.flt = "add.dani.flt" /* 1 = add DANI FLT driver if it is available as addon's */"
+	call lineout cfgfile, "add.dani.boot = "add.dani.boot" /* 1 = add DANI Boot driver if it is available as addon's */"
+	call lineout cfgfile, "add.dani.dasd = "add.dani.dasd" /* 1 = add DANI DASD driver if it is available as addon's */"
+	call lineout cfgfile, "add.up2tb = "add.up2tb" /* 1 = add Up2TB driver */"
+	call lineout cfgfile, "add.fat32 = "add.fat32" /* 1 = add FAT32 driver to boot CD */"
+	call lineout cfgfile, "add.usb = "add.usb" /* 1 = add USB driver to boot CD */"
+	call lineout cfgfile, "add.dummy = "add.dummy" /* 0 = do not add new ADD's and do not replace SCSI drivers with dummy driver to save space */"
+	call lineout cfgfile, "rdrive = '"rdrive"' /* drive letter to reserve with reservedriveletter in cfg.sys */"
+	call lineout cfgfile, "emulate = "emulate" /* 1 = use floppy emulation to boot from CD */"
+	call lineout cfgfile, "nologo = "nologo" /* 1 = remove os2logo */"
+	call lineout cfgfile, " "
+	call lineout cfgfile, "/* misc parameters */"
+	call lineout cfgfile, "nosniff = "nosniff" /* 1 = do not detect ISA NIC's during install */"
+	call lineout cfgfile, "nodasd = "nodasd" /* 1 = do not check free disk space during install */"
+	call lineout cfgfile, "noshield = "noshield" /* 1 = disable installation shield */"
+	call lineout cfgfile, "nonetscape = "nonetscape" /* 1 = remove netscape communicator */"
+	call lineout cfgfile, "nojava = "nojava" /* 1 = remove old java run-time */"
+	call lineout cfgfile, " "
+	call lineout cfgfile, "/* burning parameters */"
+	call lineout cfgfile, "rootdir = '"rootdir"'"
+	call lineout cfgfile, "device  = '"device"' /* SCSI device ID (bus, unit, lun) */"
+	call lineout cfgfile, "speed   = "speed" /* burning speed  */"
+	call lineout cfgfile, "tempdir = '"strip(filespec('drive', tempraw)||filespec('path', tempraw), 'T', '\')"' /* imagefile dir  */"
+	call lineout cfgfile, "tempraw = '"tempraw"' /* ISO image file */"
+	call lineout cfgfile, "source  = '"burn"' /* burn directory */"
+	call lineout cfgfile, "cdrdir  = '"cdrdir"' /* mkisofs (and cdrecord) dir */"
+	call lineout cfgfile, "svdc_drive = flpdrv /* virtual flop   */"
+	call lineout cfgfile, "burnlog = '"burnlog"' /* burn log file  */"
+	call lineout cfgfile, "viewer  = 'more <'"
+	call lineout cfgfile, "extrap  = '"extrap"' /* Extra parameters for cdrecord/2 */"
+	call lineout cfgfile, "extrap2 = '"extrap2"' /* Extra parameters for mkisofs */"
+	call lineout cfgfile, "use_dvd = "use_dvd" /* 1 = use DVDDAO instead of CDRECORD */"
+	call lineout cfgfile, "nojoliet = "nojoliet" /* 1 = do not use joliet support */"
+	call lineout cfgfile, " "
+	call lineout cfgfile
+
+return
+
+/**************************/
+/* regenerate CDINST file */
+/**************************/
+regenerate_cdinst: procedure
+
+	parse arg cmd_file
+
+	l.1 = '@SET TARGET=A:'
+	l.2 = '@IF NOT %1.==. SET TARGET=%1'
+
+	i = 3
+	do while lines(cmd_file)
+		l = linein(cmd_file)
+
+		p1 = pos('A:', translate(l))
+		if p1 > 0 then do
+			l.i = substr(l, 1, p1-1)'%TARGET%'substr(l, p1+2)
+			l = l.i
+		end
+
+		p2 = pos('%1\', l)
+		if p2 > 0 then l.i = substr(l, 1, p2-1)||substr(l, p2+2)
+
+		if p1=0 & p2=0 then l.i = l
+
+		i = i+1
+	end
+	l.0 = i-1
+	call lineout cmd_file
+
+	'@del 'cmd_file
+	do i=1 to l.0
+		call lineout cmd_file, l.i
+	end
+	call lineout cmd_file
+
+return
+
+/*******************************/
+/* check if file is accessible */
+/*******************************/
+
+check_log: procedure expose msg.
+
+	parse arg log_file
+	if stream(log_file, 'c', 'query exists') = '' then do
+		r = lineout(log_file, 'testing')
+		if r = 0 then do
+			call lineout log_file
+			'@del 'log_file' >nul 2>>&1'
+		end
+		else do
+			say log_file' 'msg.0566
+			exit
+		end
+	end 
+
+return
+
+/************************************************/
+/* replace string s1 with s2 in binary file fs  */
+/* s1 and s2 are both padded with '*' so we can */
+/* use spaces in these parameters.              */
+/************************************************/
+replace_string_in_binary_file: procedure
+
+	parse upper arg fs s1 s2
+	s1 = strip(s1, 'B', '*') /* remove padding *'s */
+	s2 = strip(s2, 'B', '*') /* remove padding *'s */
+
+	if stream(fs,"C","Query Exists") <> "" then do
+		data = charin(fs,1,chars(fs))
+		call stream fs,"C","Close"
+		p = pos(s1, data)
+		if p > 0 then do
+			new_data = substr(data, 1, p-1)||s2||substr(data, p+length(s1))
+			'@del 'fs
+			call charout fs, new_data
+			call stream fs,"C","Close"
+		end
+	end
+
+return
+
+

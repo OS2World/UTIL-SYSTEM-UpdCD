@@ -1,0 +1,2033 @@
+/******************************************************************/
+/* updcd rexx library - updcd specific functions                  */
+/* created: 02.18.2002                                            */
+/* 03.08.2002: sdf files are not updated in fibase                */
+/* 03.09.2002: improved postprocessing ACP1 files                 */
+/* 03.16.2002: improved postprocessing MCP1 files                 */
+/* 04.14.2002: improved postprocessing ACP1 files                 */
+/* 04.21.2002: aligned with CP2 for eCS                           */
+/* 05.17.2002: added support for integration of res files         */
+/* 05.28.2002: moved functions add2zip and zipexe to general.rlb  */
+/* 06.01.2002: added support for warp 3 addon install             */
+/* 06.18.2002: added support for use of location.pcmciadd         */
+/* 08.23.2002: added support for java toolkit fixpak              */
+/* 08.27.2002: corrected syntax error in postprocess_fibase       */
+/* 09.09.2002: fixed bug in java toolkit fixpak integration       */
+/* 09.14.2002: added support for java fixpak integration in wseb  */
+/* 09.17.2002: made some changes to support Korean Warp 4         */
+/* 11.02.2002: added TP mouse update for CP + fpk 3 or higher     */
+/* 11.11.2002: aligned with mpts and tcp/ip fixpaks for tcp 4.3   */
+/* 12.08.2002: added code to support integration of Fx002.lop     */
+/* 12.24.2002: added support for integration of res files in zips */
+/* 12.29.2002: fixed problem with integrating LS fixpak for WSEB  */
+/* 03.22.2003: added national language support                    */
+/* 06.22.2003: some minor improvements                            */
+/* 07.05.2003: adapted to latest ecs 1.0 updates                  */
+/* 09.03.2003: added support for tcp/ip fixpak un2101             */
+/* 09.28.2003: improved no-emulation boot support                 */
+/* 11.02.2003: removed file cannot be found error message (ecs)   */
+/* 11.09.2003: added eCS 1.1 support                              */
+/* 11.12.2003; eCS 1.1 syslevel file was not updated              */
+/* 11.30.2003; some minor improvements for Warp 3 red pack        */
+/* 01.12.2004: added function remove_registration_program         */
+/* 01.20.2004: added support for java 1.1.8 fixpaks for ecs 1.1   */
+/* 01.22.2004: Peer syslevel was not updated correctly            */
+/* 09.13.2004: improved handling SDF files (thanks Lars)          */
+/* 10.30.2004: location printer sym files is needed for postproc  */
+/* 02.12.2005: added support to update compressed syslevel file   */
+/* 03.05.2005: improved handling SDF files during postprocessing  */
+/* 04.14.2005: avoid crash on E.E                                 */
+/* 08.16.2005: updcd's readme.1st renamed to readme.ucd           */
+/* 11.27.2005: updated UpdCD URL                                  */
+/******************************************************************/
+
+/* load language file */
+call load_language 'ENG NOSAVE'
+call load_language 'DEFAULT'
+
+/* read parameters */
+parse upper arg cddir fpdir n.errors n.warnings n.elapsed log ver vers
+
+/* reset timer */
+call time 'E'
+
+/* need to know absolute path */
+cdir  = chdir()
+fpdir = chdir(fpdir)
+cdir  = chdir(cdir)
+cddir = chdir(cddir)
+cdir  = chdir(cdir)
+
+/* set default */
+fibase.0 = 0
+
+/* load configuration file */
+call read_config_file 'updcd.cfg'
+
+/* reset screen */
+call display_startup_screen cddir fpdir msg.0246'*'msg.0241
+
+/* determine Warp version */
+if stream(cddir'\vcu.exe', 'c', 'query exists') <> '' then fibase.wseb = 1
+else fibase.wseb = 0
+
+/* mensys */
+call SysFileTree cddir'\*', 'tmp.', 'FO'
+if tmp.0 = 0 then fibase.wseb = 1
+/* mensys */
+
+call SysFileTree cddir'\cid\server\pppsrv\*', 'tmp.', 'BSO'
+if fibase.wseb = 1 & tmp.0 > 0 then fibase.acp = 1
+else fibase.acp = 0
+if datatype(vers) = 'NUM' then fibase.warp3 = 1
+else fibase.warp3 = 0
+
+/* scanning fixpak directory */
+if fibase.wseb = 0 then do
+	rc = SysFileTree(fpdir'\srv_prod.*', 'sysfls.', 'FO')
+	rc = SysFileTree(fpdir'\*', 'ffp.full.', 'FO')
+end
+else do
+	rc = SysFileTree(fpdir || '\srv_prod.*', 'sysfls.', 'FSO')  
+	rc = SysFileTree(fpdir || '\*', 'ffp.full.', 'FSO') /* need SMP files too */
+end
+if rc <> 0 then do
+		call lineout log, 'Error: 'fpdir' seems not to be a fixpack directory!'
+		n.errors = n.errors + 1
+end 
+do i = 1 to sysfls.0 /* read srv_prod files */
+	sysfls.i.data = charin(sysfls.i, 1, chars(sysfls.i))
+	call stream sysfls.i, "C", "Close"
+end
+do i=1 to ffp.full.0
+	ffp.i = translate(filespec('NAME', ffp.full.i))
+	ffp.full.i = translate(ffp.full.i)
+end
+ffp.0 = ffp.full.0
+
+/* start updating files */
+rc = lineout(log, 'Info: Updating install files in 'cddir' with fixpak files in 'fpdir'... ('date() time()', version: 'ver')')
+
+/* determine what to do */
+if cddir <> flpdrv then do 
+
+	/* incorporate OS/2 and DD fixpak */
+	if stream(fpdir'\os2krnl', 'c', 'query exists') <> '' & stream(fpdir'\ecs$$$.flg', 'c', 'query exists') = '' then do
+
+		/* regular update */ 
+		call update cddir||'\os2image\DEBUG' 
+		call update cddir||'\os2image\DISK_0'
+		call update cddir||'\os2image\DISK_1'
+		call update cddir||'\os2image\DISK_2'
+		call update cddir||'\os2image\DISK_3'
+		call update cddir||'\os2image\DISK_4'
+		call update cddir||'\os2image\DISK_5'
+		call update cddir||'\os2image\DISK_6'
+		call update cddir||'\os2image\DISK_7'
+		call update cddir||'\os2image\DISK_8'
+		call update cddir||'\os2image\DISK_9'
+		call update cddir||'\os2image\DISK_10'
+		call update cddir||'\os2image\DISK_11'
+		call update cddir||'\os2image\DISK_12'
+		call update cddir||'\os2image\DISK_13'
+		call update cddir||'\os2image\DISK_14'
+		call update cddir||'\os2image\DISK_15'
+		call update cddir||'\os2image\DISK_16'
+		call update cddir||'\os2image\DISP_1'
+		call update cddir||'\os2image\DISP_2'
+		call update cddir||'\os2image\DISP_3'
+		call update cddir||'\os2image\DISP_4'
+		call update cddir||'\os2image\SYM_1'
+		call update cddir||'\os2image\SYM_2'
+		call update cddir||'\os2image\SYM_3'
+		call update cddir||'\os2image\SYM_4'
+		call update cddir||'\os2image\SYM_5'
+
+		if fibase.warp3 = 0 then do
+			call update cddir||'\os2image\DISK_17'
+			call update cddir||'\os2image\DISK_18'
+			call update cddir||'\os2image\DISK_19'
+			call update cddir||'\os2image\DISK_20'
+			call update cddir||'\os2image\DISK_21'
+			call update cddir||'\os2image\DISK_22'
+			call update cddir||'\os2image\DISK_23'
+			call update cddir||'\os2image\DISK_24'
+			call update cddir||'\os2image\DISK_25'
+			call update cddir||'\os2image\DISK_26'
+			call update cddir||'\os2image\DISK_27'
+			call update cddir||'\os2image\DISK_28'
+			call update cddir||'\os2image\DISK_29'
+			call update cddir||'\os2image\DISK_30'
+			call update cddir||'\os2image\DISK_31'
+			call update cddir||'\os2image\DISK_32'
+			call update cddir||'\os2image\DISK_33'
+			call update cddir||'\os2image\DISK_34'
+			call update cddir||'\os2image\DISK_35'
+			call update cddir||'\os2image\DISK_W1'
+			call update cddir||'\os2image\DISK_W2'
+			call update cddir||'\os2image\DISK_W3'
+			call update cddir||'\os2image\DISK_W4'
+			call update cddir||'\os2image\DISK_W5'
+			call update cddir||'\os2image\DISP_5'
+			call update cddir||'\os2image\FI\SYSMGT'
+			call update cddir||'\os2image\FI\DAX'
+			call update cddir||'\os2image\FI\SECURITY'
+			call update cddir||'\CID\EXE' 
+		end
+
+		if fibase.wseb = 0 & fibase.warp3 = 0 then do /* only for Warp 4 */
+			call update cddir||'\os2image\DISK_36'
+			call update cddir||'\os2image\DISK_37'
+			call update cddir||'\os2image\DISK_38'
+			call update cddir||'\os2image\DISK_39'
+			call update cddir||'\os2image\FI\VT'
+			call update cddir||'\os2image\FI\COACHES'
+			call update cddir||'\CID\IMG\SVAGENT'
+			call update cddir||'\os2image\DISK_40'
+			call update cddir||'\os2image\DISK_41'
+			call update cddir||'\os2image\DISK_42'
+			call update cddir||'\os2image\DISK_43'
+			call update cddir||'\os2image\DISK_44'
+			call update cddir||'\os2image\DISK_45'
+			call update cddir||'\os2image\DISK_46'
+			call update cddir||'\os2image\DISK_47'
+			call update cddir||'\os2image\DISK_48'
+			call update cddir||'\os2image\DISK_49'
+			call update cddir||'\os2image\DISK_50'
+			call update cddir||'\os2image\DISK_51'
+			call update cddir||'\os2image\DISK_52'
+			call update cddir||'\os2image\DISK_53'
+		end
+		else if fibase.warp3 = 0 then do	/* only for WSeB */
+			call update cddir||'\os2image\DISP_6'
+			call update cddir||'\os2image\FI\LVMGUI'
+		end
+		else do /* only for Warp 3 */
+			call update cddir||'\os2image\DMPD1'
+			call update cddir||'\os2image\DMPD2'
+		end
+
+		/* update option files */
+		if stream(cddir||'\options\readme.txt', 'c', 'query exists') <> '' then call update cddir||'\options\tp4'
+
+		/* update ecs 1.1 files */
+		if stream(cddir||'\os2\cmd.exe', 'c', 'query exists') <> '' then call update cddir||'\os2'
+
+		/* update some other files */
+		if stream(cddir||'\CID\DLL\OS2\uhpfs.dll', 'c', 'query exists') <> '' then call execute '@copy .\fix\uhpfs.dll    'cddir'\CID\DLL\OS2\uhpfs.dll'
+		if stream(cddir||'\DISKIMGS\ibm1flpy.add', 'c', 'query exists') <> '' then call execute '@copy .\fix\ibm1flpy.add 'cddir'\DISKIMGS\ibm1flpy.add'
+		if stream(cddir||'\vcu.exe',               'c', 'query exists') <> '' then 
+			if stream('.\fix\vcu.exe', 'c', 'query exists') <> '' then call execute '@copy .\fix\vcu.exe 'cddir'\vcu.exe'
+
+		/* update FI database */
+		if fibase.warp3 = 0 then call update_FI_data
+
+		/* add new drivers if they are there */
+		call SysFileTree 'newinst\*.add', 'drivers.', 'FO'
+		do i = 1 to drivers.0
+				call execute '@copy 'drivers.i' fix\.'
+				drivers.i = translate(substr(drivers.i, lastpos('\', drivers.i)+1))
+				call add2bundle drivers.i 'os2image\disk_0\bundle \OS2\BOOT'
+				call add2bundle drivers.i location.scsiadds
+				call execute '@del fix\'drivers.i
+		end
+		call delete_if_exist 'newinst\aic78u2.add'
+
+		/* postprocessing to include new functions from fixpak */
+		if fibase.warp3 = 1 then do
+			Call SysFileTree cddir'\os2image\winenv*', 'tmp.', 'FSO'
+			if tmp.0 < 3 then 
+				location.winpath = ''
+			else 
+				location.winpath = '\OS2\MDOS\WINOS2'
+		end
+		call postprocess 'pin\basefpk.pin'
+
+		/* postprocess FI database */
+		if fibase.warp3 = 0 then call postprocess_fibase 
+
+		/* put our readme on CD */
+		call place_readme
+
+	end
+
+	/* incorporate eCS CP1 fixpak */
+	else if stream(fpdir'\os2krnl', 'c', 'query exists') <> '' & stream(fpdir'\ecs$$$.flg', 'c', 'query exists') <> '' then do
+		'@del 'fpdir'\ecs$$$.flg >nul 2>>&1'
+		call update cddir||'\os2'
+		call update cddir||'\ecs\disk01'
+		call update cddir||'\ecs\disk2'
+		call update cddir||'\ecs\os2root'
+		call update cddir||'\mmos2'
+		call update cddir||'\ibminst'
+
+		/* postprocessing to include new functions from fixpak */
+		call postprocess 'pin\basefpk.pin'
+	end
+
+	/* incorporate eCS DE fixes */
+	else if stream(fpdir'\SETTERM.EXE', 'c', 'query exists') <> '' & stream(fpdir'\SCENTER.DLL', 'c', 'query exists') <> '' then do
+		call update cddir||'\ecs'
+		call update cddir||'\mmos2'
+		call update cddir||'\ziptemp'
+
+		/* postprocessing to include new functions from fixpak */
+		call postprocess 'pin\basefpk.pin'
+	end
+
+	/* incorporate printer fixpak */
+	else if (stream(fpdir'\pscript.drv', 'c', 'query exists') <> '' | stream(fpdir'\plotters.drv', 'c', 'query exists') <> '' | stream(fpdir'\laserjet.drv', 'c', 'query exists') <> '' | stream(fpdir'\omni.drv', 'c', 'query exists') <> '') & stream(fpdir'\TELNETPM.EXE', 'c', 'query exists') = '' then do
+
+		/* regular update */
+		call update cddir||'\os2image\PMDD_1'
+		call update cddir||'\os2image\PMDD_2'
+		call update cddir||'\os2image\PMDD_3'
+		call update cddir||'\os2image\PMDD_4'
+		call update cddir||'\os2image\PMDD_5'
+		call update cddir||'\os2image\PMDD_6'
+		if fibase.wseb <> 0 then call update cddir||'\os2image\PMDD_7'
+
+		/* postprocess */
+		call postprocess 'pin\prntfpk.pin'
+
+	end
+
+	/* incorporate MPTS fixpak */
+	else if stream(fpdir'\afinet.sys', 'c', 'query exists') <> '' then do
+
+		/* regular update */
+		call update cddir
+
+		/* if target is not peer mpts than do postprocessing */
+		if stream(cddir'\peerrmt.exe', 'c', 'query exists') = '' then 
+			call postprocess 'pin\mptsfpk.pin'
+
+	end
+
+	/* incorporate PEER\LS fixpak */
+	else if stream(fpdir'\net.exe', 'c', 'query exists') <> '' then do
+
+		/* regular update */
+		if stream(cddir'\CID\IMG\IBMPEER\peerrmt.exe', 'c', 'query exists') <> '' then
+			call update cddir'\CID\IMG\IBMPEER'
+		else do
+			call update cddir'\CID\server\ibmls'
+			call update cddir'\en\hpfs386'
+		end
+
+		/* postprocessing */
+		call postprocess 'pin\peerfpk.pin'
+
+	end
+
+	/* incorporate TCP/IP fixpak */
+	else if stream(fpdir'\ftpd.exe', 'c', 'query exists') <> '' then do
+		
+		/* find out path to TCPAPPS */
+		tcpdir = 'CID\IMG\TCPAPPS'
+		if stream(cddir'\'tcpdir'\install.exe', 'c', 'query exists') = '' & stream(cddir'\'tcpdir'\tcpinst.exe', 'c', 'query exists') = '' then tcpdir = 'CID\SERVER\TCPAPPS' 
+
+		/* regular update */
+		if stream(cddir'\'tcpdir'\base1.zip', 'c', 'query exists') = '' then fibase.tcpip = 1
+		call update cddir'\'tcpdir
+
+		/* postprocessing for 16-bits TCP/IP */
+		if stream(cddir'\'tcpdir'\base1.zip', 'c', 'query exists') <> '' then do
+			tcpip_lang_dir = 'MSG\'find_out_tcpip_lang(cddir'\'tcpdir'\default.rsp')
+			call postprocess 'pin\tcppfpk.pin'
+		end
+
+		/* handle 32-bits TCP/IP */
+		else do 
+
+			/* update FI database for 32-bits TCP/IP */
+			call update_FI_data
+
+			/* postprocess */
+			if stream('pin\tcppf32.pin', 'c', 'query exists') <> '' then do
+				call postprocess 'pin\tcppf32.pin'
+				/* postprocess FI database */
+				call postprocess_fibase 
+			end
+
+		end
+
+	end
+
+	/* incorporate JAVA fixpaks */
+	else if stream(fpdir'\java.exe', 'c', 'query exists') <> '' then do
+
+		/* regular update */
+		fibase.java = 1
+
+		/* determine java path and rsp file */
+		if stream(cddir'\CID\IMG\java\install.exe', 'c', 'query exists') <> '' then do
+			javadir = 'CID\IMG\JAVA'
+			javarsp = 'EN\rspjava.rsp'
+		end
+		else if stream(cddir'\CID\SERVER\java\install.exe', 'c', 'query exists') <> '' then do
+			javadir = 'CID\SERVER\JAVA'
+			javarsp = 'EN\rspjava.rsp'
+		end
+		else do
+			javadir = 'OS2IMAGE\FI\PACKAGE'
+			javarsp = 'JAVA118.RSP'
+		end
+
+		/* create alias list */
+		call build_java_alias cddir'\'javadir'\'javarsp
+
+		/* update files */
+		fibase.0 = 0
+		call update cddir'\'javadir
+
+		/* update FI database for JAVA */
+		call update_FI_data
+
+		/* postprocessing to include new functions from fixpak */
+		if stream(cddir'\'javadir'\syslevel.jtk', 'c', 'query exists') <> '' then do
+			call postprocess 'pin\javatkt.pin'
+			call postprocess_fibase 'TOOLKIT'
+		end
+
+	end
+
+	/* incorporate PMFax lite */
+	else if stream(fpdir'\faxworks.exe', 'c', 'query exists') <> '' then do
+
+		/* regular update */
+		fibase.fax = 1
+		fibase.0 = 0
+		call update cddir||'\os2image\FI\BONUSPAK\FAXWORKS'
+
+		/* update FI database for FaxWorks */
+		call update_FI_data
+
+		/* postprocessing */
+		call postprocess 'pin\pmfaxlt.pin'
+
+		/* postprocess FI database */
+		call postprocess_fibase 'FAXWKS'
+
+	end
+
+	/* cannot handle this fixpak */
+	else do
+		say ' 'msg.0223
+		rc = lineout(log, 'Error: Panic, I do not know what to do with this fixpak!')
+		n.errors = n.errors + 1
+		if n.elapsed > 0 then do
+			/* if go4it called us than we should make a report */
+			rc = lineout('result.out', n.errors||' '||n.warnings, 1)
+		end
+		exit 1
+	end
+
+	/* log not used fixpak files */
+	do i = 1 to ffp.0
+		filename = translate(ffp.i, '_', '.')
+		if (updated.filename <> 1) & (pos('SRV_PROD', filename)) = 0 then do
+			n.warnings = n.warnings + 1
+			rc = lineout(log, 'Warning: Fixpak file 'ffp.i' was not used!')
+		end
+	end
+
+	/* log not updated FI records */
+	do i = 1 to fibase.0
+		/* debug */
+		/* '@echo 'i fibase.i updated.i' >> debug.out' */
+		if updated.i <> 1 then do
+			n.warnings = n.warnings + 1
+			rc = lineout(log, 'Warning: Update 'fibase.i' was not included in FI database!')
+		end
+	end
+
+	say '1B'x || '[14;2H'msg.0149' 'trunc(time('E')/60 + n.elapsed, 2)
+	say '1B'x || '[16;2H'msg.0151' 'n.warnings
+	say '1B'x || '[19;2H'
+
+end
+
+/* update installation floppy */
+else do
+	call update flpdrv
+end
+
+if n.elapsed > 0 then do
+	/* if go4it called us than we should make a report */
+	rc = lineout('result.out', n.errors||' '||n.warnings, 1)
+end
+else do
+	/* signal fatal errors */
+	if n.errors > 0 then 	say '1B'x || '[19;2H'msg.0224
+	else say '1B'x || '[19;2H'msg.0156
+end
+
+exit 
+
+/********************************/
+/* update directory with fixpak */
+/********************************/
+update: procedure expose fpdir log ffp. n. updated. fibase. location. sysfls. alias. msg.
+
+	parse arg cddir 
+	say '1B'x || '[7;26H'msg.0226' 'substr(cddir, 1, 41)
+	say '1B'x || '[8;26H'substr(msg.0227, 1, 50)
+	say '1B'x || '[9;26H'substr(msg.0227, 1, 50)
+	say '1B'x || '[11;26H'substr(msg.0227, 1, 50)
+	say '1B'x || '[19;2H'
+	rc=lineout(log, 'Info: Updating  'cddir'...')
+
+	/* scanning and updating directory */
+	rc = SysFileTree(cddir || '\*', fcd.full., 'FSO',,'**---') 
+	if rc <> 0 then do
+		rc=lineout(log, 'Error: 'cddir' seems not to be an image directory!')
+		n.errors = n.errors + 1
+		return
+	end
+	do i=1 to fcd.full.0	/* process all files in this directory */
+
+			/* translate filenames to uppercase */
+			fcd.i = translate(filespec('NAME', fcd.full.i))
+			if fcd.i = 'EA DATA. SF' then iterate
+			fcd.full.i = translate(fcd.full.i)
+
+			/* determine which type of file we have */
+			if test_compressed_file(fcd.full.i) then 
+				call update_compressed_file /* packed file */
+			else if (test_zipped_file(fcd.full.i) & fcd.i <> 'LVMGUI.ZIP' & fcd.i <> 'CLASSES.ZIP') then /* skip some zip's */
+				call update_zipped_file     /* zipped file */
+			else
+				call update_uncompressed_file /* plain file */
+	end
+
+	/* display status */
+	call report_status
+
+return
+
+/***********************************/
+/* update compressed file (bundle) */
+/***********************************/
+update_compressed_file: procedure expose fcd. ffp. i log updated. n. location. sysfls. fibase. alias. msg.
+
+	rcode = 0
+	dummy = 'dummy.txt'
+
+	/* create and process list of packed files */
+	found = 0
+	'@bin\unpack 'fcd.full.i' /show | RXQUEUE'
+	f=linein('queue:')
+	do while queued() > 0
+		l = translate(linein('queue:'))  /* transform to uppercase */
+		p = lastpos('\', l)
+		if p <> 0 then do
+			dpath = substr(l, 3, p-2) /* relative location (path) of packed file */
+			l = substr(l, p+1)        /* name of packed file without path */
+		end
+		else do
+			dpath = ''
+			l = substr(l, 3)
+		end
+
+		/* remember location of special files */
+		select 
+			when l = 'FIBASE.RSP' then do
+				location.fibase = fcd.full.i
+			end
+			when l = 'DKBASE.RSP' then do
+				location.dkbase = fcd.full.i
+			end
+			when l = 'MTSH.DLL' then do
+				location.mmparts = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'APM.SYS' then do
+				location.apm = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'PCMCIA.SYS' then do
+				location.pcmcia = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'COURIER.BGA' & fcd.i = 'COURIER.BMP' then do
+				location.courier = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'HIMEM.SYS' & fcd.i = 'DOS' then do
+				location.dos = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'WINASPI.DLL' & fcd.i = 'WINENV' then do
+				location.winenv = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'TIMES.BGA' & fcd.i = 'TIMES.BMP' then do
+				location.times = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'LIBCS.DLL' & fcd.i = 'REQUIRED' then do
+				location.required = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'MDMI.DLL' & fcd.i = 'PACK0' then do
+				location.pack = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'HELV.BGA' & fcd.i = 'HELV.BMP' then do
+				location.helv = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'JOIN.TXT' & fcd.i = 'OPENGL' then do
+				location.opengl = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'JOIN.TXT' & fcd.i = 'PACK0' then do
+				location.mmtemp = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'JFS.IFS' & fcd.i = 'JFS' then do
+				location.jfs = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'AIC7870.ADD' & fcd.i = 'SCSIADDS' then do
+				location.scsiadds = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'LANSTART.EXE' & fcd.i = 'BUNDLE' then do
+				location.grpware = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'IBM2TOS1.SYS' & fcd.i = 'PCMCIADD' then do
+				location.pcmciadd = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'OSO001H.MSG' then do
+				location.oso001h = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'OSO001.MSG' then do
+				location.oso001 = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			when l = 'DSPRES.DLL' & fcd.i = 'DSPRES.DL_' then do
+				location.dspres_ = substr(fcd.full.i, pos('\OS2IMAGE\', fcd.full.i)+1)
+			end
+			otherwise nop;
+		end
+
+		match = 0
+		do j=1 to ffp.0             /* try to find a match in the fixpak */
+			/* say ffp.j "=" l */
+			if ffp.j = l then do /* update packed file */
+				/* skip matching UNI SMP files */
+				if ((pos('\SMP', dpath) > 0 | pos('\WARP45_S', dpath) > 0) & pos('\SMP', ffp.full.j) = 0) | ((pos('\SMP', dpath) = 0 & pos('\WARP45_S', dpath) = 0) & pos('\SMP', ffp.full.j) > 0) then do
+					iterate
+				end
+				rcode = 0
+				if found = 0 then do
+					found = 1	/* remember we did update this bundle */
+					'@bin\pack2 'dummy f' /A >nul 2>&1' /* ensure bundle will not become */
+					if rc <> 0 then rcode = rc      /* empty after deleting old file */
+				end
+				dpath = dpath || l
+				'@bin\pack2 'dpath f' /R >nul 2>&1'
+				if rc <> 0 then rcode = rc
+
+				/* handle compressed SDF files */
+				if translate(right(ffp.full.j,4)) = '.SDF' then do
+					ffp.full.temp = substr(ffp.full.j, 1, length(ffp.full.j)-3)||'SD@'
+					'@bin\pack2 'ffp.full.j ffp.full.temp' /H:'dpath' >nul 2>&1'
+					'@bin\pack2 'ffp.full.temp f '/H:'dpath' /A >nul 2>&1'
+					if rc <> 0 then rcode = rc
+					'@del 'ffp.full.temp' >nul 2>&1'
+				end
+				else do 
+					'@bin\pack2 'ffp.full.j f '/H:'dpath' /A >nul 2>&1'
+					if rc <> 0 then rcode = rc
+				end
+				match = 1
+
+				/* report */
+				say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(f||'->'||l), 1, 50))), 1, 50)
+				say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(ffp.full.j), 1, 50))), 1, 50)
+				say '1B'x || '[11;26HPACK          '
+				say '1B'x || '[12;26H'rcode' '
+				if rcode <> 0 then do
+					call lineout log, 'Error: 'f||'->'||l' <= 'ffp.full.j' rc='rcode
+					n.errors = n.errors + 1
+				end
+				else
+					call lineout log, 'Info: 'f||'->'||l' <= 'ffp.full.j' rc='rcode
+				filename = translate(ffp.j, '_', '.')
+				updated.filename = 1
+				call report_status
+			end
+
+			/* update packed file with resource */
+			fixfile = translate(filespec('name', ffp.j), '.', '_')
+			fixfile = substr(fixfile, 1, length(fixfile)-4)
+			resfile = translate(filespec('name', fixfile), '_', '.')||'.RES'
+			if fixfile = l & stream('fix\'resfile, 'c', 'query exists') <> '' then do 
+				rcode = 0
+				call execute '@bin\unpack 'f' fix /N:'fixfile
+				if rc <> 0 then rcode = rc
+				call execute '@rc -n -w2 -x2 fix\'resfile 'fix\'fixfile
+				if rc <> 0 then rcode = rc
+				'@bin\pack2 'dummy f' /A >nul 2>&1'
+				if rc <> 0 then rcode = rc
+				dpath = dpath || l
+				'@bin\pack2 'dpath f' /R >nul 2>&1'
+				if rc <> 0 then rcode = rc
+				'@bin\pack2 fix\'fixfile f' /H:'dpath' /A >nul 2>&1'
+				if rc <> 0 then rcode = rc
+				'@bin\pack2 'dummy f' /R >nul 2>&1'
+				if rc <> 0 then rcode = rc
+
+				/* report */
+				say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(f||'->'||l), 1, 50))), 1, 50)
+				say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(resfile), 1, 50))), 1, 50)
+				say '1B'x || '[11;26HPACK          '
+				say '1B'x || '[12;26H'rcode' '
+				if rcode <> 0 then do
+					call lineout log, 'Error: 'f||'->'||l' <= 'fixfile resfile' rc='rcode
+					n.errors = n.errors + 1
+				end
+				else
+					call lineout log, 'Info: 'f||'->'||l' <= 'fixfile resfile' rc='rcode
+				filename = translate(resfile, '_', '.')
+				updated.filename = 1
+				call report_status
+			end
+		end
+
+		/* try to update non-matching syslevel files */
+		if pos('SYSLEVEL.', l) > 0 & match = 0 then do
+			rc = lineout(log, 'Info: Update compressed syslevel file: 'l)
+			rcode = 0
+			call execute '@bin\unpack 'f' fix /N:'l
+			if rc <> 0 then rcode = rc
+			'@bin\pack2 'dummy f' /A >nul 2>&1'
+			if rc <> 0 then rcode = rc
+			dpath = dpath || l
+			'@bin\pack2 'dpath f' /R >nul 2>&1'
+			if rc <> 0 then rcode = rc
+			'@attrib -r -s -h fix\'l' >nul 2>>&1'
+			call update_syslevel_file 'fix\'l
+			'@bin\pack2 fix\'l f' /H:'dpath' /A >nul 2>&1'
+			if rc <> 0 then rcode = rc
+			'@bin\pack2 'dummy f' /R >nul 2>&1'
+			if rc <> 0 then rcode = rc
+			'@del fix\'l' >nul 2>>&1'
+		end
+
+	end
+
+	/* lets see if the packed file matches an other packed file in fp */
+	if found = 0 then
+		do j=1 to ffp.0 /* compare fixpak files to this bundle */
+			if ffp.j = fcd.i then do /* there is a match */
+				/* skip matching UNI SMP files */
+				if ((pos('\SMP', fcd.full.i) > 0 | pos('\WARP45_S', fcd.full.i) > 0) & pos('\SMP', ffp.full.j) = 0) | ((pos('\SMP', fcd.full.i) = 0 & pos('\WARP45_S', fcd.full.i) = 0) & pos('\SMP', ffp.full.j) > 0) then do
+					iterate
+				end
+				if test_compressed_file(ffp.full.j) then do /* this fp file is compressed! */
+
+					/* update */
+					'@copy 'ffp.full.j fcd.full.i' >nul 2>&1'
+					if rc <> 0 then rcode = rc
+
+					/* update FI list */
+					if (pos('\OS2IMAGE\FI\', fcd.full.i) > 0 | fibase.tcpip = 1 | fibase.java = 1) then do /* is it a FI file? */
+						k = fibase.0 + 1
+						fibase.k = fcd.full.i	/* remember it */
+						fibase.0 = fibase.0 + 1
+						/* '@echo 'k fibase.k stream(fibase.k, 'c', 'query datetime')' >> debug.out' */
+					end
+
+					/* report */
+					say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(fcd.full.i), 1, 50))), 1, 50)
+					say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(ffp.full.j), 1, 50))), 1, 50)
+					say '1B'x || '[11;26HCOPY          '
+					say '1B'x || '[12;26H'rcode' '
+
+					/* report */
+					if rcode <> 0 then do
+						rc=lineout(log, 'Error: 'fcd.full.i' <- 'ffp.full.j' rc='rcode)
+						n.errors = n.errors + 1
+					end
+					else
+						rc=lineout(log, 'Info: 'fcd.full.i' <- 'ffp.full.j' rc='rcode)
+					filename = translate(ffp.j, '_', '.')
+					updated.filename = 1
+					call report_status
+				end
+		end
+	end
+	else do
+		'@bin\pack2 'dummy f' /R >nul 2>&1'
+		if rc <> 0 then rcode = rc
+		if rcode <> 0 then do
+			rc=lineout(log, 'Error: Remove dummy rc='rcode)
+			n.errors = n.errors + 1
+			call report_status
+		end
+	end
+
+	if rcode <> 0 then rcode = 1
+
+return rcode
+
+/**********************/
+/* update zipped file */
+/**********************/
+update_zipped_file: procedure expose fcd. ffp. i log updated. n. sysfls. slfh. st. alias. msg.
+
+	/* clean up temp directory if needed */
+	/* abuse zip to do this quick and dirty */
+	cdir = chdir()
+	d = chdir('.\tmp')
+	cdir = chdir(cdir)
+	if d <> '' & d <> cdir then do
+		'@attrib -r -s -h tmp\* /S >nul 2>>&1'
+		'@.\bin\zip.exe -rm tmp.zip tmp\* >nul 2>>&1'
+		'@rmdir tmp >nul 2>>&1'
+		'@del tmp.zip >nul 2>>&1'
+		rc=lineout(log, 'Warning: Temp directory was not empty!')
+		n.warnings = n.warnings + 1
+		call report_status
+	end
+
+	/* create and process list of zipped files */
+	rcode = 0
+	found = 0
+	'@bin\unzip -l 'fcd.full.i' | RXQUEUE'
+	line = linein('queue:')
+	parse var line . f
+	f = space(translate(f, '\', '/'))
+	do while queued() > 0
+		line = translate(linein('queue:'))
+		parse var line . . . . . l
+		p = lastpos('/', l)
+		if p <> 0 then do
+			dpath = substr(l, 1, p-1) /* relative location (path) of zipped file */
+			l = substr(l, p+1)        /* name of zipped file without path */
+		end
+		else do
+			dpath = '.'
+			l = space(l)
+		end
+
+		match = 0
+		do j=1 to ffp.0             /* try to find a match in the fixpak */
+
+			/* skip matching UNI SMP files */
+			if ((pos('\SMP', dpath) > 0 | pos('\WARP45_S', dpath) > 0) & pos('\SMP', ffp.full.j) = 0) | ((pos('\SMP', dpath) = 0 & pos('\WARP45_S', dpath) = 0) & pos('\SMP', ffp.full.j) > 0) then do
+				iterate
+			end
+
+			/* res file names */
+			fixfile = translate(filespec('name', ffp.j), '.', '_')
+			fixfile = substr(fixfile, 1, length(fixfile)-4)
+			resfile = translate(filespec('name', fixfile), '_', '.')||'.RES'
+
+			/* unzip file */
+			if (fixfile = l & stream('fix\'resfile, 'c', 'query exists') <> '') | ffp.j = l then do 
+				if found = 0 then do
+					found = 1	/* remember we did unzip this zip */
+					rcode = 0
+					'@mkdir tmp >nul 2>>&1'
+					if rcode <> 0 then rcode = rc
+					'@bin\unzip -o 'fcd.full.i '-d tmp >nul 2>>&1' /* unzip it */
+					if rc <> 0 then rcode = rc 
+					/* report */
+					if rcode <> 0 then do
+						rc=lineout(log, 'Error: Unzip 'fcd.full.i' rc='rcode)
+						n.errors = n.errors + 1
+						call report_status
+					end
+					else
+						rc=lineout(log, 'Info: Unzip 'fcd.full.i' rc='rcode)
+				'@attrib -r -s -h tmp\* /S >nul 2>>&1'
+				end
+			end
+
+			/* update zipped file */
+			/* say ffp.j "=" l */
+			if ffp.j = l then do 
+
+				'@copy 'ffp.full.j 'tmp\'space(translate(dpath, '\', '/'))'\'l' >nul 2>>&1'
+				if rc <> 0 then rcode = rc
+				match = 1
+
+				/* report */
+				say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(f||'->'||l), 1, 50))), 1, 50)
+				say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(ffp.full.j), 1, 50))), 1, 50)
+				say '1B'x || '[11;26HZIP           '
+				say '1B'x || '[12;26H'rcode' '
+				if rcode <> 0 then do
+					rc=lineout(log, 'Error: 'f||'->'||l' <- 'ffp.full.j' rc='rcode)
+					n.errors = n.errors + 1
+					call report_status
+				end
+				else
+					rc=lineout(log, 'Info: 'f||'->'||l' <- 'ffp.full.j' rc='rcode)
+				filename = translate(ffp.j, '_', '.')
+				updated.filename = 1
+				call report_status
+			end
+
+			/* update packed file with resource */
+			if fixfile = l & stream('fix\'resfile, 'c', 'query exists') <> '' then do 
+				rcode = 0
+				call execute '@rc -n -w2 -x2 fix\'resfile 'tmp\'space(translate(dpath, '\', '/'))'\'l
+				if rc <> 0 then rcode = rc
+
+				/* report */
+				say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(f||'->'||l), 1, 50))), 1, 50)
+				say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(resfile), 1, 50))), 1, 50)
+				say '1B'x || '[11;26HPACK          '
+				say '1B'x || '[12;26H'rcode' '
+				if rcode <> 0 then do
+					call lineout log, 'Error: 'f||'->'||l' <= 'fixfile resfile' rc='rcode
+					n.errors = n.errors + 1
+				end
+				else
+					call lineout log, 'Info: 'f||'->'||l' <= 'fixfile resfile' rc='rcode
+				filename = translate(resfile, '_', '.')
+				updated.filename = 1
+				call report_status
+			end
+
+		end
+
+		/* try to update non-matching syslevel files */
+		if pos('SYSLEVEL.', l) > 0 & match = 0 then do
+			rc = lineout(log, 'Info: Update zipped syslevel file: 'l)
+			if found = 0 then do
+					'@bin\unzip -o 'fcd.full.i '-d tmp >nul 2>>&1' /* unzip it */
+				if rc <> 0 then rcode = rc 
+				found = 1
+				'@attrib -r -s -h tmp\* /S >nul 2>>&1'
+			end
+			call update_syslevel_file 'tmp\'space(translate(dpath, '\', '/'))'\'l
+		end
+
+	end
+
+	/* lets see if the packed file matches an other packed file in fp */
+	if found = 0 then
+		do j=1 to ffp.0 /* compare fixpak files to this zip */
+			if translate(ffp.j) = translate(fcd.i) then do /* there is a match */
+				/* skip matching UNI SMP files */
+				if ((pos('\SMP', fcd.full.i) > 0 | pos('\WARP45_S', fcd.full.i) > 0) & pos('\SMP', ffp.full.j) = 0) | ((pos('\SMP', fcd.full.i) = 0 & pos('\WARP45_S', fcd.full.i) = 0) & pos('\SMP', ffp.full.j) > 0) then do
+					iterate
+				end
+				if test_zipped_file(ffp.full.j) then do /* this fp file is zipped! */
+
+					/* update */
+					'@mkdir tmp >nul 2>>&1'
+					if rcode <> 0 then rcode = rc
+					'@bin\unzip -o 'fcd.full.i '-d .\tmp >nul 2>>&1' /* unzip it */
+					if rcode <> 0 then rcode = rc
+					'@attrib -r -s -h tmp\* /S >nul 2>>&1'
+					'@bin\unzip -o 'ffp.full.j '-d .\tmp >nul 2>>&1' /* unzip it */
+					if rcode <> 0 then rcode = rc
+					'@attrib -r -s -h tmp\* /S >nul 2>>&1'
+					'@cd tmp'
+					if rcode <> 0 then rcode = rc
+					'@del 'fcd.full.i' >nul 2>>&1'
+					if rcode <> 0 then rcode = rc
+					zipexe()' 'fcd.full.i' * >nul 2>>&1'
+					if rcode <> 0 then rcode = rc
+					'@cd ..'
+					if rcode <> 0 then rcode = rc
+					'@rmdir tmp >nul 2>>&1'
+					if rcode <> 0 then rcode = rc
+
+					/* report */
+					say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(fcd.full.i), 1, 50))), 1, 50)
+					say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(ffp.full.j), 1, 50))), 1, 50)
+					say '1B'x || '[11;26HCOPY          '
+					say '1B'x || '[12;26H'rcode' '
+					if rcode <> 0 then do
+						rc=lineout(log, 'Error: 'fcd.full.i' <- 'ffp.full.j' rc='rcode)
+						n.errors = n.errors + 1
+						call report_status
+					end
+					else
+						rc=lineout(log, 'Info: 'fcd.full.i' <- 'ffp.full.j' rc='rcode)
+					filename = translate(ffp.j, '_', '.')
+					updated.filename = 1
+					call report_status
+				end
+		end
+	end
+	else do
+
+		/* zip file */
+		'@cd tmp >nul 2>>&1'
+		if rcode <> 0 then rcode = rc
+		'@del 'fcd.full.i' >nul 2>>&1'
+		if rcode <> 0 then rcode = rc
+		zipexe()' 'fcd.full.i' * >nul 2>>&1'
+		if rcode <> 0 then rcode = rc
+		'@cd .. >nul 2>>&1'
+		if rcode <> 0 then rcode = rc
+		'@rmdir tmp >nul 2>>&1'
+		if rcode <> 0 then rcode = rc
+
+		/* report */
+		if rcode <> 0 then do
+			rc=lineout(log, 'Error: Zippen 'fcd.full.i' rc='rcode)
+			n.errors = n.errors + 1
+			call report_status
+		end
+		else
+			rc=lineout(log, 'Info: Zippen 'fcd.full.i' rc='rcode)
+	end
+
+	if rcode <> 0 then rcode = 1
+
+return rcode
+
+/****************************/
+/* update uncompressed file */
+/****************************/
+update_uncompressed_file: procedure expose fcd. ffp. i log updated. n. fibase. sysfls. slfh. st. alias. msg. location.
+
+	rcode = 0
+	match = 0
+
+	/* remember location of special files */
+	if fcd.i = 'PSCRIPT.SYM' then do
+		location.pscript_sym = substr(fcd.full.i, 1, lastpos('\', fcd.full.i)-1)
+	end
+
+	do j=1 to ffp.0
+
+		if fibase.java = 1 then do
+			temp = ffp.j
+			ffp.j = translate(value('alias.'"temp"))
+			/* '@echo 1 'fcd.full.i ffp.full.j temp ffp.j' >> debug2.out' */
+		end
+
+		if ffp.j = fcd.i then do /* match */
+			if fibase.java = 1 then do
+				ffp.j = temp
+				/* '@echo 2 'fcd.full.i ffp.full.j ffp.j' >> debug.out' */
+			end
+			/* skip matching UNI SMP files */
+			if ((pos('\SMP', fcd.full.i) > 0 | pos('\WARP45_S', fcd.full.i) > 0) & pos('\SMP', ffp.full.j) = 0) | ((pos('\SMP', fcd.full.i) = 0 & pos('\WARP45_S', fcd.full.i) = 0) & pos('\SMP', ffp.full.j) > 0) then do
+				iterate
+			end
+			'@copy 'ffp.full.j fcd.full.i' >nul 2>&1'
+			match = 1
+			rcode = rc
+			if (pos('\OS2IMAGE\FI\', fcd.full.i) > 0 | fibase.tcpip = 1 | fibase.java = 1) then do /* is it a FI file? */
+				k = fibase.0 + 1
+				fibase.k = fcd.full.i	/* remember it */
+				fibase.0 = fibase.0 + 1
+				/* '@echo 'k fibase.k stream(fibase.k, 'c', 'query datetime')' >> debug.out' */
+			end
+			say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(fcd.full.i), 1, 50))), 1, 50)
+			say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(ffp.full.j), 1, 50))), 1, 50)
+			say '1B'x || '[11;26HCOPY          '
+			say '1B'x || '[12;26H'rcode' '
+			if rcode <> 0 then do
+				rc=lineout(log, 'Error: 'fcd.full.i' <- 'ffp.full.j' rc='rcode)
+				n.errors = n.errors + 1
+				call report_status
+			end
+			else
+				rc=lineout(log, 'Info: 'fcd.full.i' <- 'ffp.full.j' rc='rcode)
+			filename = translate(ffp.j, '_', '.')
+			updated.filename = 1
+			call report_status
+		end
+		else if fibase.java = 1 then do
+			ffp.j = temp
+			/* '@echo 2 'fcd.full.i ffp.full.j ffp.j' >> debug.out' */
+		end
+
+		/* update unpacked file with resource */
+		fixfile = translate(filespec('name', ffp.j), '.', '_')
+		fixfile = substr(fixfile, 1, length(fixfile)-4)
+		resfile = translate(filespec('name', fixfile), '_', '.')||'.RES'
+		l = fcd.i
+		/* '@echo 'fixfile fcd.i' >> log.log' */
+		if fixfile = l & stream('fix\'resfile, 'c', 'query exists') <> '' then do 
+			rcode = 0
+			call execute '@rc -n -w2 -x2 fix\'resfile fcd.full.i
+			if rc <> 0 then rcode = rc
+
+			/* report */
+			say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(f||'->'||l), 1, 50))), 1, 50)
+			say '1B'x || '[9;26H'substr(space(reverse(substr(reverse(resfile), 1, 50))), 1, 50)
+			say '1B'x || '[11;26HPACK          '
+			say '1B'x || '[12;26H'rcode' '
+			if rcode <> 0 then do
+				call lineout log, 'Error: 'f||'->'||l' <= 'fixfile resfile' rc='rcode
+				n.errors = n.errors + 1
+			end
+			else
+				call lineout log, 'Info: 'f||'->'||l' <= 'fixfile resfile' rc='rcode
+			filename = translate(resfile, '_', '.')
+			updated.filename = 1
+			call report_status
+		end
+
+	end
+
+	/* try to update non-matching syslevel files */
+	if pos('SYSLEVEL.', fcd.i) > 0 & match = 0 then do
+		call update_syslevel_file fcd.full.i
+	end
+	if rcode <> 0 then rcode = 1
+
+return rcode
+
+/****************************************/
+/* test file to see if it is compressed */
+/* return 1 = compressed                */
+/* return 0 = not compressed            */
+/****************************************/
+test_compressed_file: procedure
+
+	parse arg f
+	'@bin\unpack "'f'" /show | RXQUEUE'
+	if queued() > 1 then do
+		l=linein('queue:')
+		l=linein('queue:')
+		if substr(l, 1, 2) = '->' then rcode = 1
+		else rcode = 0
+	end
+	else rcode = 0
+	do while queued() > 0
+		l = linein('queue:')
+	end
+
+return rcode
+
+/************************************/
+/* test file to see if it is zipped */
+/* return 1 = zipped                */
+/* return 0 = not zipped            */
+/************************************/
+test_zipped_file: procedure
+
+	parse upper arg f
+	if pos('.ZIP', f) = 0 then return 0
+	'@bin\unzip -t -qq 'f' >nul 2>>&1'
+	if rc = 0 then rcode = 1
+	else rcode = 0
+
+return rcode
+
+/********************************************/
+/* postprocessing steps using plugin module */
+/********************************************/
+postprocess: procedure expose log n. cddir fpdir updated. location. fibase. tcpip_lang_dir javadir msg.
+
+	parse arg plugin
+	if stream(plugin, 'c', 'query exists') <> '' then do
+		say '1B'x || '[7;26H'substr(msg.0228, 1, 50)
+		call lineout log, 'Info: Postprocessing files...'
+		call report_status
+
+		q = 1;r = 1;s = 1;t = 1;u = 1;w = 1;z = 1;x = 1;
+		fibase.srvdig1.0 = 0
+		fibase.srvdig2.0 = 0
+		fibase.sysmgt1.0 = 0
+		fibase.sysmgt2.0 = 0
+		fibase.srvdsmp.0 = 0
+		fibase.tcpbase.0 = 0
+		fibase.java.0    = 0
+		fibase.faxwks.0  = 0
+		do while lines(plugin)
+			l = linein(plugin)
+			parse upper var l w1 w2 w3 w4 w5 w6
+			if w1 = "IF" & w3 = "'C'," then parse upper var l . . . . . . . . w1 w2 w3 w4 w5 w6
+
+			/* found new FI file */
+			if pos('COPY', w3) > 0 & (pos('\FI\', w5) > 0 | pos('\TCPAPPS\INSTALL\', w5) > 0 | pos('\JAVA\PACKAGE\', w5) > 0) | pos('\BONUSPAK\FAXWORKS\', w5) > 0 then do
+
+				/* found feature srvdiag part 1 */
+				if pos('\SYSMGT\OS2\SYSTEM\TRACE\', w5) > 0 then do
+					fibase.srvdig1.q = filespec('NAME', space(w4))
+					if pos('\SMP\', space(w4)) = 0 then fibase.srvdig1.q.smp = 0
+					else fibase.srvdig1.q.smp = 1
+					if stream(fpdir'\'fibase.srvdig1.q, 'c', 'query exists') <> '' then do
+						fibase.srvdig1.0 = fibase.srvdig1.0 + 1
+						q = q + 1
+					end
+				end
+
+				/* found feature srvdiag part 2 */
+				if pos('\SYSMGT\OS2\PDPSI\PMDF\', w5) > 0 then do
+					fibase.srvdig2.w = filespec('NAME', space(w4))
+					if pos('\SMP\', space(w4)) = 0 then fibase.srvdig2.w.smp = 0
+					else fibase.srvdig2.w.smp = 1
+					path_pos = pos('OS2\PDPSI\PMDF', w5)
+					fibase.srvdig2.w.path = substr(w5, path_pos, length(w5)-2-path_pos)
+					if stream(fpdir'\'fibase.srvdig2.w, 'c', 'query exists') <> '' then do
+						fibase.srvdig2.0 = fibase.srvdig2.0 + 1
+						w = w + 1
+					end
+				end
+
+				/* found feature sysmgt part 1 */
+				if pos('\SYSMGT\OS2\SYSTEM\RAS\', w5) > 0 then do
+					fibase.sysmgt1.s = filespec('NAME', space(w4))
+					if stream(fpdir'\'fibase.sysmgt1.s, 'c', 'query exists') <> '' then do
+						fibase.sysmgt1.0 = fibase.sysmgt1.0 + 1
+						s = s + 1
+					end
+				end
+
+				/* found feature sysmgt part 2 */
+				if pos('\SYSMGT\OS2\SYSTEM\', w5) > 0 & pos('\SYSMGT\OS2\SYSTEM\TRACE\', w5) = 0 & pos('\SYSMGT\OS2\SYSTEM\RAS\', w5) = 0 then do
+					fibase.sysmgt2.r = filespec('NAME', space(w4))
+					if stream(fpdir'\'fibase.sysmgt2.r, 'c', 'query exists') <> '' then do
+						fibase.sysmgt2.0 = fibase.sysmgt2.0 + 1
+						r = r + 1
+					end
+				end
+
+				/* found feature srvdsmp */
+				if pos('\SMP\OS2\SYSTEM\TRACE\', w5) > 0 then do
+					fibase.srvdsmp.t = filespec('NAME', space(w4))
+					if stream(fpdir'\'fibase.srvdsmp.t, 'c', 'query exists') <> '' then do
+						fibase.srvdsmp.0 = fibase.srvdsmp.0 + 1
+						t = t + 1
+					end
+				end
+
+				/* found feature tcpbase */
+				if pos('\TCPAPPS\INSTALL\', w5) > 0 then do
+					fibase.tcpbase.u = filespec('NAME', space(w4))
+					if stream(fpdir'\'fibase.tcpbase.u, 'c', 'query exists') <> '' then do
+						fibase.tcpbase.0 = fibase.tcpbase.0 + 1
+						u = u + 1
+					end
+				end
+
+				/* found feature toolkit */
+				/* '@echo 'w5' >> debug.out' */
+				if pos('\JAVA\PACKAGE\UTK', w5) > 0 then do
+					fibase.java.z = filespec('NAME', space(w4))
+					fibase.java.alias.z = filespec('NAME', space(w5))
+					fibase.java.alias.z = substr(fibase.java.alias.z, 1, length(fibase.java.alias.z)-1)
+					fibase.java.path.z = space(substr(w6, 3, length(w6)-4))
+					/* '@echo 'fibase.java.z fibase.java.path.z' >> debug.out' */
+					if stream(fpdir'\'fibase.java.z, 'c', 'query exists') <> '' then do
+						fibase.java.0 = fibase.java.0 + 1
+						z = z + 1
+					end
+				end
+
+				/* found feature faxworks */
+				if pos('\BONUSPAK\FAXWORKS\', w5) > 0 then do
+					fibase.faxwks.x = filespec('NAME', space(w4))
+					if stream(fpdir'\'fibase.faxwks.x, 'c', 'query exists') <> '' then do
+						fibase.faxwks.0 = fibase.faxwks.0 + 1
+						x = x + 1
+					end
+					/* '@echo 'fibase.faxwks.0' >> debug.out' */
+				end
+
+				/* found feature ??? */
+
+			end
+			interpret l
+		end
+		call lineout plugin
+	end
+	else do
+		rc = lineout(log, 'Warning: Plug-in 'plugin' does not exist!')
+		n.warnings = n.warnings + 1
+		call report_status	
+	end
+
+return
+
+/******************************/
+/* place readme.ucd on CD-ROM */
+/******************************/
+place_readme: procedure expose cddir ver msg.
+
+	rme  = cddir"\readme.ucd"
+	if stream(rme, 'c', 'query exists') = '' then do
+		call lineout rme, " "
+		call lineout rme, "                             Important! Please read!"
+		call lineout rme, "             This OS/2 CD-ROM was updated with UpdateCD version "ver
+		call lineout rme, "                            Use it at your own risk!"
+		call lineout rme, "                           For more information visit:"
+		call lineout rme, "                               http://www.updcd.tk"
+		call lineout rme, "                              "date() time()
+		call lineout rme
+	end
+
+return
+
+/******************************************/
+/* update FI administration (*.ini files) */
+/******************************************/
+update_FI_data: procedure expose fibase. n. log updated. location. cddir msg.
+
+	rcode = 0
+	say '1B'x || '[7;26H'substr(msg.0229, 1, 50)
+	rc = lineout(log, 'Info: Updating FI database...')
+	say '1B'x || '[8;26H'substr(msg.0227, 1, 50)
+	say '1B'x || '[9;26H'substr(msg.0227, 1, 50)
+	say '1B'x || '[11;26HUPDATE        '
+	say '1B'x || '[12;26H0 '
+	call report_status
+
+	/* locate ini files */
+	if (fibase.tcpip <> 1 & fibase.java <> 1) then do /* not TCP/IP, JAVA */
+		ini_root = substr(fibase.1, 1, pos('\FI\', fibase.1)+2)
+		if fibase.fax = 1 then do
+			location.fibase = linein('fibase.loc')
+			call lineout 'fibase.loc'
+		end
+		else 
+			'@echo 'location.fibase' > fibase.loc'
+	end
+	else if fibase.tcpip = 1 then do
+		if stream(cddir'\cid\img\tcpapps\install.cmd', 'c', 'query exists') = '' then ini_root = cddir'\CID\SERVER\TCPAPPS\INSTALL\TCPINST' 
+		else ini_root = cddir'\CID\IMG\TCPAPPS\INSTALL\TCPINST'
+	end
+	else if fibase.java = 1 then do
+		if stream(cddir'\CID\SERVER\java\install.exe', 'c', 'query exists') <> '' then ini_root = cddir'\CID\SERVER\JAVA\EN'
+		else if stream(cddir'\CID\IMG\java\install.exe', 'c', 'query exists') <> '' then ini_root = cddir'\CID\IMG\JAVA\EN'
+		else ini_root = '.'
+	end
+	call SysFileTree ini_root'\instdata.ini', 'ini_file.', 'FSO',,'**---'
+
+	/* unpack response files */
+	if (fibase.tcpip <> 1 & fibase.java <> 1) then do
+		call execute '@bin\unpack 'location.fibase ini_root' /N:FIBASE.RSP'
+		if fibase.wseb = 0 then call execute '@bin\unpack 'location.fibase ini_root' /N:DKBASE.RSP' 	/* only for Warp 4 */
+	end
+
+	/* add response files to ini list */
+	i = ini_file.0 + 1
+	if (fibase.tcpip <> 1 & fibase.java <> 1) then
+		ini_file.i = ini_root'\FIBASE.RSP'
+	else if fibase.tcpip = 1 then do
+		if stream(cddir'\cid\img\tcpapps\install.cmd', 'c', 'query exists') = '' then ini_file.i = cddir'\CID\SERVER\TCPAPPS\INSTALL\tcpinst.rsp'
+		else ini_file.i = cddir'\CID\IMG\TCPAPPS\INSTALL\tcpinst.rsp'
+	end
+	else if fibase.java = 1 then do
+		if stream(cddir'\CID\IMG\java\install.exe', 'c', 'query exists') <> '' then ini_file.i = cddir'\CID\IMG\JAVA\EN\RSPJAVA.RSP'
+		else if stream(cddir'\CID\SERVER\java\install.exe', 'c', 'query exists') <> '' then ini_file.i = cddir'\CID\SERVER\JAVA\EN\RSPJAVA.RSP'
+		else ini_file.i = 'FIBASE.RSP'
+	end
+	if (fibase.wseb = 0 & fibase.tcpip <> 1 & fibase.java <> 1) then do /* only for Warp 4 */
+		j = ini_file.0 + 2
+		ini_file.j = ini_root'\DKBASE.RSP'
+		ini_file.0 = ini_file.0 + 2
+	end
+	else ini_file.0 = ini_file.0 + 1
+	/* call lineout 'e:\log.txt', ini_file.0 */
+
+	/* update ini files */
+	do j = 1 to ini_file.0
+
+		say '1B'x || '[8;26H'substr(space(reverse(substr(reverse(ini_file.j), 1, 50))), 1, 50)
+		say '1B'x || '[9;26H'substr(msg.0227, 1, 50)
+		call report_status
+
+		/* read ini file */
+		/* call lineout 'e:\log.txt', ini_file.j */
+		i=1
+		do while lines(ini_file.j)
+			l.i = linein(ini_file.j)
+			i=i+1
+		end
+		l.0 = i - 1
+		rc = lineout(ini_file.j)
+		if rc <> 0 then rcode = rc
+
+		/* update records */
+		updated = 0
+		do i = 1 to l.0
+
+			/* call lineout 'e:\log.txt', i' * 'l.i */
+			if l.i = x2c(9)||'File=(' then do
+				recordpos = i
+			end
+			parse value l.i with id '=' data
+			if id = x2c(9)||x2c(9)||'MediaPath' then do
+				spath = translate(data)
+				p = lastpos('}', data)
+				if p > 0 then spath = substr(spath, p+2)
+			end
+			if id = x2c(9)||x2c(9)||'MediaFileName' then do
+				do k = 1 to fibase.0
+					sfile = translate(filespec('NAME', fibase.k))
+					if length(spath) = 0 | pos(spath, fibase.k) > 0 then do
+						if translate(data) = sfile then do
+							updated.k = 1 /* remember we did update the record of this file */
+							say '1B'x || '[9;26H'substr(filespec('NAME', fibase.k), 1, 50)
+							call lineout log, 'Info: Updating FI record of 'fibase.k'.'
+
+							i = recordpos; id = '(';
+							do while id <> x2c(9)||x2c(9)||'MediaFileName'
+								i = i + 1
+								parse value l.i with id '=' data
+								select
+									when id = x2c(9)||x2c(9)||'CreationDate' | id = x2c(9)||x2c(9)||'LastAccessDate' | id = x2c(9)||x2c(9)||'LastWriteDate' then do
+										parse value stream(fibase.k, 'c', 'query datetime') with data1 '-' data2 '-' data3 .
+										if data3 > 80 then data3 = data3 - 80 /* should work til 2080 */
+										else data3 = data3 + 20
+										l.i = id'='data1'-'data2'-'data3
+									end
+									when id = x2c(9)||x2c(9)||'CreationTime'	| id = x2c(9)||x2c(9)||'LastAccessTime' | id = x2c(9)||x2c(9)||'LastWriteTime' then do
+										parse value stream(fibase.k, 'c', 'query datetime') with . data
+										l.i = id'='space(data)
+									end
+									otherwise 		nop;
+								end /* select */
+							end /* id */
+
+							updated = 1
+							leave k
+						end /* data */
+					end /* spath */
+				end /* k */
+			end /* id */
+
+		end /* i */
+
+		/* write new ini */
+		if updated = 1 then do
+			rc = lineout(ini_file.j, ,1)
+			if rc <> 0 then rcode = rc
+
+			do i = 1 to l.0
+				rc = lineout(ini_file.j, l.i)
+				if rc <> 0 then rcode = rc
+			end
+			rc = lineout(ini_file.j)
+			if rc <> 0 then rcode = rc
+		end
+
+		/* report errors */
+		if rcode <> 0 then do
+			rc = lineout(log, 'Error: Update 'fibase.k' unsuccessful!')
+			n.errors = n.errors + 1
+			call report_status
+		end
+
+	end /* j */
+
+	/* repack and remove OS/2 response files */
+	if (fibase.tcpip <> 1 & fibase.java <> 1) then do
+		'@bin\pack2 \OS2\INSTALL\FIBASE.RSP 'location.fibase' /R >nul 2>>&1'
+		call execute '@bin\pack2 'ini_root'\FIBASE.RSP 'location.fibase' /H:\OS2\INSTALL\ /A'
+		'@del 'ini_root'\FIBASE.RSP >nul 2>>&1'
+		if fibase.wseb = 0 then do /* only Warp 4 */
+			'@bin\pack2 \OS2\INSTALL\DKBASE.RSP 'location.fibase' /R >nul 2>>&1'
+			call execute '@bin\pack2 'ini_root'\DKBASE.RSP 'location.fibase' /H:\OS2\INSTALL\ /A'
+			'@del 'ini_root'\DKBASE.RSP >nul 2>>&1'
+		end
+	end
+
+return 
+
+/***************************/
+/* postprocess FI database */
+/***************************/
+postprocess_fibase: PROCEDURE EXPOSE fibase. location. log fpdir n. updated. cddir msg.
+
+	parse arg fpk_type
+
+	/* locate ini files */
+	if fibase.tcpip = 1 then do
+		if stream(cddir'\cid\img\tcpapps\install.cmd', 'c', 'query exists') = '' then ini_root = cddir'\CID\SERVER\TCPAPPS\INSTALL' 
+		else ini_root = cddir'\CID\IMG\TCPAPPS\INSTALL'
+		call add2fibase ini_root'\tcpinst.rsp tcpbase'
+	end
+	else if fibase.java = 1 then do
+		if stream(cddir'\cid\img\java\syslevel.jav', 'c', 'query exists') = '' then ini_root = cddir'\CID\server\java\en' 
+		else ini_root = cddir'\CID\IMG\java\en'
+		/* '@echo 'ini_root' >> debug.out' */
+		call add2fibase ini_root'\rspjava.rsp 'fpk_type
+	end
+	else do
+		if fibase.fax = 1 then do
+			location.fibase = linein('fibase.loc')
+			call lineout 'fibase.loc'
+		end
+		ini_root  = substr(fibase.1, 1, pos('\FI\', fibase.1)+2)
+
+		/* unpack response files */
+		call execute '@bin\unpack 'location.fibase ini_root' /N:FIBASE.RSP'
+		if fibase.wseb = 0 then call execute '@bin\unpack 'location.fibase ini_root' /N:DKBASE.RSP'
+
+		/* do update files */
+		call add2fibase ini_root'\fibase.rsp srvdig1'
+		call add2fibase ini_root'\fibase.rsp srvdig2'
+		call add2fibase ini_root'\fibase.rsp sysmgt1'
+		call add2fibase ini_root'\fibase.rsp sysmgt2'
+		call add2fibase ini_root'\fibase.rsp srvdsmp'
+		call add2fibase ini_root'\fibase.rsp faxwks'
+		if fibase.wseb = 0 then do
+			call add2fibase ini_root'\dkbase.rsp srvdig1'
+			call add2fibase ini_root'\dkbase.rsp srvdig2'
+			call add2fibase ini_root'\dkbase.rsp sysmgt1'
+			call add2fibase ini_root'\dkbase.rsp sysmgt2'
+			call add2fibase ini_root'\dkbase.rsp faxwks'
+		end
+
+		/* remove elephant */
+		call remove_registration_program ini_root'\fibase.rsp'
+
+		/* repack and remove response files */
+		'@bin\pack2 \OS2\INSTALL\FIBASE.RSP 'location.fibase' /R >nul 2>>&1'
+		call execute '@bin\pack2 'ini_root'\FIBASE.RSP 'location.fibase' /H:\OS2\INSTALL\ /A'
+		'@del 'ini_root'\FIBASE.RSP >nul 2>>&1'
+		if fibase.wseb = 0 then do
+			'@bin\pack2 \OS2\INSTALL\DKBASE.RSP 'location.fibase' /R >nul 2>>&1'
+			call execute '@bin\pack2 'ini_root'\DKBASE.RSP 'location.fibase' /H:\OS2\INSTALL\ /A'
+			'@del 'ini_root'\DKBASE.RSP >nul 2>>&1'
+		end
+	end
+
+return
+
+/***************************/
+/* add file to FI database */
+/***************************/
+add2fibase: procedure expose fibase. log fpdir n. updated. msg.
+
+	parse upper arg ini feature
+	found_feature = 0
+	total_files = 0
+	i = 1
+	l.0 = 0
+
+	select
+		when feature = 'SRVDIG1' | feature = 'SRVDIG2' | feature = 'SYSMGT1' | feature = 'SYSMGT2' | feature = 'SRVDSMP' | feature = 'FAXWKS' then do
+
+			/* read original file in */
+			do while lines(ini)
+				l.i = linein(ini)
+
+				/* total number of original files */
+				if pos(x2c(9)||'TotalFiles=', l.i) > 0 & total_files = 0 then do
+					pattern = x2c(9)
+					parse value l.i with pattern 'TotalFiles=' total_files 
+				end
+
+				/* found our feature? */
+				if feature = 'SYSMGT1' | feature = 'SYSMGT2' then feat = 'SYSMGT'
+				else if feature = 'SRVDIG1' | feature = 'SRVDIG2' then feat = 'SRVDIAG'
+				else if feature = 'FAXWKS' then feat = 'BPFAXWORKS'
+				else feat = feature
+				if pos(feat'=(', l.i) > 0 then do
+					found_feature = 1
+				end
+
+				/* start to add new records */
+				if pos(x2c(9)||'File=(', l.i) > 0 & found_feature = 1 then do	
+
+					found_feature = 0	
+
+					if feature = 'SRVDIG1' then number_of_files = fibase.srvdig1.0
+					if feature = 'SRVDIG2' then number_of_files = fibase.srvdig2.0
+					if feature = 'SYSMGT1' then number_of_files = fibase.sysmgt1.0
+					if feature = 'SYSMGT2' then number_of_files = fibase.sysmgt2.0
+					if feature = 'SRVDSMP' then number_of_files = fibase.srvdsmp.0
+					if feature = 'FAXWKS'  then number_of_files = fibase.faxwks.0
+
+					do j = 1 to number_of_files
+
+						if feature = 'SRVDIG1' then do
+							file = fibase.srvdig1.j
+							if fibase.srvdig1.j.smp = 1 then ffile = fpdir'\smp\'file
+							else ffile = fpdir'\'file
+						end
+						if feature = 'SRVDIG2' then do
+							file = fibase.srvdig2.j
+							if fibase.srvdig2.j.smp = 1 then ffile = fpdir'\smp\'file
+							else ffile = fpdir'\'file
+							pmdfpath = fibase.srvdig2.j.path
+						end
+						if feature = 'SYSMGT1' then do
+							file = fibase.sysmgt1.j
+							ffile = fpdir'\'file
+						end
+						if feature = 'SYSMGT2' then do
+							file = fibase.sysmgt2.j
+							ffile = fpdir'\'file
+						end
+						if feature = 'SRVDSMP' then do
+							file = fibase.srvdsmp.j
+							ffile = fpdir'\'file
+						end
+						if feature = 'FAXWKS' then do
+							file = fibase.faxwks.j
+							ffile = fpdir'\'file
+						end
+
+						/* remember we did add a FI record for this file */
+						do y=1 to fibase.0
+							if file = filespec('NAME', fibase.y) then do
+								updated.y = 1
+								leave
+							end
+						end
+
+						/* skip nonexistent files and multiple updates ??? */
+						call sysfiletree ffile, 'tmp.', 'FO'
+						if tmp.0 <> 1 then iterate
+
+						/* create new record */
+						call lineout log, 'Info: Adding fixpak file 'ffile' to FI database.'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'EAMediaIndex=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'PartCount=1'
+						s = stream(ffile, 'c', 'query size')
+						i = i + 1; l.i = x2c(9)||x2c(9)||'PartSize='s	
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaIndex=1'
+						i = i + 1; if feature = 'SRVDIG1' then 
+						           l.i = x2c(9)||x2c(9)||'Source={SourceDrive}\{SourcePath}\OS2\SYSTEM\TRACE\'file
+						else       if feature = 'SRVDIG2' then 
+						           l.i = x2c(9)||x2c(9)||'Source={SourceDrive}\{SourcePath}\'pmdfpath'\'file
+						else       if feature = 'SRVDSMP' then 
+                       l.i = x2c(9)||x2c(9)||'Source={SourceDrive}\{SourcePath}\SMP\OS2\SYSTEM\TRACE\'file
+						else       if feature = 'SYSMGT1' then 
+                       l.i = x2c(9)||x2c(9)||'Source={SourceDrive}\{SourcePath}\OS2\SYSTEM\RAS\'file
+						else       if feature = 'FAXWKS'  then 
+                       l.i = x2c(9)||x2c(9)||'Source={SrcDrv}\{BpPath}\faxworks\'file
+						else
+                       l.i = x2c(9)||x2c(9)||'Source={SourceDrive}\{SourcePath}\OS2\SYSTEM\'file
+						i = i + 1; if feature = 'SRVDIG1' then
+                       l.i = x2c(9)||x2c(9)||'SourcePath={SourceDrive}\{SourcePath}\OS2\SYSTEM\TRACE'
+						else       if feature = 'SRVDIG2' then 
+                       l.i = x2c(9)||x2c(9)||'SourcePath={SourceDrive}\{SourcePath}\'pmdfpath
+						else       if feature = 'SRVDSMP' then 
+                       l.i = x2c(9)||x2c(9)||'SourcePath={SourceDrive}\{SourcePath}\SMP\OS2\SYSTEM\TRACE'
+						else       if feature = 'SYSMGT1' then 
+                       l.i = x2c(9)||x2c(9)||'SourcePath={SourceDrive}\{SourcePath}\OS2\SYSTEM\RAS'
+						else       if feature = 'FAXWKS'  then 
+                       l.i = x2c(9)||x2c(9)||'SourcePath={SrcDrv}\{BpPath}\faxworks'
+            else
+                       l.i = x2c(9)||x2c(9)||'SourcePath={SourceDrive}\{SourcePath}\OS2\SYSTEM'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceFileName='file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceChecksum=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceEASize=4'
+						parse value stream(ffile, 'c', 'query datetime') with data1 '-' data2 '-' data3 .
+						if data3 > 80 then data3 = data3 - 80 /* should work til 2080 */
+						else data3 = data3 + 20
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CreationDate='data1'-'data2'-'data3
+						parse value stream(ffile, 'c', 'query datetime') with . data
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CreationTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastAccessDate='data1'-'data2'-'data3
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastAccessTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastWriteDate='data1'-'data2'-'data3
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastWriteTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CBFile='s
+						s1 = trunc(s/512); 
+						s2 = s/512 - s1
+						if s2 > 0 then s2 = 1 
+						else s2 = 0	
+						s = (s1 + s2) * 512
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CBFileAlloc='s
+						i = i + 1; l.i = x2c(9)||x2c(9)||'AttrFile=32'
+						i = i + 1; if feature = 'SRVDIG1' | feature = 'SRVDSMP' then
+                       l.i = x2c(9)||x2c(9)||'TargetPath={TargetDrive}\OS2\SYSTEM\TRACE'
+						else       if feature = 'SRVDIG2' then 
+                       l.i = x2c(9)||x2c(9)||'TargetPath={TargetDrive}\'pmdfpath
+						else       if feature = 'SYSMGT1' then 
+                       l.i = x2c(9)||x2c(9)||'TargetPath={TargetDrive}\OS2\SYSTEM\RAS'
+						else       if feature = 'FAXWKS'  then 
+                       l.i = x2c(9)||x2c(9)||'TargetPath={TarDrv}\BonusPak\faxworks'
+            else
+                       l.i = x2c(9)||x2c(9)||'TargetPath={TargetDrive}\OS2\SYSTEM'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'TargetFileName='file
+						i = i + 1; if feature = 'SRVDIG1' then 
+                       l.i = x2c(9)||x2c(9)||'MediaPath={SysMgtMediaPath}\OS2\SYSTEM\TRACE'
+						else       if feature = 'SRVDIG2' then 
+                       l.i = x2c(9)||x2c(9)||'MediaPath={SysMgtMediaPath}\'pmdfpath
+						else       if feature = 'SRVDSMP' then 
+                       l.i = x2c(9)||x2c(9)||'MediaPath={SysMgtMediaPath}\SMP\OS2\SYSTEM\TRACE'
+						else       if feature = 'SYSMGT1' then 
+                       l.i = x2c(9)||x2c(9)||'MediaPath={SysMgtMediaPath}\OS2\SYSTEM\RAS'
+						else       if feature = 'FAXWKS'  then 
+                       l.i = x2c(9)||x2c(9)||'MediaPath=BonusPak\faxworks'
+            else
+                       l.i = x2c(9)||x2c(9)||'MediaPath={SysMgtMediaPath}\OS2\SYSTEM'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaFileName='file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaNumber=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CompressionID=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'Flags=1'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'TargetAttrib=0'
+						i = i + 1; l.i = x2c(9)||')'
+						i = i + 1; l.i = x2c(9)||'File=('
+
+						if total_files <> 0 then total_files = total_files + 1
+
+					end /* fibase */
+
+				end /* found feature */
+
+				l.0 = i
+				i = i + 1	
+
+			end /* do lines */
+
+			call write_new_ini ini
+
+		end /* when srvdiag/sysmgt */
+
+		when feature = 'TCPBASE' then do
+
+			/* read original file in */
+			do while lines(ini)
+				l.i = linein(ini)
+
+				/* total number of original files */
+				if pos(x2c(9)||'FilesDone=', l.i) > 0 & total_files = 0 then do
+					pattern = x2c(9)
+					parse value l.i with pattern 'FilesDone=' total_files 
+				end
+
+				/* found our feature? */
+				feat = 'TCPIP_BASE'
+				if pos(feat'=(', l.i) > 0 then do
+					found_feature = 1
+				end
+
+				/* start to add new records */
+				if pos(x2c(9)||'File=(', l.i) > 0 & found_feature = 1 then do	
+
+					found_feature = 0	
+					number_of_files = fibase.tcpbase.0
+
+					do j = 1 to number_of_files
+
+						file = fibase.tcpbase.j
+						/* remember we did add a FI record for this file */
+						do y=1 to fibase.0
+							if file = filespec('NAME', fibase.y) then do
+								updated.y = 1
+								leave
+							end
+						end
+
+						ffile = fpdir'\'file
+						/* skip nonexistent files and multiple updates ??? */
+						call sysfiletree ffile, 'tmp.', 'FO'
+						if tmp.0 <> 1 then iterate
+						call lineout log, 'Info: Adding fixpak file 'file' to FI database.'
+
+						i = i + 1; l.i = x2c(9)||x2c(9)||'EAMediaIndex=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'PartCount=1'
+						s = stream(ffile, 'c', 'query size')
+						i = i + 1; l.i = x2c(9)||x2c(9)||'PartSize='s	
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaIndex=1'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'Source={SourceDir}\os2\lpr\'file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourcePath={SourceDir}\os2\lpr'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceFileName='file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceChecksum=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceEASize=4'
+						parse value stream(ffile, 'c', 'query datetime') with data1 '-' data2 '-' data3 .
+						if data3 > 80 then data3 = data3 - 80 /* should work til 2080 */
+						else data3 = data3 + 20
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CreationDate='data1'-'data2'-'data3
+						parse value stream(ffile, 'c', 'query datetime') with . data
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CreationTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastAccessDate='data1'-'data2'-'data3
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastAccessTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastWriteDate='data1'-'data2'-'data3
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastWriteTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CBFile='s
+						s1 = trunc(s/512); 
+						s2 = s/512 - s1
+						if s2 > 0 then s2 = 1 
+						else s2 = 0	
+						s = (s1 + s2) * 512
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CBFileAlloc='s
+						i = i + 1; l.i = x2c(9)||x2c(9)||'AttrFile=32'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'TargetPath={InstallDir}\bin'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'TargetFileName='file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaPath=base'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaFileName='file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaNumber=0'
+						/* i = i + 1; l.i = x2c(9)||x2c(9)||'CompressionID=0' */
+						i = i + 1; l.i = x2c(9)||x2c(9)||'Flags=1'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'TargetAttrib=0'
+						i = i + 1; l.i = x2c(9)||')'
+						i = i + 1; l.i = x2c(9)||'File=('
+
+						if total_files <> 0 then total_files = total_files + 1
+
+					end
+				end
+
+				l.0 = i
+				i = i + 1	
+
+			end
+
+			call write_new_ini ini
+		end /* tcpbase */
+
+		when feature = 'TOOLKIT' then do
+
+			/* read original file in */
+			do while lines(ini)
+				l.i = linein(ini)
+
+				/* total number of original files */
+				if pos(x2c(9)||'FilesDone=', l.i) > 0 & total_files = 0 then do
+					pattern = x2c(9)
+					parse value l.i with pattern 'FilesDone=' total_files 
+				end
+
+				/* found our feature? */
+				feat = 'Toolkit'
+				if substr(l.i, 1, 9) = feat'=(' then do
+					found_feature = 1
+				end
+
+				/* start to add new records */
+				if pos(x2c(9)||'File=(', l.i) > 0 & found_feature = 1 then do	
+
+					found_feature = 0	
+					number_of_files = fibase.java.0
+
+					do j = 1 to number_of_files
+
+						file = fibase.java.j
+						/* remember we did add a FI record for this file */
+						do y=1 to fibase.0
+							if file = filespec('NAME', fibase.y) then do
+								updated.y = 1
+								leave
+							end
+						end
+
+						ffile = fpdir'\'file
+						/* skip nonexistent files and multiple updates ??? */
+						call sysfiletree ffile, 'tmp.', 'FO'
+						if tmp.0 <> 1 then iterate
+						call lineout log, 'Info: Adding fixpak file 'file' to FI database.'
+
+						i = i + 1; l.i = x2c(9)||x2c(9)||'EAMediaIndex=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'PartCount=1'
+						s = stream(ffile, 'c', 'query size')
+						i = i + 1; l.i = x2c(9)||x2c(9)||'PartSize='s	
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaIndex=1'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'Source={SRC}\'fibase.java.path.j'\'file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourcePath={SRC}\'fibase.java.path.j
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceFileName='file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceChecksum=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'SourceEASize=4'
+						parse value stream(ffile, 'c', 'query datetime') with data1 '-' data2 '-' data3 .
+						if data3 > 80 then data3 = data3 - 80 /* should work til 2080 */
+						else data3 = data3 + 20
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CreationDate='data1'-'data2'-'data3
+						parse value stream(ffile, 'c', 'query datetime') with . data
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CreationTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastAccessDate='data1'-'data2'-'data3
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastAccessTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastWriteDate='data1'-'data2'-'data3
+						i = i + 1; l.i = x2c(9)||x2c(9)||'LastWriteTime='space(data)
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CBFile='s
+						s1 = trunc(s/512); 
+						s2 = s/512 - s1
+						if s2 > 0 then s2 = 1 
+						else s2 = 0	
+						s = (s1 + s2) * 512
+						i = i + 1; l.i = x2c(9)||x2c(9)||'CBFileAlloc='s
+						i = i + 1; l.i = x2c(9)||x2c(9)||'AttrFile=32'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'TargetPath={TKTDRV}{TKTPATH}\'fibase.java.path.j
+						i = i + 1; l.i = x2c(9)||x2c(9)||'TargetFileName='file
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaPath={Package}'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaFileName='fibase.java.alias.j
+						i = i + 1; l.i = x2c(9)||x2c(9)||'MediaNumber=0'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'Flags=1'
+						i = i + 1; l.i = x2c(9)||x2c(9)||'TargetAttrib=0'
+						i = i + 1; l.i = x2c(9)||')'
+						i = i + 1; l.i = x2c(9)||'File=('
+
+						if total_files <> 0 then total_files = total_files + 1
+
+					end
+				end
+
+				l.0 = i
+				i = i + 1	
+
+			end
+
+			call write_new_ini ini
+		end /* toolkit */
+
+		otherwise nop;
+
+	end /* select */
+
+return
+
+/***********************/
+/* create new ini file */
+/***********************/
+write_new_ini: procedure expose l. total_files msg.
+
+	parse arg ini
+
+	/* write out new ini */		
+	call lineout ini
+	'@del 'ini
+	do i = 1 to l.0
+		if pos(x2c(9)||'TotalFiles=', l.i) > 0 & total_files > 0 then do
+			call lineout ini, x2c(9)||'TotalFiles='total_files
+			total_files = 0
+		end
+		else 
+			call lineout ini, l.i
+	end
+	call lineout ini
+
+return
+
+/**********************/
+/* add file to bundle */
+/**********************/
+add2bundle: procedure expose fpdir cddir log n. updated. msg.
+	parse arg sfile tfile path 
+	sfile = space(sfile)
+	tfile = space(tfile)
+	path  = space(path)
+
+	call SysFileTree fpdir'\'sfile, 'fls.', 'FO'  
+	if fls.0 > 0 then do 
+		do i=1 to fls.0
+			if fls.0 > 1 then sfile = filespec('name', fls.i)
+			'@bin\pack2 'path'\'filespec('name', fls.i) cddir'\'tfile' /R >nul 2>>&1'
+			if translate(right(sfile,4)) = '.SDF' then do
+				sfile.temp = substr(sfile, 1, length(sfile)-3)||'SD@'
+				call execute '@bin\pack2 'fpdir'\'sfile' 'fpdir'\'sfile.temp' /H:'path'\'
+				call execute '@bin\pack2 'fpdir'\'sfile.temp' 'cddir'\'tfile' /H:'path'\ /A'
+				'@del 'fpdir'\'sfile.temp' >nul 2>&1'
+			end
+			else
+				call execute '@bin\pack2 'fpdir'\'sfile' 'cddir'\'tfile' /H:'path'\ /A'
+		end
+	end
+	else do /* log warning */
+		rc = lineout(log, 'Warning: Fixpak file 'fpdir'\'sfile' does not exist!')
+		n.warnings = n.warnings + 1
+		call report_status
+		return
+	end
+
+return
+
+/****************************************************************/
+/* this function updates the syslevel of a product according to */
+/* information in the fixpak file srv_prod.*                    */
+/****************************************************************/
+update_syslevel_file: procedure expose st. slfh. sysfls. log msg.
+
+		parse arg sysfile
+
+		/* find out which product it is */
+		rc = lineout(log, 'Info: Found possible syslevel file: 'sysfile)
+		rc = ReadSysLevel(sysfile)
+		if rc = 0 then do
+			rcode = 2 /* target is not readable */
+			return rcode
+		end
+		if rc = 2 then do
+			rcode = 9 /* target is not a syslevel file */
+			return rcode
+		end
+		level1 = substr(st.achCsdPrev,  1, 3)
+		level2 = substr(st.achCsdPrev,  4)
+		level3 = substr(st.achCsdLevel, 1, 3)
+		level4 = substr(st.achCsdLevel, 4)
+		name   = substr(st.achSysName, 1, 20)
+		/* '@echo 'sysfile' * 'name' * 'level1' * 'level2' * 'level3' * 'level4' >> e:\log' */
+
+		/* let's see if we have an update for this */
+		fixlevel = ''
+		do s = 1 to sysfls.0
+			p = pos(level2, sysfls.s.data, 1)
+			if p = 0 then do
+				p = pos(level4, sysfls.s.data, 1)
+				level = level4
+			end
+			else
+				level = level2
+			 /* '@echo 'p' * 'sysfls.s' >> e:\log' */
+			do while p > 0
+				sysfls.s.CsdLevel = substr(sysfls.s.data, p-11, 8) 	/* CSD level     */
+			 	sysfls.s.CsdPrev  = substr(sysfls.s.data, p, 5)		/* product level */
+				sysfls.s.SysName  = substr(sysfls.s.data, p+5, 20) /* first 20 c of product name */
+				p = pos(level, sysfls.s.data, p+16)
+
+				/* found a fix which matches our product */
+  			/* '@echo 'name '=' sysfls.s.SysName '*' level '=' sysfls.s.CsdPrev' >>e:\log' */
+				if name = sysfls.s.SysName & level = sysfls.s.CsdPrev then do
+					fixlevel = substr(sysfls.s.CsdLevel, 4)
+					p = 0
+					s = sysfls.0
+				end
+			end
+		end
+
+		/* update SysLevel file */
+		if fixlevel <> '' then do
+			rc = SysFileTree(sysfile, 'junk.', 'F',,'**---')  
+			if rc <> 0 then do
+				rcode = 3 /* cannot remove RO attribute */
+				return rcode
+			end
+			st.achCsdLevel = level1 || fixlevel
+			rc = WriteSysLevel(sysfile)
+			if rc = 0 then do
+				rcode = 4 /* cannot write to target */
+				return rcode
+			end
+			rc=lineout(log, 'Info: Updated syslevel file: 'sysfile)
+		end
+
+return 0
+
+/*********************************/
+/* find out tcp/ip language code */
+/*********************************/
+find_out_tcpip_lang: procedure
+
+	parse arg file
+
+	lang = 'ENUS850'
+	do while lines(file)
+		l=linein(file)
+		parse value l with w1 w2 w3
+		if w1 = 'LANG' & w2 = '=' then do
+			if pos('_', w3) > 0 then lang = substr(w3, 1, 2)||substr(w3, 4)'850'
+			else lang = substr(w3, 1, 4)'850'
+			leave
+		end
+	end
+	call lineout file
+
+return lang
+
+
+/**********************************/
+/* remove Warp 4 registration prg */
+/**********************************/
+remove_registration_program: procedure
+
+	parse arg fi_rsp
+	i=1
+	do while lines(fi_rsp)
+		l.i = linein(fi_rsp)
+		if pos('SUBFEATUREID=ART', translate(l.i)) > 0 then iterate
+		if pos('ART=(', translate(l.i)) > 0 then 
+			do while lines(fi_rsp) & l <> ')'
+				l = linein(fi_rsp)
+			end
+		else
+			i=i+1
+	end
+	l.0 =i-1
+	call lineout fi_rsp
+
+	'@del 'fi_rsp
+	do i=1 to l.0
+		call lineout fi_rsp, l.i
+	end
+	call lineout fi_rsp
+
+return

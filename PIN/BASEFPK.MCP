@@ -1,0 +1,120 @@
+/* Postprocessing steps for incorporating OS/2 and Device Driver fixpaks  */
+/* Tested with CP FixPak 2 (XR_C002) and Device Driver Fixpak 2 (XR0D002) */
+/* Tested with CP2 FixPak (XR_F001) and Device Driver Fixpak 3 (XR0D003)  */
+/* 18.04.2004: added up2tb support                                        */
+/* 20.12.2004: cardbus support                                            */
+/* 12.02.2005: prdesc2 integration, os2krnl.sym installation              */
+/* 03.04.2006: added slpr files                                           */
+
+/* copy extras */
+call execute '@copy 'fpdir'\os2krnl      'cddir'\os2image\disk_0\os2krnli'
+if stream(fpdir'\CD_BOOT.FLT', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\CD_BOOT.FLT  'cddir'\updcd\bootimg\DISK_0_1.IMG\.'
+
+call execute '@copy 'fpdir'\KERNEL.SDF   'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+call execute '@copy 'fpdir'\KERNELD.SDF  'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+call execute '@copy 'fpdir'\DF_DEB.EXE   'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+call execute '@copy 'fpdir'\DF_RET.EXE   'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+
+if stream(cddir'\os2image\fi\sysmgt\os2\pdpsi\pmdf\warp45\kernel.sdf','c', 'query exists') = '' then call execute '@mkdir 'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45'
+call execute '@copy 'fpdir'\OS2KRNLB.SYM 'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+call execute '@copy 'fpdir'\OS2KRNLD.SYM 'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+call execute '@copy 'fpdir'\OS2KRNLR.SYM 'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+call execute '@copy 'fpdir'\KERNEL.SDF   'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+call execute '@copy 'fpdir'\KERNELD.SDF  'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+call execute '@copy 'fpdir'\DF_DEB.EXE   'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+call execute '@copy 'fpdir'\DF_RET.EXE   'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+
+if stream(fpdir'\cmd640x.add','c', 'query exists') <> ''   then call execute '@copy 'fpdir'\cmd640x.add  'cddir'\os2image\disk_1\.'
+if stream(fpdir'\DETNE2.SYS', 'c', 'query exists') <> ''   then call execute '@copy 'fpdir'\DETNE2.SYS   'cddir'\os2image\disk_1\.'
+
+/* pack extras */
+call add2bundle 'REXXSOM.DLL    os2image\disk_4\rexx   \OS2\DLL'
+
+/* add conditional stuff */
+if stream(fpdir'\TRC006D.TFF', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\TRC006D.TFF  'cddir'\os2image\fi\sysmgt\os2\system\trace\.'
+if stream(fpdir'\PMMERGE.SYM', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\PMMERGE.SYM  'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+if stream(fpdir'\PMWP.SYM',    'c', 'query exists') <> '' then call execute '@copy 'fpdir'\PMWP.SYM     'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+if stream(fpdir'\PMCTLS.SYM',  'c', 'query exists') <> '' then call execute '@copy 'fpdir'\PMCTLS.SYM   'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+if stream(fpdir'\PMSPL.SYM',   'c', 'query exists') <> '' then call execute '@copy 'fpdir'\PMSPL.SYM    'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+if stream(fpdir'\PMVIOP.SYM',  'c', 'query exists') <> '' then call execute '@copy 'fpdir'\PMVIOP.SYM   'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\.'
+if stream(fpdir'\DOSCALL1.SYM','c', 'query exists') <> '' then call execute '@copy 'fpdir'\DOSCALL1.SYM 'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+if stream(fpdir'\SHELL.SDF',   'c', 'query exists') <> '' then call execute '@copy 'fpdir'\SHELL.SDF    'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+if stream(fpdir'\PMWIN32.SDF', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\PMWIN32.SDF  'cddir'\os2image\fi\sysmgt\OS2\PDPSI\PMDF\WARP45\.'
+if stream(fpdir'\GSVINST.EXE', 'c', 'query exists') <> '' then call add2bundle 'GSVINST.EXE    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\PSSEMS.EXE',  'c', 'query exists') <> '' then call add2bundle 'PSSEMS.EXE     os2image\disk_0\bundle \OS2'
+if stream(fpdir'\PSFILES.EXE', 'c', 'query exists') <> '' then call add2bundle 'PSFILES.EXE    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\RJAPPLET.EXE','c', 'query exists') <> '' then call add2bundle 'RJAPPLET.EXE   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\SYSLEVEL.FPK','c', 'query exists') <> '' then call add2bundle 'SYSLEVEL.FPK   os2image\disk_0\bundle \OS2\INSTALL'
+if stream(fpdir'\SYSLEVEL.LVM','c', 'query exists') <> '' then call add2bundle 'SYSLEVEL.LVM   os2image\disk_0\bundle \OS2\INSTALL'
+if stream(fpdir'\PRDESC.LS2',  'c', 'query exists') <> '' then call add2bundle 'PRDESC.LS2     os2image\disk_0\bundle \OS2\INSTALL'
+if stream(fpdir'\OS2KRNL.SYM', 'c', 'query exists') <> '' then call add2bundle 'OS2KRNL.SYM    os2image\disk_0\bundle '
+if stream(fpdir'\WELCOME.EXE', 'c', 'query exists') <> '' then call add2bundle 'WELCOME.EXE    os2image\disk_1\bundle \OS2'
+if stream(fpdir'\WPNLS.DLL',   'c', 'query exists') <> '' then call add2bundle 'WPNLS.DLL      os2image\disk_3\bundle \OS2\DLL'
+if stream(fpdir'\PMPRNTXT.QPR','c', 'query exists') <> '' then call add2bundle 'PMPRNTXT.QPR   os2image\disk_4\bundle \OS2\DLL'
+if stream(fpdir'\CACHEJFS.EXE','c', 'query exists') <> '' then call add2bundle 'CACHEJFS.EXE   'location.jfs'         \OS2'
+if stream(fpdir'\CHKLGJFS.EXE','c', 'query exists') <> '' then call add2bundle 'CHKLGJFS.EXE   'location.jfs'         \OS2'
+if stream(fpdir'\MMPARTS.DLL', 'c', 'query exists') <> '' then call add2bundle 'MMPARTS.DLL    'location.mmparts'     \MMOS2\DLL'
+if stream(fpdir'\KBDBE.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDBE.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDCA.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDCA.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDDA.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDDA.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDFC.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDFC.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDFR.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDFR.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDIC.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDIC.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDIT.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDIT.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDLA.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDLA.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDNE.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDNE.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDNO.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDNO.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDPO.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDPO.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDSF.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDSF.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDSG.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDSG.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDSP.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDSP.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDUK.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDUK.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDGR.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDGR.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDUSX.DLL',  'c', 'query exists') <> '' then call add2bundle 'KBDUSX.DLL     'location.winenv'      \SYSTEM'
+
+if stream(fpdir'\logdump.exe', 'c', 'query exists') <> '' then call add2bundle 'LOGDUMP.EXE    'location.jfs'         \OS2'
+if stream(fpdir'\KBDFI.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDFI.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\KBDSW.DLL',   'c', 'query exists') <> '' then call add2bundle 'KBDSW.DLL      'location.winenv'      \SYSTEM'
+if stream(fpdir'\ICMEMCDD.SYS','c', 'query exists') <> '' then call add2bundle 'ICMEMCDD.SYS   'location.pcmcia'      \OS2\BOOT'
+if stream(fpdir'\ICMEMMTD.SYS','c', 'query exists') <> '' then call add2bundle 'ICMEMMTD.SYS   'location.pcmcia'      \OS2\BOOT'
+if stream(fpdir'\ICMEMFMT.EXE','c', 'query exists') <> '' then call add2bundle 'ICMEMFMT.EXE   'location.pcmcia'      \OS2'
+if stream(fpdir'\LMS205.ADD',  'c', 'query exists') <> '' then call add2bundle 'LMS205.ADD     os2image\disk_3\cdromflt \OS2\BOOT'
+if stream(fpdir'\SYM8XX.ADD',  'c', 'query exists') <> '' then call add2bundle 'SYM8XX.ADD     os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\SYM8XXPC.EXE','c', 'query exists') <> '' then call add2bundle 'SYM8XXPC.EXE   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\SYM_HI.ADD',  'c', 'query exists') <> '' then call add2bundle 'SYM_HI.ADD     os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\SYM_HIPC.EXE','c', 'query exists') <> '' then call add2bundle 'SYM_HIPC.EXE   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBCDROM.ADD','c', 'query exists') <> '' then call add2bundle 'USBCDROM.ADD   os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\USBETHR.NIF', 'c', 'query exists') <> '' then call add2bundle 'USBETHR.NIF    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBETHR.OS2', 'c', 'query exists') <> '' then call add2bundle 'USBETHR.OS2    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBMSD.ADD',  'c', 'query exists') <> '' then call add2bundle 'USBMSD.ADD     os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\USBOHCD.SYS', 'c', 'query exists') <> '' then call add2bundle 'USBOHCD.SYS    os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\USBAUDIO.ICO','c', 'query exists') <> '' then call add2bundle 'USBAUDIO.ICO   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBAUDIO.SCR','c', 'query exists') <> '' then call add2bundle 'USBAUDIO.SCR   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBAUDIO.HLP','c', 'query exists') <> '' then call add2bundle 'USBAUDIO.HLP   os2image\disk_0\bundle \OS2\HELP'
+
+if stream(fpdir'\HCIMONIT.EXE','c', 'query exists') <> '' then call add2bundle 'HCIMONIT.EXE   os2image\disk_0\bundle \OS2'
+if stream(fpdir'\IPSRAID.EXE', 'c', 'query exists') <> '' then call add2bundle 'IPSRAID.EXE    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\IPSSEND.EXE', 'c', 'query exists') <> '' then call add2bundle 'IPSSEND.EXE    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\MULTIPT.EXE', 'c', 'query exists') <> '' then call add2bundle 'MULTIPT.EXE    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\TSTUSBC.EXE', 'c', 'query exists') <> '' then call add2bundle 'TSTUSBC.EXE    os2image\disk_0\bundle \OS2'
+if stream(fpdir'\USBEHCD.SYS', 'c', 'query exists') <> '' then call add2bundle 'USBEHCD.SYS    os2image\disk_0\bundle \OS2\BOOT'
+if stream(fpdir'\UP2TB.FLT',   'c', 'query exists') <> '' then call add2bundle 'UP2TB.FLT      os2image\disk_0\bundle \OS2\BOOT'
+
+
+/* pack cardbus stuff */
+if stream(fpdir'\AUTODRV.DOC',  'c', 'query exists') <> '' then call add2bundle 'AUTODRV.DOC   'location.pcmcia' \OS2\HELP'
+if stream(fpdir'\CARDBUS.TXT',  'c', 'query exists') <> '' then call add2bundle 'CARDBUS.TXT   'location.pcmcia' \OS2\HELP'
+if stream(fpdir'\PAWFLDR.ICO',  'c', 'query exists') <> '' then call add2bundle 'PAWFLDR.ICO   'location.pcmcia' \OS2'
+if stream(fpdir'\PCMCIA2.CRD',  'c', 'query exists') <> '' then call add2bundle 'PCMCIA2.CRD   'location.pcmcia' \OS2'
+if stream(fpdir'\PROTOCOL.INI', 'c', 'query exists') <> '' then call add2bundle 'PROTOCOL.INI  'location.pcmcia' OS2\TDKFLYR'
+if stream(fpdir'\TDKENAB.OS2',  'c', 'query exists') <> '' then call add2bundle 'TDKENAB.OS2   'location.pcmcia' OS2\TDKFLYR'
+if stream(fpdir'\TDKFLYR.OS2',  'c', 'query exists') <> '' then call add2bundle 'TDKFLYR.OS2   'location.pcmcia' OS2\TDKFLYR'
+
+if stream(fpdir'\SLPR.PDR'  ,   'c', 'query exists') <> '' then call add2bundle 'SLPR.PDR       os2image\disk_0\bundle \OS2\DLL'
+if stream(fpdir'\SLPR.HLP'  ,   'c', 'query exists') <> '' then call add2bundle 'SLPR.HLP       os2image\disk_0\bundle \OS2\DLL'
+
+/* relocate stuff */
+
+/* delete stuff */
+if location.mmtemp <> 'LOCATION.MMTEMP' then '@bin\pack2 \MMTEMP\JOIN.TXT 'cddir'\'location.mmtemp' /R >nul'
+call execute '@del 'fpdir'\os2krnl'

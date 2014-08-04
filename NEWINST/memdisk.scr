@@ -1,0 +1,11 @@
+create archive memdisk.pf
+  newline
+  output " This updated OS/2 installation CD-ROM was created by UpdCD";
+  output " ==========================================================";
+  newline
+  output " HomePage: http://www.updcd.tk";
+  output " Support : http://groups.yahoo.com/group/updcd";
+  newline 
+	bootsector os2ldr.sek
+  next pointer bootdisk.pf
+close archive

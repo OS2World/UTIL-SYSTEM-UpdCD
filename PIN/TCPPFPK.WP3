@@ -1,0 +1,36 @@
+/* Postprocessing steps for incorporating TCP/IP 0959+0980 fixpaks       */
+/* 08.11.2001: added incorporation of national TCP/IP fixpak files       */
+/* 11.17.2001: added MAKE_PW.CAT, UPDATE.CAT, SNMPTRAP.DLL, SNMPTRAP.ICO */
+/* 06.21.2002: added ERSU.ICO                                            */
+
+/* zip extras */
+/*           target zip                 path             files to add    */
+call add2zip 'CID\IMG\TCPAPPS\base1.zip help             DDNSBK1.INF DDNSBK2.INF DHCPSCFG.HLP DHCPSCGD.INF'
+call add2zip 'CID\IMG\TCPAPPS\base1.zip bin              DDNSZONE.CMD RPCGEN.EXE UINSTALL.EXE MAKE_PW.CAT'
+call add2zip 'CID\IMG\TCPAPPS\base2.zip dll              LPR32.DLL'
+call add2zip 'CID\IMG\TCPAPPS\base3.zip bin              TNLOGIN.EXE'
+call add2zip 'CID\IMG\TCPAPPS\base3.zip dll              CNBSOCKS.DLL SENDMAIL.DLL'
+
+call add2zip 'CID\IMG\TCPAPPS\base3.zip 'tcpip_lang_dir' ADD.ICO ALLGRP5.ICO ARTICLE5.ICO ARTLST5.ICO BKSEARC5.ICO BOOTP.CAT BOOTPD.CAT CNBDNS.CAT CNBGEN.CAT CNBIAK.CAT CNBMAIL.CAT CNBPRT.CAT CNBSERV.CAT CNBSMAIL.CAT CNBSNMP.CAT CNBSTK.CAT CONNECT.ICO'
+call add2zip 'CID\IMG\TCPAPPS\base3.zip 'tcpip_lang_dir' DPKT.CAT ERROR5.ICO FAPIDLL.CAT FINGER.CAT FTP.CAT FTPAPI.CAT FTPD.CAT FTPPM.CAT FTPPM.DLL FTPPM.ICO FTPWPS.ICO FTPWPSR.CAT FTPWPSR.DLL GIF5.ICO GOPHER.CAT GOPHER.DLL GOPHER5.ICO GRPLST5.ICO'
+call add2zip 'CID\IMG\TCPAPPS\base3.zip 'tcpip_lang_dir' HANGUP.ICO IFOLDER.CAT IMAGE5.ICO INETD.CAT INFO5.ICO ITEMSCH5.ICO LINKUP.CAT LOOK.CAT LPR.CAT MAC5.ICO MODIFY.ICO MOVFILE5.ICO MYBIN5.ICO NEWS6.ICO NOTCON.ICO NR2.CAT NSLOOKUP.CAT PCBIN5.ICO'
+call add2zip 'CID\IMG\TCPAPPS\base3.zip 'tcpip_lang_dir' PIC5.ICO PLAINFL5.ICO PMPING.CAT PMPING.DLL PMPING.ICO PMPING1.ICO PMPING2.ICO PPP.CAT RCMD.CAT REGCONN.ICO REMOVE.ICO REXECD.CAT ROUTED.CAT RPCINFO.CAT RSHD.CAT SENDMAIL.CAT SETTERM.CAT'
+call add2zip 'CID\IMG\TCPAPPS\base3.zip 'tcpip_lang_dir' SETTERM.DLL SETTERM.ICO SLATTACH.CAT SLIP.CAT SLIPPM.CAT SOUND5.ICO SYSLOGD.CAT TALK.CAT TALKD.CAT TCPIPCFG.CAT TCPIPCFG.DLL TELNET5.ICO TELNETD.CAT TFTP.CAT TFTPD.CAT TN.CAT TN32705.ICO'
+call add2zip 'CID\IMG\TCPAPPS\base3.zip 'tcpip_lang_dir' TNLS.DLL TNPM.DLL UU5.ICO WEB5.ICO WPTNRES.DLL'
+
+call add2zip 'CID\IMG\TCPAPPS\base4.zip bin              PPPKILL.EXE PPPTERM.EXE SLIPKILL.EXE WSTRACE.CMD SNMPTRAP.DLL SNMPTRAP.ICO'
+call add2zip 'CID\IMG\TCPAPPS\base4.zip dll              SLIPREXX.DLL'
+call add2zip 'CID\IMG\TCPAPPS\inet1.zip dll              LINKUP.DLL SLIPPM.DLL'
+call add2zip 'CID\IMG\TCPAPPS\inet1.zip bin              RSUINST.EXE UPDATE.CAT ERSU.ICO'
+
+call add2zip 'CID\IMG\TCPAPPS\inet1.zip 'tcpip_lang_dir' EXPLORE.CAT'
+
+call add2zip 'CID\IMG\TCPAPPS\inet2.zip bin              GETNETSC.ICO'
+
+call add2zip 'CID\IMG\TCPAPPS\inet2.zip dll              NR2.DLL WEBEXURL.DLL'
+
+call add2zip 'CID\IMG\TCPAPPS\inet2.zip 'tcpip_lang_dir' EXPLORE.DLL'
+
+/* copy extras */
+call execute '@copy 'fpdir'\INSTALL.CAT  'cddir'\cid\img\tcpapps\.'
+call execute '@copy 'fpdir'\INSTALL.DLL  'cddir'\cid\img\tcpapps\.'

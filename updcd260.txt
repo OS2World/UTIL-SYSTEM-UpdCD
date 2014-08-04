@@ -1,0 +1,26 @@
+                          Upload Information Template for Hobbes.nmsu.edu
+                          ===============================================
+
+        Archive Filename: updcd260.zip
+       Short Description: Update OS/2 installation CD-ROM with fixpaks
+        Long Description: This program can be used to incorporate fixpaks and updates into an OS/2 (Warp 3/4, WSeB, CP, eCS) installation CD-ROM. 
+
+      Proposed directory
+           for placement: /pub/os2/system/patches
+
+               Your name: Zsolt Kadar
+           Email address: info@updcd.tk
+    Program contact name: (same)
+   Program contact email: (same)
+             Program URL: http://www.updcd.tk
+
+      Would you like the
+   contact email address
+    included in listings? yes
+
+Operating System/Version: OS/2 Warp 3/4, WSeB, CP, eCS, DOS/Windows
+ Additional requirements: Classic REXX support, Fixpaks, SVDISK or VFDISK, CDrecord/2+MKISOFS or RSJ
+
+                Replaces: updcd250.zip, updcd240.zip
+
+

@@ -1,0 +1,100 @@
+2.51
+fix: relocated addons scripts were not updated by install.cmd
+fix: udf driver was added after cdfs.ifs
+fix: aligned cdrecord addons cript with directory structure of cdrecord 2.0
+fix: TCP/IP of eCS 1.1 was always installed on drive C:
+fix: XWP, ODIN, Amouse were not fully installed (use minimal Warpin 1.0.7)
+fix: TCP/IP 4.1/2/3 did not install without adding TCP/IP update (WSeB, CP)
+fix: IBMCDROM.DMD was not updated (eCS 1.1)
+fix: XWP-NLS package was not fully installed 
+fix: relocated updcd.log was not copied to burn
+new: made 3rd party WPI addon (odin, xwp, amous, tcpcfg) install unattended 
+new: added unicode.sys check to udf addon script
+new: added support for German XWP NLS
+new: support for installing NFS and VPN icw TCP/IP 4.3 (all except eCS 1.0)
+new: made LVM files optional for JFS addon
+new: lxlite floppy image before updating to save space
+
+2.52
+fix: RSJ could not find bootimage files
+fix: viewer setting was not sticky
+fix: improved path handling in tools addon
+new: renamed updcd's readme.1st to readme.ucd
+new: added check to warn if CD is already updated with updcd
+new: add relative os2image disk pathes to config.sys
+new: tools addon made zip oriented
+new: added uninstall in tools addon
+
+2.53
+fix: tools addon (un)install scripts were not run from install directory
+fix: plugin wrapper for Mozilla did not install correctly
+fix: RSJ command was used while burn with CDRecord
+fix: install script set the burn program to RSJ even if CDRecord was used
+new: aligned various addons scripts with os2mt
+new: OpenSSH addon moved to slot 65_OPSSH
+new: Security/2 installation has got its own slot (64_SECUR)
+new: added support for SAMBA/2 server addon (66_SAMBA)
+new: added verify and MD5 checksum creation option to burn process
+new: updated Flash addon to support Flash7
+
+2.54
+fix: Cachef32.exe should be unlocked before updating (FAT32 addon)
+fix: Samba and Security/2 folders were left on Desktop (addons)
+new: Mozilla/Firefox install script updated to work with ipluginw.xpi (addon)
+new: Added support for Netdrive+plugins addon (addon)
+new: updated German NLS
+new: MOZ_PLUGIN_PATH overrides plugin PATH during FLASH installation (addon)
+new: Flash 7 addon will install to util\flash (just like version 5 does)
+new: updated addon support my sound driver to work with uniaud (addon)
+new: updated memboot to version 2005.11.01
+new: added regeneration of MD5 checksum (eCS 1.2R)
+
+2.55
+new: added support for OdinGUI (Odin addon)
+new: win32k.sys will not be activated if os2krnl.sym is not present
+new: Mozilla/FireFox addon installation script cleans up previous version
+fix: when selecting RSJ, boot emulation method should be set
+fix: updated memboot to version 2006.01.23 because of Warp 4 boot problem
+
+2.56
+new: added support for USB devices during boot (not for Warp 3 or eCS 1.x)
+new: aligned with cdrtools 2.01.01a04 (rename *2.exe to *.exe)
+new: updated USB addon script to support latest USB drivers
+new: replaced Mozilla addon with Seamonkey addon
+new: changed default addon install path from util to programs to suit eCS 1.x
+fix: record.cmd still called RSJ commands when using CDRecord
+fix: record.cmd did not delete splitted DVD burn files
+fix: logging extrap2 parameter did not work properly
+fix: addon installation icon did not work on eCS 1.2
+fix: printer list was not updated on eCS 1.2R
+
+2.57
+new: support for SLPR integration 
+new: support for WPGSVPWR.HLP integration
+new: added support for Acrobat 5.1 preview addon
+new: added support for USBSER package
+fix: aspi router installation screwed up the config.sys
+fix: TCPCFG addon folder was not moved from desktop
+fix: added /!S option to isocomp to enable batch mode verify operation
+
+2.58
+new: added support for USBQSER package
+new: removed old amouse addon (12_AMUSE)
+new: aligned xwp addon installation script with xwp version 1.0.5
+new: support for installing DHCP_DDNS from TCP/IP 4.3 on Warp 3, WSeB & CP
+new: create ifolder.exe object to (re)create missing TCP/IP 4.3 objects
+fix: macs.zip should be recreated in eCS MPTS distribution
+fix: DHCP_DDNS objects are not created (warp 4)
+fix: updated eCS 1.0 directory listing to show dialog enhancer update
+fix: LS error NET2186 on CP and WSeB when integrating IP08608
+fix: TCP/IP files had wrong time stamp when integrating UN02334
+
+2.59
+fix: executing attrib on empty fixes or updates dir caused error
+fix: TCP/IP 4.3 did not install without FI update 1.25 on WSeB
+fix: updcd will patch sysinst2.exe to avoid aic78u2.add load error (wseb, cp1)
+
+2.60
+fix: cp1 syslevel.os2 was not updated correctly using base fixpak 4 or higher
+fix: some default updcd.cfg parameters were not set correctly
+new: aligned with cp fixpak 6

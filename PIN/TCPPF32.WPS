@@ -1,0 +1,4 @@
+/* Postprocessing steps for incorporating TCP/IP UN2001 fixpak */
+
+/* copy extras */
+if stream(fpdir'\lpinst.exe', 'c', 'query exists') <> '' then call execute '@copy 'fpdir'\lpinst.exe      'cddir'\CID\SERVER\TCPAPPS\INSTALL\BASE\.'

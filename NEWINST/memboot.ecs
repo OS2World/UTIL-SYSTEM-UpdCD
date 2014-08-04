@@ -1,0 +1,78 @@
+# sample input file for MemCFG, record version 7
+#
+# usage: MemCfg.exe a:\memboot.bin < MemCfg.rsp
+#
+# size of memory disk (KiB)
+$Disk_KiB$=8192
+#
+# minimum of OS needed memory and 16 (MiB)
+$OSminMib$=16
+#
+# additional disk size, if available after assigning above (KiB)
+$ADDD_KiB$=0
+#
+# additional disk size, if available after assigning above (0..100) %
+$ADDD_PER$=30
+#
+# LVM partition name
+$PartName$=ECS MEMDISK
+#
+# LVM volume name
+$VolName_$=eCS Memory Bootdisk
+#
+# tries to get driver letter Z from LVM
+$V_Letter$=Z:
+#
+# false=logical partition true=primary
+$PartType$=true
+#
+# terminate CD-ROM emulation
+$TermEmul$=true
+#
+# [f]loppy,[h]arddisk,[m]emdisk,[*]ask user
+$BootTarg$=m
+#
+# apply patches from a:
+$Update_A$=true
+#
+# apply patches from b:
+$Update_B$=true
+#
+# debug display over nullmodem serial line
+$SerialDB$=false
+#
+# unpacker progress indicator, 0=none, 1=þþþ blocks, 2=filenames
+$Indicato$=1
+#
+# present 2 level eComstation menu
+$eCS_Menu$=1
+#
+# +1=display STEP, +2=test memory
+$DebugOpt$=1
+#
+# for codepage <> 437
+$LoadFont$=false
+#
+# modify RGB values of black (to very dark blue) and white (to more yellow)
+$PaletteM$=false
+#
+# call OS2CSM.BIN
+$CALL_CSM$=true
+#
+# copy plain files on primary source
+$UpdPPrim$=true
+#
+# char for type 1 progress bar blocks
+$ProgChar$=Û
+#
+# enable config.sys editor. os2csm will disable it in silent mode
+$ConfigEd$=true
+#
+# A20/extended memory access, 0=BIOS 1=private 2=automatic
+$A20_Acc_$=2
+#
+# scan hard disk LVM tables for drive letter conflicts
+$LVM_L_HD$=true
+#
+# store result of this input.
+$SaveFile$=yes

@@ -1,0 +1,26 @@
+/* Postprocessing steps for printer fixpak                 */
+/* 08.12.2001: added incorporation of pin and ppdenc files */
+/* 09.19.2004: made omni file incorporation conditional    */
+/*             made everything conditional (less warnings) */
+
+/* copy extras */
+
+/* pack extras */
+if stream(fpdir'\plotters.sym',     'c', 'query exists') <> '' then call add2bundle 'plotters.sym   os2image\pmdd_1\PLOTTERS.DR_ \PLOTTERS'
+if stream(fpdir'\laserjet.sym',     'c', 'query exists') <> '' then call add2bundle 'laserjet.sym   os2image\pmdd_1\LASERJET.DR_ \LASERJET'
+if stream(fpdir'\pscript.sym',      'c', 'query exists') <> '' then call add2bundle 'pscript.sym    os2image\pmdd_1\PSCRIPT.DR_  \PSCRIPT'
+if stream(fpdir'\pin.sym',          'c', 'query exists') <> '' then call add2bundle 'pin.sym        os2image\pmdd_1\PSCRIPT.DR_  \PSCRIPT'
+if stream(fpdir'\ppdenc.sym',       'c', 'query exists') <> '' then call add2bundle 'ppdenc.sym     os2image\pmdd_1\PSCRIPT.DR_  \PSCRIPT'
+if stream(fpdir'\pin.exe',          'c', 'query exists') <> '' then call add2bundle 'pin.exe        os2image\pmdd_1\PSCRIPT.DR_  \PSCRIPT'
+if stream(fpdir'\ppdenc.exe',       'c', 'query exists') <> '' then call add2bundle 'ppdenc.exe     os2image\pmdd_1\PSCRIPT.DR_  \PSCRIPT'
+if stream(fpdir'\printer1.pak',     'c', 'query exists') <> '' then call add2bundle 'printer1.pak   os2image\pmdd_1\PSCRIPT.DR_  \PSCRIPT'
+if stream(fpdir'\omni.sym',         'c', 'query exists') <> '' & stream(burn'\os2image\pmdd_1\OMNI.DR_', 'c', 'query exists') <> '' then call add2bundle 'omni.sym       os2image\pmdd_1\OMNI.DR_     \OMNI'
+if stream(fpdir'\pre32.dll',        'c', 'query exists') <> '' & stream(burn'\os2image\pmdd_1\OMNI.DR_', 'c', 'query exists') <> '' then call add2bundle 'pre32.dll      os2image\pmdd_1\OMNI.DR_     \OMNI'
+if stream(fpdir'\epsong10.fmf',     'c', 'query exists') <> '' & stream(burn'\os2image\pmdd_1\OMNI.DR_', 'c', 'query exists') <> '' then call add2bundle '*.fmf          os2image\pmdd_1\OMNI.DR_     \OMNI'
+if stream(fpdir'\omni.sym',         'c', 'query exists') <> '' & stream(burn'\os2image\pmdd_2\OMNI.DR_', 'c', 'query exists') <> '' then call add2bundle 'omni.sym       os2image\pmdd_2\OMNI.DR_     \OMNI'
+if stream(fpdir'\pre32.dll',        'c', 'query exists') <> '' & stream(burn'\os2image\pmdd_2\OMNI.DR_', 'c', 'query exists') <> '' then call add2bundle 'pre32.dll      os2image\pmdd_2\OMNI.DR_     \OMNI'
+if stream(fpdir'\epsong10.fmf',     'c', 'query exists') <> '' & stream(burn'\os2image\pmdd_2\OMNI.DR_', 'c', 'query exists') <> '' then call add2bundle '*.fmf          os2image\pmdd_2\OMNI.DR_     \OMNI'
+
+/* relocate stuff */
+
+

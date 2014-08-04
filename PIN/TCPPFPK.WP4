@@ -1,0 +1,6 @@
+/* Postprocessing steps for incorporating TCP/IP 0980 fixpak */
+
+/* zip extras */
+/*           target zip                    path            files to add    */
+call add2zip 'CID\IMG\TCPAPPS\base1.zip    help            DDNSBK1.INF DDNSBK2.INF DHCPSCFG.HLP DHCPSCGD.INF'
+call add2zip 'CID\IMG\TCPAPPS\base1.zip    bin             DDNSZONE.CMD RPCGEN.EXE'
